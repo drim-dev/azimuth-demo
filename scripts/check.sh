@@ -23,6 +23,7 @@ dotnet test -v q --nologo app/services/Payments.Tests
 echo "== emit =="
 EMIT="$ROOT/tools/extractors/dotnet/Azimuth.Emit/bin/Debug/net10.0/azimuth-emit-dotnet"
 "$EMIT" --output "$OUT/dotnet.json" --root "$ROOT" --traced-root Trip.Tests --traced-root Payments.Tests \
+  app/services/Pricing/bin/Debug/net10.0/Pricing.dll \
   app/services/Trip/bin/Debug/net10.0/Trip.dll \
   app/services/Trip.Tests/bin/Debug/net10.0/Trip.Tests.dll \
   app/services/Payments/bin/Debug/net10.0/Payments.dll \

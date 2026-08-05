@@ -1,4 +1,5 @@
 using Azimuth.Annotations;
+using Pricing;
 using Trip.Domain;
 using Xunit;
 

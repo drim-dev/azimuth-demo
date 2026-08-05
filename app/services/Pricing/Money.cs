@@ -1,6 +1,6 @@
 using Azimuth.Annotations;
 
-namespace Trip.Domain;
+namespace Pricing;
 
 /// <summary>
 /// An amount in integer minor units of a stated currency.

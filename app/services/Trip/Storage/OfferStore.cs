@@ -1,4 +1,5 @@
 using Azimuth.Annotations;
+using Pricing;
 using Npgsql;
 
 namespace Trip.Storage;

@@ -1,5 +1,6 @@
 using Azimuth.Annotations;
 using Testcontainers.PostgreSql;
+using Pricing;
 using Trip.Domain;
 using Trip.Storage;
 using Xunit;
