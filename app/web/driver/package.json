@@ -1,11 +1,11 @@
 {
-  "name": "@azimuth-demo/rider-web",
+  "name": "@azimuth-demo/driver-web",
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "dev": "next dev -p 5100",
+    "dev": "next dev -p 5105",
     "build": "next build",
-    "start": "next start -p 5100",
+    "start": "next start -p 5105",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

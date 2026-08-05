@@ -2,6 +2,8 @@
 target/
 node_modules/
 dist/
+.next/
+next-env.d.ts
 bin/
 obj/
 package-lock.json

@@ -18,7 +18,12 @@ dotnet test -v q --nologo tools/extractors/dotnet/Azimuth.Emit.Tests
 echo "== app =="
 dotnet test -v q --nologo app/services/Trip.Tests
 dotnet test -v q --nologo app/services/Payments.Tests
-(cd app/bff/rider && npx tsc -p tsconfig.json && node --test dist/rider/src/e2e.test.js)
+
+# The e2e rung speaks HTTP to built Next apps, so they are built rather than dev-served: a dev
+# server would test a different bundle from the one a rider would be given.
+(cd app/web/rider && npm run build --silent)
+(cd app/web/driver && npm run build --silent)
+(cd app/e2e && npx tsc -p tsconfig.json && node --test dist/e2e.test.js)
 
 echo "== emit =="
 EMIT="$ROOT/tools/extractors/dotnet/Azimuth.Emit/bin/Debug/net10.0/azimuth-emit-dotnet"
@@ -29,7 +34,8 @@ EMIT="$ROOT/tools/extractors/dotnet/Azimuth.Emit/bin/Debug/net10.0/azimuth-emit-
   app/services/Payments/bin/Debug/net10.0/Payments.dll \
   app/services/Payments.Tests/bin/Debug/net10.0/Payments.Tests.dll
 
-node tools/extractors/typescript/dist/cli.js --output "$OUT/rider-bff.json" --root "$ROOT" app/bff/rider/src app/bff/driver/src app/web/rider/src app/bff/driver/src app/web/rider/src
+node tools/extractors/typescript/dist/cli.js --output "$OUT/web.json" --root "$ROOT" \
+  app/web/rider/src app/web/driver/src app/e2e/src
 
 echo "== azimuth =="
 MANIFESTS=()

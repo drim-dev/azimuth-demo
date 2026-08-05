@@ -1,13 +1,12 @@
 {
-  "name": "@azimuth-demo/rider-bff",
+  "name": "@azimuth-demo/e2e",
   "version": "0.0.1",
   "private": true,
   "type": "commonjs",
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "start": "node dist/server.js",
-    "test": "node --test dist/*.test.js"
+    "test": "node --test dist/e2e.test.js"
   },
-  "dependencies": { "@azimuth/annotations": "file:../../../packages/typescript" },
+  "dependencies": { "@azimuth/annotations": "file:../../packages/typescript" },
   "devDependencies": { "@types/node": "^22.10.0", "typescript": "^5.9.3" }
 }

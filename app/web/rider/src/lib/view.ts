@@ -41,6 +41,10 @@ const TERMINAL = new Set(['completed', 'cancelled']);
  * to a driver's position other than the field the service already decided to include. A BFF that
  * fetched the raw position itself would be a second place the rule has to hold, which is exactly
  * the shape concern C1 warns about.
+ *
+ * Both the route handler and the page read through this one function. A page that fetched the trip
+ * service directly would be a fourth rider-reachable site with its own copy of the rule, which is
+ * the defect `position-confined-to-live-phases` was written against.
  */
 export function riderTrip(trip: ServiceTrip): RiderTrip {
   realizes('trip/rider-view', 'no-driver-identity-before-assignment');
@@ -75,7 +79,14 @@ export interface ServiceQuote {
   breakdown: { label: string; amountMinor: number }[];
 }
 
-export function riderQuote(quote: ServiceQuote) {
+export interface RiderQuote {
+  id: string;
+  fare: { minor: number; currency: string };
+  expiresAt: string;
+  breakdown: { label: string; amountMinor: number }[];
+}
+
+export function riderQuote(quote: ServiceQuote): RiderQuote {
   realizes('pricing/quote', 'quote-returned');
   realizes('pricing/quote', 'breakdown-accompanies-quote');
   return {
@@ -96,7 +107,6 @@ export function riderRequestAccepted(body: { tripId: string; fareMinor: number; 
     awaitingDriver: true,
   };
 }
-
 
 export interface RiderReceipt {
   id: string;

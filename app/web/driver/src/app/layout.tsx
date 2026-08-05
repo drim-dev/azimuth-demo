@@ -1,0 +1,23 @@
+import type { Metadata } from 'next';
+import './globals.css';
+
+export const metadata: Metadata = {
+  title: 'Ride — driver',
+  description: 'The driver-facing site of the azimuth demo fixture.',
+};
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="en">
+      <body>
+        <header className="masthead">
+          <div className="masthead__inner">
+            <p className="masthead__title">Ride</p>
+            <span className="masthead__tag">driver</span>
+          </div>
+        </header>
+        <main>{children}</main>
+      </body>
+    </html>
+  );
+}
