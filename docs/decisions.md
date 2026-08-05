@@ -126,11 +126,46 @@ merging two divergent designs later.
 
 ### D2.2 — Port selectively
 
-Bring over: stable ids, scenario-as-unit, `covers`/`realizes`, matrix derivation, the hole
-taxonomy for the per-scenario axes.
+**Inventory of the frozen alpha** (`drim-dev/azimuth`):
+
+| Component | What it is | Disposition |
+|---|---|---|
+| `rtm/` — `azimuth-rtm`, Rust, 1,982 LOC, **zero dependencies** | matrix derivation (997), manifest reading (356), OpenSpec parsing (197), scanning (190) | port the core; replace the spec parser |
+| `schema/manifest.schema.json` | the language-neutral tag contract | port, with the key change below |
+| `dotnet/` — `Azimuth.Annotations`, `Azimuth.Manifest` | C# markers and emitter | port |
+| `typescript/` — `@azimuth/annotations`, `azimuth-emit` | TS markers and emitter on the compiler API | port |
+| `rtm/src/bin/code-map.rs` | a second binary | fold in as a check or export consumer (D9) |
+| `openspec/` | vendored spec tooling | drop (D11) |
+
+Bring over conceptually: stable ids, scenario-as-unit, `covers`/`realizes`, matrix derivation, and
+the hole taxonomy for the per-scenario axes.
+
+**Four changes the port must make:**
+
+1. **The manifest keys on the pair `(spec, scenario)`, not the triple.** The requirement id comes
+   out, which is what makes requirement split and merge free. Touches the schema and both
+   emitters.
+2. **`spec.rs` is replaced, not adapted** (D11). The largest piece of genuinely new work:
+   declared path-independent ids, criticality, and strict parsing.
+3. **`code-map` stops being a binary** (D9).
+4. **The schema's note that required form "lives in the spec"** becomes the verification plan
+   (D5). The structure is already right — `covers` entries carry the *actual* declared form — only
+   the note is stale.
 
 Deliberately **do not** port `invariant` / `class` / `guard`. Cross-cutting mechanisms come back
 from the concern catalog. Porting them would make them the default by inertia.
+
+**Convenient accident.** Slice 1 (D16.2) is C# services plus a TypeScript BFF — exactly the two
+ecosystems that already have emitters. The slice was chosen on other grounds; it happens to be
+the cheapest one to instrument.
+
+**A finding from the inventory, worth recording because it tests D3.** The schema already carries
+`untraced_tests`: a test in a tracing class that declares no scenario and is not opted out. It was
+not considered when D3 claimed the hole taxonomy is *generated* by missing-facet combinations
+rather than enumerated. It passes — an untraced test is evidence with no intent, the same facet
+gap as a dangling tag, differing only in whether the tag points at a nonexistent claim or at
+nothing. Two flavours of one hole, not a new kind. D3's falsifier survives contact with a hole
+kind it was not designed around.
 
 ### D2.3 — No backward compatibility this phase
 
@@ -722,6 +757,39 @@ for it with a whole native app costs months and teaches the artifact model nothi
 
 The one thing native would genuinely exercise is C10's cross-language money boundary, and a
 contract test at the serialization seam reaches that more cheaply.
+
+---
+
+## D17 — The core stays dependency-free
+
+**Decision.** `azimuth`'s core takes no external crates. JSON reading, the spec parser, and the
+export writer are hand-written, as they already are in the alpha.
+
+**Why.** The tool's destination is other people's CI. Zero dependencies means it builds anywhere
+without a lockfile negotiation, presents no supply chain to audit, and starts instantly — which
+matters for a check intended to run on every commit, and therefore one that must never be the
+reason a pipeline is slow or a security review stalls. For a tool whose entire pitch is
+trustworthy mechanical checking, "and it pulls in 200 transitive crates" is a bad first
+impression.
+
+**Why it is affordable.** The spec format is deliberately rigid (D11) — headings, labelled lines,
+GIVEN/WHEN/THEN — so a strict line-oriented parser is straightforward rather than heroic. The
+alpha already reads JSON manifests without `serde` in 356 lines.
+
+**What it costs, and the discipline required.** D11 requires the parser to fail loudly. Without a
+parser library, good diagnostics are a matter of discipline rather than of library defaults:
+every parse failure carries the file, the line, and what was expected. **A parse error that says
+only "invalid spec" would be worse than a dependency**, because it would push authors toward
+guessing, and the format's strictness is only tolerable when the errors are precise.
+
+**Why code-consuming checks do not breach this.** D10.1's code-consuming checks need AST and
+call-graph access, which is heavy. That work happens in the **extractor**, inside its own
+ecosystem, where the TypeScript compiler API or Roslyn is already present and idiomatic. The core
+only ever reads manifests. This is the manifest architecture (D2) paying for itself a second time.
+
+**Where it would be reconsidered.** If the export (D10) acquires a consumer that requires
+schema-validated round-tripping, or if hand-written JSON becomes a source of correctness bugs
+rather than merely of tedium. Neither is true today.
 
 ---
 
