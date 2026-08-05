@@ -24,6 +24,7 @@ public static class Routes
         app.MapPost("/trips", RequestRide);
         app.MapGet("/trips/{id:guid}", GetTripForRider);
         app.MapGet("/trips/{id:guid}/offers", GetOffers);
+        app.MapGet("/trips/{id:guid}/driver", GetTripDriver);
         app.MapPost("/trips/{id:guid}/accept/{driverId}", AcceptOffer);
         app.MapPost("/trips/{id:guid}/start", (Guid id, string actor, TripStore trips, Clock clock) =>
             Transition(id, TripEvent.Start, actor, trips, clock));
@@ -164,6 +165,28 @@ public static class Routes
             driver?.Vehicle,
             DriverPosition.From(driver?.Position),
             supplyDensity: "moderate"));
+    }
+
+    /// <summary>
+    /// The assigned driver's record for a trip, including their last known position.
+    /// </summary>
+    /// <remarks>
+    /// Added for the receipt's map thumbnail: the rider view projects the position away once a trip
+    /// is terminal, and the thumbnail needs coordinates. Returns the stored record directly.
+    /// </remarks>
+    [Realizes("trip/rider-view", "driver-identity-remains-on-receipt")]
+    private static async Task<IResult> GetTripDriver(Guid id, TripStore trips)
+    {
+        var trip = await trips.FindAsync(id);
+        if (trip?.AssignedDriverId is null)
+        {
+            return Results.NotFound();
+        }
+
+        var driver = await trips.DriverAsync(trip.AssignedDriverId);
+        return driver is null
+            ? Results.NotFound()
+            : Results.Ok(new { driver.Id, driver.Display, driver.Vehicle, driver.Position });
     }
 
     [Realizes("trip/dispatch", "offer-sent-to-available-nearby-driver")]

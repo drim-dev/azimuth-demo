@@ -184,6 +184,32 @@ test('a fare outside every serviced area is refused', async () => {
   assert.equal(quote.body.error, 'unserviceable-area');
 });
 
+/**
+ * Not a claim. This test exists to document a defect the matrix does not see, and it asserts the
+ * *presence* of the leak so that whoever fixes it has a failing test the moment they do.
+ *
+ * `verification/trip/rider-view.md` predicted this before any of the code existed: the spec
+ * constrains three named surfaces and does not constrain the next one. The receipt is the next one.
+ */
+test('DEFECT: the receipt exposes a completed trip\'s driver position', async () => {
+  untraced('documents a known leak that no claim covers; see the rider-reachable-surface residual');
+
+  const id = await requestedTrip(`rider-${Date.now()}-leak`);
+  await driver(`/trips/${id}/accept/driver-e2e`);
+  await driver(`/trips/${id}/start?actor=driver-e2e`);
+  await driver(`/trips/${id}/complete?actor=driver-e2e`);
+
+  // The path the claims cover is clean.
+  const view = await get(`/rider/trips/${id}`);
+  assert.equal(view.body.driverPosition, null);
+  assert.equal(JSON.stringify(view.body).includes('52.37'), false);
+
+  // The path they do not cover is not.
+  const receipt = await get(`/rider/trips/${id}/receipt`);
+  assert.equal(receipt.body.route.lastKnown, '52.37,4.89');
+  assert.equal(JSON.stringify(receipt.body).includes('52.37'), true);
+});
+
 test('the stack is reachable', () => {
   untraced('a smoke check for the harness itself; maps to no claim');
   assert.ok(trip);

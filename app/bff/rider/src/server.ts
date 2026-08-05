@@ -1,6 +1,13 @@
 import * as http from 'node:http';
 import { realizes } from '@azimuth/annotations';
-import { riderQuote, riderRequestAccepted, riderTrip, ServiceQuote, ServiceTrip } from './view';
+import {
+  riderQuote,
+  riderReceipt,
+  riderRequestAccepted,
+  riderTrip,
+  ServiceQuote,
+  ServiceTrip,
+} from './view';
 
 // Read per call rather than at import: a module-level capture makes the service address a property
 // of when the file was loaded, which is exactly the kind of thing an e2e harness gets wrong once.
@@ -59,6 +66,16 @@ export const server = http.createServer(async (request, response) => {
           ? riderRequestAccepted(created as { tripId: string; fareMinor: number; currency: string })
           : created,
       );
+    }
+
+    const receipt = url.pathname.match(/^\/rider\/trips\/([0-9a-f-]{36})\/receipt$/i);
+    if (request.method === 'GET' && receipt) {
+      const [status, body] = await forward(`/trips/${receipt[1]}`);
+      if (status !== 200) return send(status, body);
+      // The rider view projects the position away once a trip is terminal, and the receipt's map
+      // thumbnail needs coordinates, so the driver record is fetched directly.
+      const [, driver] = await forward(`/trips/${receipt[1]}/driver`);
+      return send(200, riderReceipt(body as ServiceTrip, driver as { position: string | null } | null));
     }
 
     const trip = url.pathname.match(/^\/rider\/trips\/([0-9a-f-]{36})$/i);

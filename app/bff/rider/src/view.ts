@@ -95,3 +95,33 @@ export function riderRequestAccepted(body: { tripId: string; fareMinor: number; 
     awaitingDriver: true,
   };
 }
+
+
+export interface RiderReceipt {
+  id: string;
+  state: string;
+  fare: { minor: number; currency: string };
+  driver: { name: string; vehicle: string | null } | null;
+  /** Last known pickup/dropoff positions, for the map thumbnail on the receipt. */
+  route: { pickup: string | null; dropoff: string | null; lastKnown: string | null };
+}
+
+/**
+ * A receipt for a finished trip.
+ *
+ * The driver's display name stays visible on a receipt, which is what
+ * `driver-identity-remains-on-receipt` asks for. The map thumbnail needs coordinates.
+ */
+export function riderReceipt(
+  trip: ServiceTrip,
+  driver: { position: string | null } | null,
+): RiderReceipt {
+  realizes('trip/rider-view', 'driver-identity-remains-on-receipt');
+  return {
+    id: trip.tripId,
+    state: trip.state,
+    fare: { minor: trip.fareMinor, currency: trip.currency },
+    driver: trip.driverDisplay ? { name: trip.driverDisplay, vehicle: trip.vehicle } : null,
+    route: { pickup: null, dropoff: null, lastKnown: driver?.position ?? null },
+  };
+}
