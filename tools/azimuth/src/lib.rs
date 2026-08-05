@@ -10,7 +10,9 @@ pub mod check;
 pub mod diag;
 pub mod json;
 pub mod manifest;
+pub mod labels;
 pub mod model;
+pub mod plan;
 pub mod spec;
 
 use diag::Diag;
@@ -35,17 +37,45 @@ pub fn selects(pattern: &str, spec_id: &str) -> bool {
 
 pub fn load(
     specs_dir: &Path,
+    verification_dir: &Path,
     manifests: &[std::path::PathBuf],
     only: &[String],
 ) -> Result<Loaded, Vec<Diag>> {
     let loaded = spec::load_specs(specs_dir)?;
     let mut model = Model { specs: loaded.specs, ..Default::default() };
+    let mut warnings = loaded.warnings;
 
     if !only.is_empty() {
         model.specs.retain(|s| only.iter().any(|p| selects(p, &s.id)));
     }
 
     let mut errors = Vec::new();
+
+    // Without a standards file nothing is known to require, so `wrong-form` cannot fire. Say so
+    // rather than reporting a clean run that only looks clean.
+    let standards_path = verification_dir.join("standards.md");
+    if standards_path.exists() {
+        match plan::load_standards(&standards_path) {
+            Ok(s) => model.standards = Some(s),
+            Err(mut d) => errors.append(&mut d),
+        }
+    } else if verification_dir.exists() {
+        warnings.push(Diag::file(
+            &standards_path.display().to_string(),
+            "no standards file; no evidence standard is known, so wrong-form cannot be reported",
+        ));
+    }
+
+    match plan::load_plans(verification_dir) {
+        Ok(plans) => {
+            model.plans = plans;
+            if !only.is_empty() {
+                model.plans.retain(|p| only.iter().any(|pat| selects(pat, &p.spec)));
+            }
+        }
+        Err(mut d) => errors.append(&mut d),
+    }
+
     for path in manifests {
         match manifest::load(path) {
             Ok(m) => {
@@ -65,5 +95,5 @@ pub fn load(
         model.covers.retain(|s| only.iter().any(|p| selects(p, &s.spec)));
     }
 
-    Ok(Loaded { model, warnings: loaded.warnings })
+    Ok(Loaded { model, warnings })
 }

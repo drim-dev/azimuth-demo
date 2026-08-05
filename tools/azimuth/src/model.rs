@@ -89,6 +89,37 @@ impl Quantification {
     }
 }
 
+/// How far evidence reaches (D4.1). A ladder: stronger satisfies weaker.
+///
+/// `Proof` is deliberately narrower than the formal-methods sense — established by construction
+/// over all executions, with no obligation discharged and no semantics checked. A unique index
+/// counts because violation is unrepresentable, not because anything was proved (see the glossary).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum Strength {
+    Detection,
+    Demonstration,
+    Proof,
+}
+
+impl Strength {
+    pub fn parse(s: &str) -> Option<Self> {
+        match s {
+            "proof" => Some(Strength::Proof),
+            "demonstration" => Some(Strength::Demonstration),
+            "detection" => Some(Strength::Detection),
+            _ => None,
+        }
+    }
+
+    pub fn name(self) -> &'static str {
+        match self {
+            Strength::Proof => "proof",
+            Strength::Demonstration => "demonstration",
+            Strength::Detection => "detection",
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum StepKind {
     Given,
@@ -166,6 +197,19 @@ pub struct Model {
     pub realizes: Vec<Site>,
     pub covers: Vec<Site>,
     pub untraced: Vec<UntracedTest>,
+    /// Absent until a standards file is read. Without it no evidence standard is known, so
+    /// `wrong-form` cannot fire and `uncovered` falls back to "has any evidence at all".
+    pub standards: Option<crate::plan::Standards>,
+    pub plans: Vec<crate::plan::Plan>,
+}
+
+/// The evidence standard for one claim: the project mapping, overridden by a plan entry.
+#[derive(Debug, Clone, Copy)]
+pub struct Required {
+    /// `None` means no evidence is required — D6.5's `routine`.
+    pub strength: Option<Strength>,
+    pub quantification: Option<Quantification>,
+    pub scope: Scope,
 }
 
 /// A scenario plus the context needed to report on it.
@@ -205,6 +249,31 @@ impl Model {
 
     pub fn scenario_count(&self) -> usize {
         self.claims().count()
+    }
+
+    pub fn find_claim(&self, spec: &str, scenario: &str) -> Option<ClaimView<'_>> {
+        self.claims().find(|c| c.spec.id == spec && c.scenario.id == scenario)
+    }
+
+    pub fn plan_for(&self, spec: &str) -> Option<&crate::plan::Plan> {
+        self.plans.iter().find(|p| p.spec == spec)
+    }
+
+    /// Resolves the standard for a claim. Returns `None` when no standards file was read, or when
+    /// the requirement declares no criticality — in both cases nothing is known to require.
+    pub fn required_for(&self, claim: &ClaimView<'_>) -> Option<Required> {
+        let standards = self.standards.as_ref()?;
+        let level = standards.for_level(claim.requirement.criticality?)?;
+        let entry = self.plan_for(&claim.spec.id).and_then(|p| p.entry(&claim.scenario.id));
+        Some(Required {
+            strength: level.strength,
+            quantification: entry
+                .and_then(|e| e.quantification)
+                .or(level.quantification),
+            // D15: scope is not derived from criticality. Default, raised per claim where truth
+            // depends on something real.
+            scope: entry.and_then(|e| e.scope).unwrap_or(standards.default_scope),
+        })
     }
 
     /// D10: the export is the extension seam. Checks, dashboards and PR annotations are all

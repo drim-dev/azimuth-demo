@@ -23,10 +23,11 @@ The claim is about propagation across three processes. Verifying it at any one o
 something else.
 
 ## Residual: rider-reachable-surface
+Accepted: deliberately, for now — the steel thread is built without cross-cutting notation so that
+we learn whether the per-scenario matrix notices this class of leak; if it does not, and it should
+not, that is the primary evidence for what notation to add next
+
 These claims constrain three named surfaces. They do not constrain the *next* one — a receipt
 endpoint, a support view, an analytics export, or a push payload that includes a position field
-would satisfy every claim in this spec and violate the rule the spec exists to express. Concern
-C1, whose domain is a set of sites rather than a behaviour.
-Accepted: deliberately, for now. The steel thread is built without cross-cutting notation so that
-we learn whether the per-scenario matrix notices this class of leak. **If it does not — and it
-should not — that is the primary evidence for what notation to add next.**
+would satisfy every claim in this spec and violate the rule the spec exists to express. Concern C1,
+whose domain is a set of sites rather than a behaviour.

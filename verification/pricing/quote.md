@@ -18,8 +18,9 @@ sets and asserts the sum relation, rather than asserting one arithmetic result t
 reimplementation of the same bug would also produce.
 
 ## Residual: cross-language-money-boundary
+Accepted: until a second language carries an amount — the mobile client is where this first becomes
+real, and the evidence then is a contract test at each boundary, not a stronger type
+
 The proof above holds within each language. It does not cover the serialization boundary between
 them, where an amount can be parsed into a wider or lossier type before being sent back. Concern
 C10.
-Accepted: until a second language carries an amount. The mobile client is where this first
-becomes real, and the evidence then is a contract test at each boundary, not a stronger type.

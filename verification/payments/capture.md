@@ -22,17 +22,19 @@ The claim covers the case where the first attempt's outcome was never observed. 
 requires a real client and a real store; a substituted payment client cannot distinguish "not
 sent" from "sent, response lost", which is the entire content of the claim.
 
-## Claim: capture-created-on-completion
-Strength: proof
-Evidence: partial unique index `ux_capture_trip` on `captures(trip_id)`
+## Residual: partial-proof-of-uniqueness
+Accepted: the tests above carry the claims; this note exists so that the index is not mistaken for
+a discharge of them
 
-Recorded because the index is what actually holds the line, not because it discharges this
-claim's demonstration requirement. It is the mechanism's evidence, and it is why the component
-tests above are checking a real constraint rather than application courtesy.
+`ux_capture_trip` proves *at most one* capture per trip, and the claims above say *exactly one*.
+The proof covers one half. Declaring it as proof-strength evidence for those claims would let the
+at-least-one half pass unverified, so it is recorded on the mechanism side
+(`design/payments/capture.md`) and not here.
 
 ## Residual: ledger-conservation
+Accepted: outside the steel thread; revisit when payouts exist — until there is a second side to
+the ledger there is nothing to conserve
+
 No evidence that captures, payouts and fees sum correctly across the system. Concern C8, whose
 domain is aggregate state over time and whose only honest evidence is a reconciliation job in
 production.
-Accepted: outside the steel thread. Revisit when payouts exist — until there is a second side to
-the ledger, there is nothing to conserve.

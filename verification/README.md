@@ -34,15 +34,22 @@ non-test evidence and accepting no residual needs **no plan file at all**.
 ## Claim: <scenario-id>
 Scope: unit | component | e2e
 Quantification: example | invariant
-Strength: proof | demonstration | detection
 Oracle: direct | golden | metamorphic | model-based | contract
 
 Prose stating why this claim needs what it needs. Required — an entry without a reason is a
 number nobody can review.
 ```
 
-Every field is optional; an entry states only what it changes. `Oracle` is descriptive and never
-gated.
+Labels first, then a blank line, then prose. Values may wrap: inside the label block, a line that
+begins no known label continues the previous one. Every field is optional; an entry states only
+what it changes. `Oracle` is descriptive and never gated.
+
+**Two field groups that are easy to confuse, and are therefore kept apart:**
+
+- `Scope`, `Quantification` and `Oracle` state the **required** form, overriding the standard.
+- `Evidence` and its `Strength` declare a **provided** non-test evidence item.
+
+`Strength` without `Evidence` is an error, because on its own it reads as either.
 
 ### Ladders
 
@@ -92,12 +99,14 @@ deliberate, attributable, reviewable opt-out is fine anywhere; an unrecorded abs
 
 ```markdown
 ## Residual: <short-id>
-<what is not covered>
 Accepted: <why, and under what condition it is revisited>
+
+<what is not covered>
 ```
 
 For risks that belong to no single claim — typically a cross-cutting concern held as prose while
-the steel thread runs.
+the steel thread runs. Labels come first here too: the grammar is uniform, so prose above a label
+is a parse error rather than something silently swallowed.
 
 ## What never appears here
 

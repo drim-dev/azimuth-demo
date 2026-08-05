@@ -6,7 +6,8 @@
 //! fourth facet, and is the recorded falsifier for D3.
 
 use crate::json::Json;
-use crate::model::{Criticality, Model};
+use crate::model::{Criticality, Model, Quantification, Required, Scope, Site, Strength};
+use crate::plan::EvidenceItem;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Severity {
@@ -35,8 +36,18 @@ pub enum HoleKind {
     DanglingRealization,
     /// evidence present, intent absent — the test names nothing at all
     UntracedTest,
-    /// D6.2: a requirement without a declared criticality
+    /// evidence present, intent absent — a plan entry for a claim that does not exist
+    DanglingPlanEntry,
+    /// intent and evidence present, but no evidence meets the declared standard
+    WrongForm,
+    /// D6.2: a requirement without a declared criticality.
+    ///
+    /// Not a missing-facet combination: the intent facet is *present but incomplete*. See
+    /// `UnacceptedWeakening` and the note on `rtm`.
     Unclassified,
+    /// A plan requires less than the standard without recording and accepting the residual.
+    /// Incomplete-facet, like `Unclassified`.
+    UnacceptedWeakening,
 }
 
 impl HoleKind {
@@ -47,7 +58,10 @@ impl HoleKind {
             HoleKind::DanglingTag => "dangling-tag",
             HoleKind::DanglingRealization => "dangling-realization",
             HoleKind::UntracedTest => "untraced-test",
+            HoleKind::DanglingPlanEntry => "dangling-plan-entry",
+            HoleKind::WrongForm => "wrong-form",
             HoleKind::Unclassified => "unclassified",
+            HoleKind::UnacceptedWeakening => "unaccepted-weakening",
         }
     }
 }
@@ -147,25 +161,71 @@ pub fn rtm(model: &Model) -> Vec<Hole> {
 
         // A `routine` claim cannot be uncovered: D6.5 requires no verification plan for it, so no
         // evidence was ever demanded. Reporting it would make the level meaningless.
-        let evidence_required = criticality.map(|c| c.requires_evidence()).unwrap_or(true);
-        if evidence_required {
-            let covered = model
-                .covers
-                .iter()
-                .any(|s| s.spec == claim.spec.id && s.scenario == claim.scenario.id);
-            if !covered {
-                holes.push(Hole {
-                    kind: HoleKind::Uncovered,
-                    severity,
-                    claim: Some(id),
-                    criticality,
-                    path: claim.spec.path.clone(),
-                    line: claim.scenario.line,
-                    detail: "no evidence covers this claim".into(),
-                });
-            }
+        let required = model.required_for(&claim);
+        let evidence_required = match required {
+            Some(r) => r.strength.is_some(),
+            None => criticality.map(|c| c.requires_evidence()).unwrap_or(true),
+        };
+        if !evidence_required {
+            continue;
+        }
+
+        let tags: Vec<&Site> = model
+            .covers
+            .iter()
+            .filter(|s| s.spec == claim.spec.id && s.scenario == claim.scenario.id)
+            .collect();
+
+        // Non-test evidence declared in the plan. The machine cannot verify a manual pass or an
+        // attestation; that is the agent tier's job (D14). What it can do is refuse to let the
+        // item stand in for a stronger requirement than it claims.
+        let declared = model
+            .plan_for(&claim.spec.id)
+            .and_then(|p| p.entry(&claim.scenario.id))
+            .and_then(|e| e.evidence.as_ref());
+
+        if tags.is_empty() && declared.is_none() {
+            holes.push(Hole {
+                kind: HoleKind::Uncovered,
+                severity,
+                claim: Some(id),
+                criticality,
+                path: claim.spec.path.clone(),
+                line: claim.scenario.line,
+                detail: "no evidence covers this claim".into(),
+            });
+            continue;
+        }
+
+        let Some(required) = required else { continue };
+        let Some(min_strength) = required.strength else { continue };
+
+        // D7's identity: strong enforcement is self-evidencing, so proof-strength evidence
+        // satisfies a demonstration requirement without any test. The old model penalized exactly
+        // this design.
+        let satisfied_by_declaration = declared.is_some_and(|e| e.strength >= min_strength);
+        let satisfied_by_test = tags.iter().any(|t| satisfies(t, &required));
+
+        if !satisfied_by_declaration && !satisfied_by_test {
+            holes.push(Hole {
+                kind: HoleKind::WrongForm,
+                severity,
+                claim: Some(id),
+                criticality,
+                path: claim.spec.path.clone(),
+                line: claim.scenario.line,
+                detail: format!(
+                    "requires {} at {} scope, {} quantification; found {}",
+                    min_strength.name(),
+                    required.scope.name(),
+                    required.quantification.map(|q| q.name()).unwrap_or("any"),
+                    describe_evidence(&tags, declared)
+                ),
+            });
         }
     }
+
+    holes.extend(plan_holes(model));
 
     for (sites, kind) in
         [(&model.covers, HoleKind::DanglingTag), (&model.realizes, HoleKind::DanglingRealization)]
@@ -203,6 +263,103 @@ pub fn rtm(model: &Model) -> Vec<Hole> {
     holes
 }
 
+/// A tag declares what the test *actually* is. An emitter that omits a form is read at the weakest
+/// rung rather than the strongest — an unstated claim should never satisfy a requirement.
+fn satisfies(tag: &Site, required: &Required) -> bool {
+    let scope = tag.scope.unwrap_or(Scope::Unit);
+    let quantification = tag.quantification.unwrap_or(Quantification::Example);
+    Strength::Demonstration >= required.strength.unwrap_or(Strength::Detection)
+        && scope >= required.scope
+        && required.quantification.is_none_or(|q| quantification >= q)
+}
+
+fn describe_evidence(tags: &[&Site], declared: Option<&EvidenceItem>) -> String {
+    let mut parts: Vec<String> = tags
+        .iter()
+        .map(|t| {
+            format!(
+                "{} ({}/{})",
+                t.site,
+                t.scope.map(|s| s.name()).unwrap_or("unit, undeclared"),
+                t.quantification.map(|q| q.name()).unwrap_or("example, undeclared")
+            )
+        })
+        .collect();
+    if let Some(e) = declared {
+        parts.push(format!("declared {} evidence", e.strength.name()));
+    }
+    if parts.is_empty() {
+        "nothing".into()
+    } else {
+        parts.join(", ")
+    }
+}
+
+/// Holes about the plan itself rather than about a claim's facets.
+fn plan_holes(model: &Model) -> Vec<Hole> {
+    let mut holes = Vec::new();
+    for plan in &model.plans {
+        let spec_exists = model.specs.iter().any(|s| s.id == plan.spec);
+        if !spec_exists {
+            holes.push(Hole {
+                kind: HoleKind::DanglingPlanEntry,
+                severity: Severity::Error,
+                claim: Some(plan.spec.clone()),
+                criticality: None,
+                path: plan.path.clone(),
+                line: 1,
+                detail: format!("plans spec `{}`, which does not exist", plan.spec),
+            });
+            continue;
+        }
+
+        for entry in &plan.entries {
+            let Some(claim) = model.find_claim(&plan.spec, &entry.scenario) else {
+                holes.push(Hole {
+                    kind: HoleKind::DanglingPlanEntry,
+                    severity: Severity::Error,
+                    claim: Some(format!("{}#{}", plan.spec, entry.scenario)),
+                    criticality: None,
+                    path: plan.path.clone(),
+                    line: entry.line,
+                    detail: "names a claim that does not exist".into(),
+                });
+                continue;
+            };
+
+            // "Silent weakening is not available." A plan may require less than the standard, but
+            // only with an accepted residual (D6.3 applied to evidence).
+            let (Some(standards), Some(criticality)) =
+                (model.standards.as_ref(), claim.requirement.criticality)
+            else {
+                continue;
+            };
+            let Some(level) = standards.for_level(criticality) else { continue };
+            let weakened = match (entry.quantification, level.quantification) {
+                (Some(entry_q), Some(level_q)) => entry_q < level_q,
+                _ => false,
+            };
+            if weakened && (entry.residual.is_none() || entry.accepted.is_none()) {
+                holes.push(Hole {
+                    kind: HoleKind::UnacceptedWeakening,
+                    severity: Severity::Error,
+                    claim: Some(format!("{}#{}", plan.spec, entry.scenario)),
+                    criticality: Some(criticality),
+                    path: plan.path.clone(),
+                    line: entry.line,
+                    detail: format!(
+                        "requires {} where the {} standard is {}, with no accepted residual",
+                        entry.quantification.unwrap().name(),
+                        criticality.name(),
+                        level.quantification.unwrap().name()
+                    ),
+                });
+            }
+        }
+    }
+    holes
+}
+
 pub struct Summary {
     pub claims: usize,
     pub errors: usize,
@@ -219,6 +376,9 @@ pub fn summarize(model: &Model, holes: &[Hole]) -> Summary {
 
 pub fn counts_by_kind(holes: &[Hole]) -> Vec<(&'static str, usize)> {
     let kinds = [
+        HoleKind::DanglingPlanEntry,
+        HoleKind::UnacceptedWeakening,
+        HoleKind::WrongForm,
         HoleKind::Unclassified,
         HoleKind::Unrealized,
         HoleKind::Uncovered,
