@@ -46,6 +46,19 @@ public sealed class CollectorTests
         Assert.Equal(["first-branch", "second-branch"], branches);
     }
 
+    /// <summary>
+    /// The attribute targets must match what the extractor walks, or a tag vanishes silently. A
+    /// struct-level tag was rejected by the compiler until the annotation package was widened —
+    /// found by tagging Money, which is itself the top-rung enforcement mechanism.
+    /// </summary>
+    [Fact]
+    public void A_value_type_is_a_realization_site()
+    {
+        var entry = Assert.Single(
+            Collect().Realizes.Where(r => r.Scenario == "struct-level-thing"));
+        Assert.Equal("Azimuth.Fixture.Amount", entry.Site);
+    }
+
     [Fact]
     public void Untagged_code_produces_nothing()
     {

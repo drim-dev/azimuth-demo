@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="../packages/dotnet/Azimuth.Annotations/Azimuth.Annotations.csproj" />
+  <Project Path="services/Trip/Trip.csproj" />
+  <Project Path="services/Trip.Tests/Trip.Tests.csproj" />
+</Solution>

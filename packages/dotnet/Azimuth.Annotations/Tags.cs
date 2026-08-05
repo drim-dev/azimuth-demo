@@ -14,7 +14,18 @@ namespace Azimuth.Annotations
     /// Carries no form. Form is how a <em>test</em> checks a behaviour, not a property of code.
     /// </para>
     /// </remarks>
-    [AttributeUsage(AttributeTargets.Method | AttributeTargets.Class, AllowMultiple = true)]
+    /// <remarks>
+    /// The targets match exactly what the extractor walks — types and methods. Permitting a target
+    /// the emitter does not read would let a tag vanish silently, which is the one failure a
+    /// linkage tag must not have.
+    /// </remarks>
+    [AttributeUsage(
+        AttributeTargets.Class
+        | AttributeTargets.Struct
+        | AttributeTargets.Interface
+        | AttributeTargets.Enum
+        | AttributeTargets.Method,
+        AllowMultiple = true)]
     public sealed class RealizesAttribute : Attribute
     {
         /// <summary>Tags a site as being on the path of <paramref name="scenario"/>.</summary>

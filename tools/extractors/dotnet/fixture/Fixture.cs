@@ -24,6 +24,11 @@ namespace Azimuth.Fixture
         }
     }
 
+    /// A value type is a realization site too — and the type that *is* an enforcement mechanism is
+    /// often a struct, so excluding them would have made the strongest rung untaggable.
+    [Realizes("alpha", "struct-level-thing")]
+    public readonly record struct Amount(long MinorUnits);
+
     /// Stands in for a test framework attribute. Matched by simple name, so the emitter needs no
     /// reference to any test framework.
     [AttributeUsage(AttributeTargets.Method)]
