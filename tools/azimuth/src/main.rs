@@ -14,6 +14,10 @@ azimuth — derives a model from claims and linkage tags, and flags its holes
 USAGE
     azimuth check [<check-id>...] [options]
     azimuth export [options]
+    azimuth judge [options]
+
+The judge command lists every claim with the fingerprint a judgment must carry, so the
+agent tier can record verdicts that expire when what they judged changes.
 
 CHECKS
     rtm     claims against the code and evidence that reference them
@@ -68,6 +72,7 @@ fn run(args: &[String]) -> Result<ExitCode, String> {
     match command.as_str() {
         "check" => command_check(options),
         "export" => command_export(options),
+        "judge" => command_judge(options),
         other => Err(format!("unknown command `{other}`\n\n{USAGE}")),
     }
 }
@@ -202,6 +207,44 @@ fn command_check(options: Options) -> Result<ExitCode, String> {
     println!("{} error(s), {} warning(s)", summary.errors, summary.warnings);
 
     Ok(if summary.errors > 0 { ExitCode::from(1) } else { ExitCode::SUCCESS })
+}
+
+/// Lists claims and their current fingerprints — the agent tier's worklist.
+fn command_judge(options: Options) -> Result<ExitCode, String> {
+    let loaded = match azimuth::load(&options.specs, &options.verification, &options.design, &options.manifests, &options.only) {
+        Ok(l) => l,
+        Err(diags) => {
+            report(&diags, "error");
+            return Ok(ExitCode::from(2));
+        }
+    };
+    let model = &loaded.model;
+
+    for claim in model.claims() {
+        let files = model.evidence_files(&claim.spec.id, &claim.scenario.id);
+        let fingerprint =
+            azimuth::judgment::fingerprint(&model.claim_text(&claim), files.clone());
+        let existing = model
+            .judgments_for(&claim.spec.id)
+            .and_then(|j| j.entry(&claim.scenario.id));
+        let state = match existing {
+            Some(j) if j.fingerprint == fingerprint => format!("judged {}", j.verdict.name()),
+            Some(j) => format!("stale ({})", j.verdict.name()),
+            None => "unjudged".to_string(),
+        };
+        println!(
+            "{}\t{}\t{}\t{}\t{}",
+            claim.spec.id,
+            claim.scenario.id,
+            claim.requirement.criticality.map(|c| c.name()).unwrap_or("-"),
+            fingerprint,
+            state
+        );
+        for file in files {
+            println!("\tevidence\t{file}");
+        }
+    }
+    Ok(ExitCode::SUCCESS)
 }
 
 fn command_export(options: Options) -> Result<ExitCode, String> {

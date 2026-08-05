@@ -793,6 +793,61 @@ rather than merely of tedium. Neither is true today.
 
 ---
 
+## D18 — Agent judgments are evidence *about* evidence *(revises D14)*
+
+**Decision.** A judgment does not cover a claim. It qualifies the evidence that already does, and
+its effect is negative: it can take a claim the machine tier reports as covered and report it as a
+hole.
+
+**Why the revision.** D14 said agent judgments are evidence items at demonstration strength.
+Implementing it showed that reading is wrong — treat a judgment as evidence *of* a claim and a
+claim with no tests but a judgment becomes covered, which is nonsense. The agent tier's value was
+never that it can add evidence; it is that it can withdraw belief in evidence that exists.
+
+**Verdicts.** `sound` · `toothless` (the evidence would also pass against a wrong implementation) ·
+`dishonest-tag` (the declared form overstates the test) · `spec-gap` (the code is right, the test
+is toothy, and a reader would still be surprised).
+
+**Freshness is a fingerprint** over the claim's text and the content of every file carrying
+evidence for it. File-level rather than site-level on purpose: it over-invalidates, and that is the
+safe direction. A false stale costs one re-judgement; a false fresh means a verdict about code that
+no longer exists is still being counted.
+
+**`unjudged` is a hole for `critical` claims**, gated on the agent tier being in use at all (D8.1).
+
+### D18.1 — What the first run found
+
+Ten claims judged, on a matrix the machine tier reported as **green**:
+
+| Verdict | Count |
+|---|---|
+| sound | 6 |
+| toothless | 2 |
+| dishonest-tag | 2 |
+
+Both `dishonest-tag` findings had the same cause, and it is a criticism of a decision in this
+document rather than of the tests. `standards.md` requires `invariant` quantification for every
+`critical` claim. Where a genuinely universal test was awkward, the tag was written to satisfy the
+standard rather than to describe the test — an example wearing an invariant's tag. The machine tier
+cannot see this: it compares the declared form to the required form and finds them equal.
+
+**A standard that is expensive to satisfy honestly is cheap to satisfy dishonestly.** That is a
+general property of self-declared form, and it is the strongest argument the demo has produced for
+why the agent tier is not optional.
+
+### D18.2 — The fix that did not work, recorded
+
+One `toothless` verdict survived its own fix. `no-capture-on-cancellation-without-fee` was
+rewritten to run a cancelled trip beside a completed one, which is better and still does not cancel
+anything — because cancellation lives in the trip service and payments cannot observe it. The claim
+spans two services, so no component test inside payments can establish it; the honest evidence is
+at `e2e` scope.
+
+Recorded rather than papered over. An author optimizing for a green matrix would have stopped at
+the rewrite, and the machine tier would have agreed with them.
+
+---
+
 ## Method
 
 **Concern catalog first, notation last.** No mechanism enters the model until **≥2 structurally

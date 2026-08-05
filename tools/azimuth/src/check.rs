@@ -56,6 +56,17 @@ pub enum HoleKind {
     UndeclaredMechanism,
     /// A plan declares proof-strength evidence that no proof-capable mechanism backs.
     UnbackedProof,
+    /// The agent tier judged the covering evidence as not discriminating: it exists, it passes, and
+    /// it would also pass against an implementation that is wrong.
+    ToothlessEvidence,
+    /// The agent tier judged a tag as declaring a stronger form than the test has.
+    DishonestTag,
+    /// The agent tier found a behaviour the spec should name and does not.
+    SpecGap,
+    /// A judgment whose fingerprint no longer matches what it looked at.
+    StaleJudgment,
+    /// A critical claim the agent tier has never judged. Incomplete-facet, like `Unclassified`.
+    Unjudged,
 }
 
 impl HoleKind {
@@ -73,6 +84,11 @@ impl HoleKind {
             HoleKind::DanglingDesignEntry => "dangling-design-entry",
             HoleKind::UndeclaredMechanism => "undeclared-mechanism",
             HoleKind::UnbackedProof => "unbacked-proof",
+            HoleKind::ToothlessEvidence => "toothless-evidence",
+            HoleKind::DishonestTag => "dishonest-tag-judged",
+            HoleKind::SpecGap => "spec-gap",
+            HoleKind::StaleJudgment => "stale-judgment",
+            HoleKind::Unjudged => "unjudged",
         }
     }
 }
@@ -238,6 +254,7 @@ pub fn rtm(model: &Model) -> Vec<Hole> {
 
     holes.extend(plan_holes(model));
     holes.extend(design_holes(model));
+    holes.extend(judgment_holes(model));
 
     for (sites, kind) in
         [(&model.covers, HoleKind::DanglingTag), (&model.realizes, HoleKind::DanglingRealization)]
@@ -486,6 +503,86 @@ fn design_holes(model: &Model) -> Vec<Hole> {
     holes
 }
 
+/// Holes the machine tier cannot find on its own.
+///
+/// The machine makes structure checkable; it does not make truth checkable. Everything here comes
+/// from a verdict the agent tier recorded, and the tool's contribution is to hold that verdict to a
+/// fingerprint so it cannot quietly outlive what it judged.
+fn judgment_holes(model: &Model) -> Vec<Hole> {
+    let mut holes = Vec::new();
+    if model.judgments.is_empty() {
+        // D8.1: each mechanism is usable alone. A project that has not adopted the agent tier is
+        // not told that every critical claim is unjudged.
+        return holes;
+    }
+
+    for claim in model.claims() {
+        let id = claim.id();
+        let judged = model.judgments_for(&claim.spec.id).and_then(|j| j.entry(&claim.scenario.id));
+
+        let Some(judgment) = judged else {
+            if claim.requirement.criticality == Some(Criticality::Critical) {
+                holes.push(Hole {
+                    kind: HoleKind::Unjudged,
+                    severity: Severity::Error,
+                    claim: Some(id),
+                    criticality: claim.requirement.criticality,
+                    path: claim.spec.path.clone(),
+                    line: claim.scenario.line,
+                    detail: "critical claim carries no agent-tier judgment".into(),
+                });
+            }
+            continue;
+        };
+
+        let expected = crate::judgment::fingerprint(
+            &model.claim_text(&claim),
+            model.evidence_files(&claim.spec.id, &claim.scenario.id),
+        );
+        let path = model
+            .judgments_for(&claim.spec.id)
+            .map(|j| j.path.clone())
+            .unwrap_or_default();
+
+        if judgment.fingerprint != expected {
+            holes.push(Hole {
+                kind: HoleKind::StaleJudgment,
+                severity: severity_for(claim.requirement.criticality),
+                claim: Some(id.clone()),
+                criticality: claim.requirement.criticality,
+                path: path.clone(),
+                line: judgment.line,
+                detail: format!(
+                    "judged `{}` against {}, but the claim or its evidence has changed since (now {})",
+                    judgment.verdict.name(),
+                    judgment.fingerprint,
+                    expected
+                ),
+            });
+            continue;
+        }
+
+        let kind = match judgment.verdict {
+            crate::judgment::Verdict::Sound => continue,
+            crate::judgment::Verdict::Toothless => HoleKind::ToothlessEvidence,
+            crate::judgment::Verdict::DishonestTag => HoleKind::DishonestTag,
+            crate::judgment::Verdict::SpecGap => HoleKind::SpecGap,
+        };
+
+        holes.push(Hole {
+            kind,
+            severity: severity_for(claim.requirement.criticality),
+            claim: Some(id),
+            criticality: claim.requirement.criticality,
+            path,
+            line: judgment.line,
+            detail: judgment.reason.clone(),
+        });
+    }
+
+    holes
+}
+
 pub struct Summary {
     pub claims: usize,
     pub errors: usize,
@@ -503,8 +600,16 @@ pub fn summarize(model: &Model, holes: &[Hole]) -> Summary {
 pub fn counts_by_kind(holes: &[Hole]) -> Vec<(&'static str, usize)> {
     let kinds = [
         HoleKind::DanglingPlanEntry,
+        HoleKind::DanglingDesignEntry,
+        HoleKind::UndeclaredMechanism,
+        HoleKind::UnbackedProof,
         HoleKind::UnacceptedWeakening,
         HoleKind::WrongForm,
+        HoleKind::Unjudged,
+        HoleKind::StaleJudgment,
+        HoleKind::ToothlessEvidence,
+        HoleKind::DishonestTag,
+        HoleKind::SpecGap,
         HoleKind::Unclassified,
         HoleKind::Unrealized,
         HoleKind::Uncovered,

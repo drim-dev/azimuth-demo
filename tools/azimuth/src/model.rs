@@ -202,6 +202,7 @@ pub struct Model {
     pub standards: Option<crate::plan::Standards>,
     pub plans: Vec<crate::plan::Plan>,
     pub designs: Vec<crate::design::Design>,
+    pub judgments: Vec<crate::judgment::Judgments>,
 }
 
 /// The evidence standard for one claim: the project mapping, overridden by a plan entry.
@@ -254,6 +255,29 @@ impl Model {
 
     pub fn find_claim(&self, spec: &str, scenario: &str) -> Option<ClaimView<'_>> {
         self.claims().find(|c| c.spec.id == spec && c.scenario.id == scenario)
+    }
+
+    pub fn judgments_for(&self, spec: &str) -> Option<&crate::judgment::Judgments> {
+        self.judgments.iter().find(|j| j.spec == spec)
+    }
+
+    /// Everything a judgment about this claim would have had to look at.
+    pub fn evidence_files(&self, spec: &str, scenario: &str) -> Vec<String> {
+        self.covers
+            .iter()
+            .filter(|s| s.spec == spec && s.scenario == scenario)
+            .map(|s| s.file.clone())
+            .collect()
+    }
+
+    pub fn claim_text(&self, claim: &ClaimView<'_>) -> String {
+        let steps: Vec<String> = claim
+            .scenario
+            .steps
+            .iter()
+            .map(|s| format!("{} {}", s.kind.name(), s.text))
+            .collect();
+        format!("{}|{}|{}", claim.requirement.statement, claim.scenario.id, steps.join("|"))
     }
 
     pub fn design_for(&self, spec: &str) -> Option<&crate::design::Design> {

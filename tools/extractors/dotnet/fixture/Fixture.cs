@@ -1,4 +1,5 @@
 using System;
+using System.Threading.Tasks;
 using Azimuth.Annotations;
 
 namespace Azimuth.Fixture
@@ -21,6 +22,13 @@ namespace Azimuth.Fixture
 
         public void Untagged()
         {
+        }
+
+        /// An async method's sequence points live on the state machine's MoveNext, not here.
+        [Realizes("alpha", "async-thing")]
+        public async Task AsyncWork()
+        {
+            await Task.Yield();
         }
     }
 

@@ -153,6 +153,19 @@ public sealed class CollectorTests
         Assert.All(Collect().Realizes, entry => Assert.EndsWith("Fixture.cs", entry.File));
     }
 
+    /// <summary>
+    /// Most tagged methods in a service are async, and an async method's sequence points live on
+    /// the compiler-generated state machine rather than on the method the tag sits on. Without the
+    /// fallback the manifest carried almost no paths, which stayed invisible until the agent tier
+    /// needed to fingerprint over evidence files.
+    /// </summary>
+    [Fact]
+    public void An_async_method_still_carries_a_source_path()
+    {
+        var entry = Assert.Single(Collect().Realizes.Where(r => r.Scenario == "async-thing"));
+        Assert.EndsWith("Fixture.cs", entry.File);
+    }
+
     [Fact]
     public void Entries_are_ordered_so_the_manifest_diffs()
     {

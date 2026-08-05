@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Reflection.Metadata;
 using System.Reflection.Metadata.Ecma335;
 
@@ -59,6 +60,32 @@ internal sealed class SourceFiles : IDisposable
 
     public string PathOf(MethodBase method)
     {
+        var direct = Lookup(method);
+        if (direct.Length > 0)
+        {
+            return direct;
+        }
+
+        // An async or iterator method's sequence points live on the compiler-generated state
+        // machine's MoveNext, not on the method the tag sits on. Most tagged methods in a service
+        // are async, so without this the manifest carries almost no paths — which is invisible
+        // until something depends on them.
+        var stateMachine =
+            (method.GetCustomAttribute<AsyncStateMachineAttribute>()?.StateMachineType)
+            ?? method.GetCustomAttribute<IteratorStateMachineAttribute>()?.StateMachineType;
+        if (stateMachine is null)
+        {
+            return string.Empty;
+        }
+
+        var moveNext = stateMachine.GetMethod(
+            "MoveNext",
+            BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
+        return moveNext is null ? string.Empty : Lookup(moveNext);
+    }
+
+    private string Lookup(MethodBase method)
+    {
         if (_reader is null)
         {
             return string.Empty;
@@ -66,7 +93,12 @@ internal sealed class SourceFiles : IDisposable
 
         try
         {
-            var handle = MetadataTokens.MethodDebugInformationHandle(method.MetadataToken);
+            // A MethodDebugInformation row corresponds 1:1 with a MethodDef row, and the handle is
+            // built from the *row number* — not the full token. Passing the token silently yielded
+            // no path for most methods, which the fingerprint work surfaced: judgments would have
+            // been fingerprinted over an empty evidence set and never gone stale.
+            var row = method.MetadataToken & 0x00FFFFFF;
+            var handle = MetadataTokens.MethodDebugInformationHandle(row);
             var info = _reader.GetMethodDebugInformation(handle);
             if (info.Document.IsNil)
             {

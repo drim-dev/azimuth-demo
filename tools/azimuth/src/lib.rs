@@ -10,6 +10,7 @@ pub mod check;
 pub mod design;
 pub mod diag;
 pub mod json;
+pub mod judgment;
 pub mod manifest;
 pub mod labels;
 pub mod model;
@@ -66,6 +67,16 @@ pub fn load(
             &standards_path.display().to_string(),
             "no standards file; no evidence standard is known, so wrong-form cannot be reported",
         ));
+    }
+
+    match judgment::load(&verification_dir.join("judgments")) {
+        Ok(js) => {
+            model.judgments = js;
+            if !only.is_empty() {
+                model.judgments.retain(|j| only.iter().any(|p| selects(p, &j.spec)));
+            }
+        }
+        Err(mut d) => errors.append(&mut d),
     }
 
     match design::load_designs(design_dir) {

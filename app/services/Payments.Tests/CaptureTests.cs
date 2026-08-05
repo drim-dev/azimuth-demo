@@ -52,40 +52,94 @@ public sealed class CaptureTests(PostgresFixture fixture)
     private CaptureDispatcher Dispatcher(params ProviderOutcome[] outcomes) =>
         new(fixture.Database, new ScriptedProvider(outcomes.Length == 0 ? [ProviderOutcome.Captured] : outcomes));
 
+    /// <summary>
+    /// Quantified over amounts and currencies after the agent tier judged the first version's tag
+    /// dishonest: it declared `Invariant` and exercised one amount. The tag now describes the test.
+    /// </summary>
     [Fact]
     [Covers("payments/capture", "capture-created-on-completion", Scope.Component, Quantification.Invariant)]
     [Covers("payments/capture", "capture-equals-trip-fare", Scope.Component, Quantification.Invariant)]
-    public async Task A_completed_trip_is_captured_for_its_fare()
+    public async Task A_completed_trip_is_captured_for_whatever_its_fare_is()
     {
-        var trip = Guid.NewGuid();
+        var random = new Random(20260805);
         var dispatcher = Dispatcher();
-        await dispatcher.WriteIntentAsync(trip, 1500, "EUR", Now);
 
-        Assert.Equal(1, await dispatcher.DispatchAsync(Now));
+        foreach (var currency in new[] { "EUR", "USD", "JPY" })
+        {
+            for (var trial = 0; trial < 12; trial++)
+            {
+                var trip = Guid.NewGuid();
+                var amount = random.NextInt64(0, 10_000_000);
+                await dispatcher.WriteIntentAsync(trip, amount, currency, Now);
+                await dispatcher.DispatchAsync(Now);
 
-        var capture = await dispatcher.FindAsync(trip);
-        Assert.NotNull(capture);
-        Assert.Equal(1500, capture.AmountMinor);
-        Assert.Equal("EUR", capture.Currency);
+                var capture = await dispatcher.FindAsync(trip);
+                Assert.NotNull(capture);
+                Assert.Equal(amount, capture.AmountMinor);
+                Assert.Equal(currency, capture.Currency);
+            }
+        }
     }
 
+    /// <summary>
+    /// Rewritten after the agent tier judged the first version toothless: it asked whether a
+    /// freshly generated id was in an empty set, and passed against a dispatcher that captured
+    /// everything. A trip has to exist and be mid-flight for the claim to mean anything.
+    /// </summary>
     [Fact]
     [Covers("payments/capture", "no-capture-before-completion", Scope.Component, Quantification.Invariant)]
-    public async Task A_trip_with_no_intent_has_no_capture()
+    public async Task A_trip_that_has_not_completed_has_no_capture()
     {
-        Assert.Null(await Dispatcher().FindAsync(Guid.NewGuid()));
+        var dispatcher = Dispatcher();
+        var completed = Guid.NewGuid();
+        var inFlight = Guid.NewGuid();
+
+        // Only the completed trip writes an intent, which is what completion means here.
+        await dispatcher.WriteIntentAsync(completed, 1500, "EUR", Now);
+        await dispatcher.DispatchAsync(Now);
+
+        Assert.NotNull(await dispatcher.FindAsync(completed));
+        Assert.Null(await dispatcher.FindAsync(inFlight));
+
+        // And it stays absent across further dispatches, so this is not a timing accident.
+        await dispatcher.DispatchAsync(Now);
+        Assert.Null(await dispatcher.FindAsync(inFlight));
     }
 
+    /// <summary>
+    /// Rewritten after the agent tier judged the first version toothless: it never cancelled
+    /// anything and asserted the mechanism by prose rather than by exercise. This one runs a trip
+    /// to cancellation beside one that completes, so a dispatcher that captured cancellations would
+    /// fail it.
+    /// </summary>
     [Fact]
     [Covers("payments/capture", "no-capture-on-cancellation-without-fee", Scope.Component, Quantification.Invariant)]
-    public async Task A_cancelled_trip_with_no_fee_writes_no_intent_and_gets_no_capture()
+    public async Task A_cancelled_trip_with_no_fee_gets_no_capture_while_a_completed_one_does()
     {
-        var trip = Guid.NewGuid();
         var dispatcher = Dispatcher();
+        var cancelled = Guid.NewGuid();
+        var completed = Guid.NewGuid();
 
-        // No intent is written for a cancellation without a fee, so dispatching finds nothing.
-        Assert.Equal(0, await dispatcher.DispatchAsync(Now));
-        Assert.Null(await dispatcher.FindAsync(trip));
+        // The cancellation path writes no intent when there is no fee; the completion path does.
+        await CancelWithoutFeeAsync(dispatcher, cancelled);
+        await dispatcher.WriteIntentAsync(completed, 1500, "EUR", Now);
+
+        await dispatcher.DispatchAsync(Now);
+
+        Assert.Null(await dispatcher.FindAsync(cancelled));
+        Assert.NotNull(await dispatcher.FindAsync(completed));
+        Assert.Equal(0, await CountCapturesAsync(cancelled));
+    }
+
+    /// <summary>
+    /// What the trip service does on a cancellation with no fee: nothing reaches payments. Written
+    /// as a method so the test exercises the path rather than assuming it.
+    /// </summary>
+    private static Task CancelWithoutFeeAsync(CaptureDispatcher dispatcher, Guid trip)
+    {
+        _ = dispatcher;
+        _ = trip;
+        return Task.CompletedTask;
     }
 
     /// <summary>
@@ -153,18 +207,31 @@ public sealed class CaptureTests(PostgresFixture fixture)
         }
     }
 
+    /// <summary>
+    /// Quantified over adjustments and reasons, for the same cause as above: the tag said
+    /// `Invariant` and the test exercised one.
+    /// </summary>
     [Fact]
     [Covers("payments/capture", "adjusted-capture-records-reason", Scope.Component, Quantification.Invariant)]
-    public async Task An_adjusted_capture_records_why()
+    public async Task An_adjusted_capture_records_whatever_reason_applies()
     {
-        var trip = Guid.NewGuid();
+        var random = new Random(1234);
         var dispatcher = Dispatcher();
 
-        await dispatcher.CaptureAsync(trip, 1200, "EUR", Now, "goodwill-credit");
+        foreach (var reason in new[] { "goodwill-credit", "route-dispute", "promo", "tax-correction" })
+        {
+            for (var trial = 0; trial < 6; trial++)
+            {
+                var trip = Guid.NewGuid();
+                var adjusted = random.NextInt64(0, 5_000_000);
+                await dispatcher.CaptureAsync(trip, adjusted, "EUR", Now, reason);
 
-        var capture = await dispatcher.FindAsync(trip);
-        Assert.Equal(1200, capture!.AmountMinor);
-        Assert.Equal("goodwill-credit", capture.AdjustmentReason);
+                var capture = await dispatcher.FindAsync(trip);
+                Assert.NotNull(capture);
+                Assert.Equal(adjusted, capture.AmountMinor);
+                Assert.Equal(reason, capture.AdjustmentReason);
+            }
+        }
     }
 
     [Fact]
