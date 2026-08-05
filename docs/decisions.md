@@ -673,6 +673,58 @@ practice.
 
 ---
 
+## D16 — Tooling before the first slice, and slices in three stages
+
+**Decision.** Build a minimal `azimuth` — parser, model, export, `rtm` check — before any
+application code. Then three slices, in order.
+
+### D16.1 — Why tooling first
+
+`azimuth check rtm` can run against the six existing specs today and report 52 uncovered claims.
+Every subsequent commit of application code then moves that number, and the framework is under
+test continuously — which is the loop D2 made the repo self-contained for.
+
+Building the slice first defers tagging to a single exercise at the end. That is the
+non-incremental adoption the framework argues against (D8), and it means tag ergonomics would
+first be tested after all the code exists, when changing them is most expensive.
+
+### D16.2 — What each slice earns
+
+| Slice | Adds | Earns |
+|---|---|---|
+| 1 | trip + payments (C#), rider BFF (TypeScript), real Postgres | fan-out across two languages, both scope rungs real, first matrix, first design-entry check |
+| 2 | rider web app | a third site on the same claims, and the **second rider-reachable surface** |
+| 3 | driver BFF + driver client, pricing split out | BFF asymmetry, the e2e dispatch path |
+
+Slice 1 is the minimum that exercises all five things actually under test: fan-out, per-ecosystem
+extraction, the scope rungs being real (D15), design-entry checkability (D3), and a matrix worth
+reading.
+
+**Slice 2 carries the prediction.** A receipt view that includes a position field should satisfy
+every claim in `trip/rider-view` while violating the rule that spec exists to express. The
+residual in `verification/trip/rider-view.md` records this in advance; slice 2 is where it is
+tested. If the matrix stays green, that is the primary evidence for what notation to add next.
+
+### D16.3 — What is deliberately not in slice 1
+
+- **The driver side.** `single-acceptance` is a `constraint` claim verified at `component` scope
+  inside the trip service; the driver client adds a surface, not a check. The second BFF matters
+  for the asymmetry argument, not for the first loop.
+- **The analytics consumer.** Its value is C3 and PII territory, which is outside the steel
+  thread.
+
+### D16.4 — Mobile is React Native, not native
+
+A third *ecosystem* mostly tests the extractor rather than the model, and D1 already classes
+native mobile as the worst cost-per-insight in the plan. Kotlin or Swift extractor coverage, if
+wanted, is bought with a small synthetic sample project — that is toolchain coverage, and paying
+for it with a whole native app costs months and teaches the artifact model nothing.
+
+The one thing native would genuinely exercise is C10's cross-language money boundary, and a
+contract test at the serialization seam reaches that more cheaply.
+
+---
+
 ## Method
 
 **Concern catalog first, notation last.** No mechanism enters the model until **≥2 structurally

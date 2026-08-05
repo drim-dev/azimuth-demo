@@ -39,6 +39,10 @@ constraint, not a preference.
 - **Distinguish decided / proposed / open explicitly.** Never let a proposal read as settled.
 - **Mark revisions; do not silently rewrite.** Use `*(revised)*`, `*(supersedes …)*`,
   `*(closes …)*`, and keep enough of the earlier reasoning that a reader can see why it changed.
+- **`azimuth` is the tool; `rtm` is one check.** Never "run rtm", never the matrix as the product.
+  Commands are `azimuth check`, `azimuth check rtm`, `azimuth export`. The old name pulls design
+  discussion back toward the matrix, which is precisely why D9 renamed it — and it pulls hard
+  enough to catch someone who has read D9.
 - **Terminology is bounded by the glossary.** Where a borrowed term is used more narrowly than its
   origin — `proof` above all — say so at the point of use. Precision that the mechanism does not
   back is a liability: the first rigorous reader who pushes on it costs more credibility than the
