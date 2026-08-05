@@ -317,87 +317,133 @@ Each entry records:
 
 ## Clustering — what the catalog says
 
-### The first cut is not the one the current model makes
+### Every concern is a claim; they differ only in what the claim ranges over
 
-The current model splits on *scenario vs. cross-cutting*. The catalog splits first on
-**what the subject of the rule is**:
+The current model splits on *scenario vs. cross-cutting*, as though cross-cutting were one
+thing. It isn't — but neither is it six things needing six notations. Every entry in this
+catalog, and every ordinary scenario, has the same shape:
 
-| Subject | Concerns | Note |
-|---|---|---|
-| A single execution at a site | C1, C5, C6 | Testable the familiar way |
-| The *set of sites* | C4, C5, C14, C15 | The check enumerates members; the subject is the surface itself |
-| The *shape of the code* | C16, C2, C10 | No execution exhibits the violation reliably |
-| Agreement between two implementations | C9, C17 | Each side is individually correct |
-| Global state over time | C8, C11, C7 | No site owns it |
-| Eventual absence | C3, C18 | Liveness — no pre-production oracle exists |
+```
+claim    = (domain, quantifier, predicate)   — what it ranges over, ∃ or ∀, what must hold
+evidence = (strength, freshness)             — how well we know it, and for how long
+```
 
-Six subjects. The current notation (`invariant` over a `class`, discharged by `guard`s at
-member sites) expresses row 2 well and rows 1 and 5 partially. It cannot express rows 3, 4, or
-6 at all. That matches the intuition that the cross-cutting design was rushed: it isn't wrong,
-it's **one row of a six-row table**.
+What the catalog found is **six domains**:
 
-### Safety versus liveness is a hard boundary
+| Domain — what the claim ranges over | Concerns | Quant | Evidence that fits |
+|---|---|---|---|
+| Executions of a behaviour (inputs matching WHEN) | ordinary scenarios; C1, C6 | ∃ / ∀ | tests |
+| A set of sites | C4, C5, C14, C15 | ∀ | one check generated over enumerated members |
+| The code artifact itself | C16, C2, C10 | ∀¬ | static analysis, types, schema — *proof* |
+| Paired derivations that must agree | C9, C17 | ∀ | differential test, cross-product completeness |
+| Aggregate state over time | C7, C8, C11 | ∀ | property test on the primitive + reconciliation |
+| Eventual absence | C3, C18 | ∀ eventually | detection only |
 
-C3, C8 and C18 cannot be discharged before production. Two honest options:
+The alpha's notation (`invariant` over a `class`, discharged by `guard`s at member sites)
+expresses row 2 and, partially, rows 1 and 5. It cannot express rows 3, 4 or 6 at all. The
+cross-cutting design isn't wrong; it's **one row of a six-row table**.
 
-1. Azimuth declares them out of scope and says so explicitly — the matrix covers safety
-   properties, and liveness is somebody else's problem.
-2. The scope ladder gains a rung above `e2e` — a *production oracle*: a named monitor,
-   reconciliation job, or scan, with the requirement that it alerts. This is a large
-   commitment: it means the matrix's green depends on something outside the repo.
+### One artifact with a domain field, not six artifact types
 
-I'd take (1) for now and record the concerns as prose in the code-map's judgment half, because
-(2) makes the tool depend on runtime infrastructure. But it should be a decision, not an
-omission.
+The obvious reading of that table is "four new artifacts are needed." That is the wrong
+response to the right observation, and it is how frameworks become unlearnable — the alpha
+already carries roughly fifteen coordinate concepts before any of this lands.
 
-### Enforcement strength should be part of the record, and should be ranked
+Six domains are six *values of a field*, not six notations. The gain is not tidiness:
+
+- A new kind of rule needs a domain value, a way to enumerate that domain, and its admissible
+  evidence kinds. No new artifact, no new syntax, and existing checks generalize to it.
+- The alpha's `quantification ∈ {example, invariant}` turns out to be ∃/∀ over the *first*
+  domain only. It hard-coded one domain and exposed the quantifier as though that were the
+  whole story. `scope` is likewise a property of evidence for that domain, not of claims in
+  general.
+- Behavioural scenarios are unaffected: they take the first domain by default and never mention
+  it.
+
+### Domain enumeration is where this can silently fail
+
+If a claim ranges over an enumerated set, something must produce that enumeration — and the
+producer can be wrong. An enumerator of "every rider-reachable serializer" that misses one lets
+C1 leak in exactly the way a surface rule was invented to prevent. The mechanism reproduces the
+bug one level up, and reports green.
+
+Two consequences, both load-bearing:
+
+- **Enumerators are derived from the same source the system is built from** — the route table,
+  the DI container, the type graph, the migration set. Never hand-listed. A hand-listed surface
+  is worse than no surface rule, because it is green and wrong.
+- **"Enumerator unsound or underived" is a hole kind** in its own right. It does not exist in
+  the alpha, and it is the first thing a claim over a set needs.
+
+### Safety versus liveness — a boundary, not an exclusion *(revised)*
+
+C3, C8 and C18 cannot be discharged before production. The first reading was to declare them
+out of scope, because a production oracle has no owner among the roles and makes the tool
+depend on runtime infrastructure.
+
+That is now resolved rather than parked. Once evidence is classified by strength, a monitor is
+*detection*-strength evidence, owned by whoever is accountable for sufficiency; and the claim
+becomes checkable before release by shifting the subject — **test the detector**. Does the
+reconciliation job flag an injected imbalance; does the deletion scan flag a planted record.
+
+The liveness domain stays in the model, under one constraint: detection-strength evidence
+without a detector test is a hole.
+
+### Enforcement strength is evidence strength at the top of the ladder *(revised)*
 
 Across the catalog, the same rule is enforceable at very different strengths:
 
 ```
-unrepresentable (type/schema)  >  structurally impossible to bypass (choke point, DB constraint)
+unrepresentable (type/schema)  >  structurally unbypassable (choke point, DB constraint)
                                >  centrally applied but opt-in (middleware)
                                >  guard at every site
 ```
 
-The current model's `guard` sits at the weakest rung and is the *only* rung expressible.
-Worse, a concern solved at the strongest rung looks like a violation: one choke point means
-N−1 members discharge no guard, which reads as N−1 `invariant-breach` rows. **This is a
-concrete bug in the current design, not a matter of taste** — it penalizes the better design.
+The alpha's `guard` sits at the weakest rung and is the *only* rung expressible. Worse, a
+concern solved at the strongest rung *looks like a violation*: one choke point means N−1
+members discharge no guard, reported as N−1 `invariant-breach` rows. **This is a concrete bug,
+not a matter of taste** — it penalizes the better design.
 
-Whatever replaces it should record enforcement mechanism and rank it, and should treat "the
-surface is empty because violation is unrepresentable" as the strongest possible result.
+The catalog also shows why the fix is not an "enforcement budget" that trades against tests.
+C7's unique index is enforcement *and* proof. C16's structural prohibition is enforced and
+verified by the same static rule. C10's type constraint likewise. The top two rungs **are**
+proof-strength evidence — strong enforcement is self-evidencing. Stating it as an identity
+rather than a bargain is cleaner and removes one of the two ladders.
 
-### Enforcement and verification must be separate fields
+"The surface is empty because violation is unrepresentable" is the strongest possible result
+and must be reported as such.
 
-C2 is enforced two ways (choke point *and* a representation constraint) and verified two ways
-(component test *and* a schema rule). C7's DB constraint is simultaneously the enforcement and
-the proof. C16 is enforced structurally and verified statically with no behavioral test at all.
-One `guard` field conflates all of this.
+### Enforcement and verification are still separate fields
 
-### Candidate new artifacts, in order of evidence
+The identity above holds only at the top of the ladder. C2 is enforced two ways (choke point
+*and* a representation constraint) and verified two ways (component test *and* a schema rule).
+A middleware or a per-site guard is enforcement that proves nothing on its own; C16 is enforced
+structurally and verified statically with no behavioural test at all. One `guard` field
+conflates all of this.
 
-1. **Surface rule** — subject is an enumerable set of sites; the check is one universally
-   quantified test generated over the members. Evidence: C4, C5, C14, C15. Strongest cluster;
-   four members from three unrelated domains.
-2. **Code-shape rule** — a prohibition on structure, verified statically. Evidence: C16, C2,
-   C10. Second strongest, and C16 alone justifies it.
-3. **Coherence rule** — two independently-built things must agree; verified differentially or
-   by cross-product completeness. Evidence: C9, C17.
-4. **Global property** — subject is aggregate state; verified by property test on a primitive
-   plus, honestly, production reconciliation. Evidence: C7, C8, C11.
+### Domains in order of evidence
 
-C15 is the interesting stress case for (1): it's a per-member obligation where each member's
-discharge is *different*, so a generated test can only assert that a discharge exists, not that
-it's correct. That's exactly the machine-tier/agent-tier seam.
+1. **A set of sites** — C4, C5, C14, C15. Strongest cluster: four members from three unrelated
+   areas. Needs a derived enumerator above all else.
+2. **The code artifact itself** — C16, C2, C10. C16 alone justifies it; no behavioural test
+   catches it reliably.
+3. **Paired derivations** — C9, C17. Each side individually correct, jointly wrong.
+4. **Aggregate state over time** — C7, C8, C11. No site owns the claim, which strains
+   `realizes`.
+
+C15 is the stress case for (1): a per-member obligation where each member's discharge is
+*different*, so a generated check can assert only that a discharge exists, not that it is
+correct. That is precisely the machine-tier / agent-tier seam.
 
 ### Open questions for the steel thread
 
-- Does a `realizes` tag mean anything for a rule with no site (C8)?
+- Does a `realizes` tag mean anything for a claim over aggregate state, which has no site (C8)?
 - What realizes a scenario across a message broker — is broker configuration a site? (C15, C16)
-- If a concern is enforced by a DB constraint, what is tagged: the migration?
-- `scope: component` in C11 must mean "against a real store," and in C5 need not. The rung is
-  currently one word for two different guarantees.
+- If a claim is enforced by a DB constraint, what is tagged: the migration?
+- `scope: component` in C11 must mean "against a real store," and in C5 need not. One word
+  currently names two different guarantees.
+- Are the six domains a closed set, or may a project add one? Extensibility argues open;
+  comparability across teams argues closed.
 
 ### Method note
 

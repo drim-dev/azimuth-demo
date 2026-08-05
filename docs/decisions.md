@@ -21,6 +21,26 @@ meet real concerns, design artifacts that fit them. Notation is the last step, n
 
 ---
 
+## 0.1 The core, and what is layered over it
+
+Five primitives carry the framework:
+
+1. **Claims** — stable ids, criticality, and the domain they range over (D13)
+2. **Tags** — `realizes` and `covers`, binding code and tests to claims
+3. **Evidence** — with strength and freshness (D4)
+4. **The derived model** over the above, exported (D10)
+5. **Changes** — the unit in which all of it moves (D11)
+
+Everything else in this document — three artifacts, roles, the enforcement ladder, the domain
+taxonomy, criticality levels — is **structure layered over those five**, and must be presented,
+adopted and implemented that way.
+
+This is not presentation advice. It is the operational form of D8: if a layer cannot be removed
+without breaking the core, the layering is wrong. A framework that reads as fifteen coordinate
+concepts will not be adopted; the same framework as five primitives plus optional layers will.
+
+---
+
 ## D1 — The demo is a fixture, not a product
 
 **Decision.** Build a ride-hailing system (Uber-shaped) as the corpus for developing and
@@ -166,6 +186,18 @@ cleanly when accountability collapses into one person, or the framework cannot b
 
 The last is new and is the highest-value check of the four.
 
+### D3.1 — Role ownership is process, not schema
+
+**Decision.** The model does not encode role ownership. The artifacts and their fields exist in
+the schema; who is accountable for each is org policy, recorded in project documentation.
+
+**Why.** Accountability is the framework's *motivation*, but the mechanism does not depend on
+it. The three artifacts earn their place because they hold structurally different information —
+true whether or not an org has analysts or a QA function, and most have neither. Hard-coding
+ownership breaks the tool for those teams and buys nothing for the rest. Keeping it out means
+one model serves N=1 and a three-role team unchanged, which is also what D3's N=1 constraint
+demands.
+
 ---
 
 ## D4 — The verification plan covers all means of assurance, not only tests
@@ -188,6 +220,9 @@ Teams routinely accept detection where proof was required — "we'll alert on it
 common way a hard requirement is quietly downgraded. Making the three visibly distinct makes
 that downgrade a signed decision rather than a drift. Detection is a claim about the *detector*,
 not about the property; the artifact must not let those blur.
+
+Proof-strength evidence and the top of the enforcement ladder are the same thing seen twice —
+see D7.
 
 ### D4.2 — Every evidence item carries freshness
 
@@ -236,6 +271,11 @@ keyed by scenario id.
 their accountability. Analysts should not reason about test forms. This is a concrete,
 falsifiable consequence of the role model.
 
+**Refined by D13.** `quantification` is the claim's own quantifier over its domain and stays
+with the claim; `scope` is a property of *evidence* for the behavioural domain and belongs
+squarely in the plan. The split is cleaner than "required form moves wholesale", and the part
+that moves is the part that was always an evidence judgment.
+
 ---
 
 ## D6 — Criticality attaches to requirements, not to code locations
@@ -278,6 +318,28 @@ Few, named, defined by the framework. The only project-level choice is the mappi
 evidence strength. Twenty tunable knobs would make results incomparable across teams and reduce
 compliance to "we turned off the checks we didn't like".
 
+### D6.5 — The level gates which artifacts are required, not only how strong the evidence is
+
+**Decision.** Criticality determines artifact *existence*, not merely evidence strength. A
+low-criticality requirement needs a spec entry and nothing else — no design decision, no
+evidence standard, no tags beyond the default.
+
+**Why.** Otherwise every requirement costs four authored entries plus tags: correct for a
+payment rule, absurd for a preference toggle. Dialling evidence strength alone leaves the
+ceremony in place and only makes it cheaper to satisfy. This is the difference between a
+framework a team can adopt and one they cannot, and it is what makes "the team decides the
+degree of rigor" real rather than nominal.
+
+### D6.6 — Criticality needs counter-pressure
+
+**Decision.** Criticality is bounded. The mechanism — a declared cap on the share of
+requirements at the top level, explicit review at the change boundary, or both — is chosen
+during the steel thread; that there must be one is decided now.
+
+**Why.** The analyst declares criticality; the developer and QA pay for it. With no feedback
+loop everything drifts to critical, which is the most predictable failure of the whole
+mechanism and would make D6 theatre. Cheap to add now, painful once a spec exists.
+
 ---
 
 ## D7 — Enforcement strength is recorded and ranked
@@ -296,11 +358,17 @@ expressible. Worse, a concern solved at the strongest rung *looks like a violati
 point means N−1 members discharge no guard, reported as N−1 breaches. The model penalizes the
 better design. This is a defect, not a matter of taste.
 
-**The interaction that makes it valuable.** QA's evidence standard is conditioned on the claimed
-enforcement strength: if violation is unrepresentable by construction, a weaker evidence
-standard is legitimate. **Enforcement strength earns test budget.** This is impossible to
-express with one artifact and falls out naturally with two — the strongest argument that D3 is
-right.
+**The interaction that makes it valuable** *(revised)*. The first formulation was that
+enforcement strength "earns test budget" — a trade negotiated between developer and QA. The
+catalog shows it is an **identity**, not a bargain: C7's unique index is enforcement *and*
+proof; C16's static rule enforces and verifies in one act; C10's type constraint likewise.
+
+The top two rungs **are** proof-strength evidence in D4.1's sense. The bottom two are
+enforcement that proves nothing on its own and still requires demonstration. Stating it as an
+identity removes a negotiation and collapses two ladders into one, while leaving D3's split
+intact: the developer owns the *mechanism*, QA owns the *sufficiency judgment*.
+
+This is still the strongest argument that D3 is right — it is inexpressible with one artifact.
 
 "The surface is empty because violation is unrepresentable" is the strongest possible result and
 must be reported as such.
@@ -385,6 +453,17 @@ once the export exists.
 export, keep checks on the consumer side) and a deliverable much later. The highest-value
 operative tool first is a PR comment, not a web app — it lands where the decision is made.
 
+### D10.1 — There are two classes of check, with different inputs
+
+**Decision.** *Model-consuming* checks read the export. *Code-consuming* checks — everything in
+the code-artifact domain (C16, C2, C10) — need AST, call-graph and schema access, and cannot run
+off a spec/tag model at all.
+
+**Consequence.** The plugin interface must admit both, and each extractor manifest must declare
+which code facts it exposes. Designing a single check interface over the export would strand an
+entire claim domain — the one whose violations no behavioural test catches reliably, which is
+the domain that most needed a tool.
+
 ---
 
 ## D11 — Own the spec format; drop the OpenSpec dependency
@@ -429,6 +508,81 @@ checkable before release.
 
 ---
 
+## D13 — One claim type, parameterized by domain *(supersedes the catalog's four-artifact reading)*
+
+**Decision.** There is one kind of claim. What differs between an ordinary scenario and a
+cross-cutting rule is **what the claim ranges over**.
+
+```
+claim    = (domain, quantifier, predicate)
+evidence = (strength, freshness)
+```
+
+The catalog's six subjects become six **values of a field**, not six artifact types:
+executions of a behaviour · a set of sites · the code artifact itself · paired derivations that
+must agree · aggregate state over time · eventual absence.
+
+**Why not four new artifacts.** That was the obvious reading of the catalog and it is the wrong
+response to a right observation. The alpha already carries roughly fifteen coordinate concepts;
+adding four more artifact types with four notations is how a framework becomes unlearnable, and
+it violates 0.1 directly.
+
+**What it subsumes.** The alpha's `quantification ∈ {example, invariant}` is exactly ∃/∀ over
+*one* domain — executions matching a WHEN. `scope` is a property of evidence for that same
+domain. Both are one domain's parameters promoted to universal status; under D13 they take their
+proper place and cost nothing.
+
+**What it buys.** Supporting a new kind of rule requires a domain value, a derived enumerator
+for it, and its admissible evidence kinds — no new artifact, no new syntax, and every existing
+check generalizes. This is D8.2 satisfied by construction rather than by intention, and it is
+the concrete answer to whether the framework is extensible.
+
+**Ergonomics preserved.** Behavioural scenarios take the default domain implicitly and never
+mention it. Authoring a spec does not get harder.
+
+### D13.1 — Domain enumerators are derived, never hand-listed
+
+**Decision.** When a claim ranges over an enumerated set, the enumeration is derived from the
+same source the system is built from — the route table, the DI container, the type graph, the
+migration set.
+
+**Why.** Something must produce the enumeration, and it can be wrong. An enumerator of "every
+rider-reachable serializer" that misses one lets C1 leak in precisely the way the rule existed
+to prevent — the mechanism reproducing the bug one level up, and reporting green. A hand-listed
+surface is worse than no rule at all.
+
+### D13.2 — "Enumerator unsound or underived" is a hole kind
+
+Follows from D13.1 and does not exist in the alpha. It is the first thing a claim over a set
+needs, before any check over its members means anything.
+
+### D13.3 — The domain set is closed for this phase
+
+Six values, framework-defined. Whether projects may add domains stays open (see below): an open
+set is easy to grant later and impossible to withdraw, and comparability across teams is worth
+more right now than extensibility nobody has asked for.
+
+---
+
+## D14 — Agent-tier judgments are evidence items
+
+**Decision.** Verify-pass outputs are recorded as evidence: strength `demonstration`, freshness
+re-established when the subgraph they judged changes. They appear in the export like any other
+evidence.
+
+**Why.** As things stand the agent tier silently absorbs everything hard — test toothiness, tag
+honesty, spec completeness, per-member discharge correctness (C15) — with no design, no decay,
+and no representation in the model. If it quietly stops working, the machine tier degrades to
+the self-certification game the alpha README already names as the failure mode.
+
+Folding it into D4 gives it ownership, a freshness clock, and visibility: "this claim's only
+evidence is an agent judgment from forty commits ago" becomes a state the tool can report rather
+than an invisible one.
+
+**Consequence.** An agent judgment is never proof-strength, whatever its confidence.
+
+---
+
 ## Method
 
 **Concern catalog first, notation last.** No mechanism enters the model until **≥2 structurally
@@ -450,6 +604,24 @@ address.
 
 ---
 
+## What would falsify this
+
+Written before the demo so the answer cannot be retrofitted afterwards.
+
+- **The role split is decorative** if the three role views over the export (D10) turn out
+  substantially identical. This is the sharpest test available and costs nothing once the export
+  exists.
+- **The level mechanism is theatre** if requirements keep landing at top criticality — say above
+  ~40% — even with D6.6's counter-pressure in place.
+- **The framework is ceremony** if authored-artifact and annotation cost per change exceeds what
+  the defects it catches justify. Measured, per the method above, not felt.
+- **The core claim fails** if the agent tier cannot reliably detect a dishonest tag. The machine
+  tier is then self-certification, and no amount of structure repairs it.
+- **The domain unification (D13) is wrong** if a real concern from the demo fits none of the six
+  domains and cannot be given one without introducing a separate artifact type.
+
+---
+
 ## Open questions
 
 **Deliberately unresolved. Each needs evidence from the demo, not more argument.**
@@ -466,11 +638,16 @@ address.
    rung, or a redefinition — where does a contract test sit?
 4. **What `realizes` means for a rule with no site** (C8, conservation over global state).
 5. **What is tagged when enforcement is a DB constraint** — the migration?
-6. **Which candidate artifacts survive clustering.** In current order of evidence: surface rule
-   (C4, C5, C14, C15 — four members, three unrelated domains), code-shape rule (C16, C2, C10),
-   coherence rule (C9, C17), global property (C7, C8, C11). C15 is the stress case for the
-   first: each member's discharge is *different*, so a generated check can assert only that a
-   discharge exists, not that it is correct — precisely the machine-tier / agent-tier seam.
+6. **Whether the domain set is right, and whether it should stay closed.** D13.3 fixes the six
+   the catalog found and closes the set for this phase. The steel thread should try to break it.
+   In current order of evidence: a set of sites (C4, C5, C14, C15 — four members from three
+   unrelated areas), the code artifact (C16, C2, C10), paired derivations (C9, C17), aggregate
+   state (C7, C8, C11).
+7. **How a generated check judges a domain whose members discharge differently.** C15 is the
+   stress case: each consumer's dedupe is correct in a different way, so a check over the set
+   can assert only that a discharge *exists*, not that it is right. This is exactly the
+   machine-tier / agent-tier seam, and D14 is the current answer — worth testing whether it
+   holds.
 
 ---
 
@@ -481,3 +658,5 @@ address.
 - Dashboards and operative tooling as deliverables (the export seam is the deliverable)
 - A configuration language for rigor levels
 - A general-purpose spec format beyond what the steel thread needs
+- Separate artifact types per cross-cutting concern kind — superseded by D13
+- Role ownership encoded in the schema — superseded by D3.1
