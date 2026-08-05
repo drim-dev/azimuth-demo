@@ -201,6 +201,7 @@ pub struct Model {
     /// `wrong-form` cannot fire and `uncovered` falls back to "has any evidence at all".
     pub standards: Option<crate::plan::Standards>,
     pub plans: Vec<crate::plan::Plan>,
+    pub designs: Vec<crate::design::Design>,
 }
 
 /// The evidence standard for one claim: the project mapping, overridden by a plan entry.
@@ -253,6 +254,10 @@ impl Model {
 
     pub fn find_claim(&self, spec: &str, scenario: &str) -> Option<ClaimView<'_>> {
         self.claims().find(|c| c.spec.id == spec && c.scenario.id == scenario)
+    }
+
+    pub fn design_for(&self, spec: &str) -> Option<&crate::design::Design> {
+        self.designs.iter().find(|d| d.spec == spec)
     }
 
     pub fn plan_for(&self, spec: &str) -> Option<&crate::plan::Plan> {
@@ -351,8 +356,36 @@ impl Model {
                         .collect(),
                 ),
             ),
+            ("mechanisms", Json::Arr(self.mechanism_json())),
             ("holes", Json::Arr(holes.iter().map(|h| h.to_json()).collect())),
         ])
+    }
+}
+
+impl Model {
+    fn mechanism_json(&self) -> Vec<Json> {
+        let mut out = Vec::new();
+        for design in &self.designs {
+            for entry in &design.entries {
+                for m in &entry.mechanisms {
+                    out.push(Json::obj(vec![
+                        ("spec", Json::str(&design.spec)),
+                        (
+                            "target_kind",
+                            Json::str(match entry.target {
+                                crate::design::Target::Requirement(_) => "requirement",
+                                crate::design::Target::Scenario(_) => "scenario",
+                            }),
+                        ),
+                        ("target", Json::str(entry.target.id())),
+                        ("enforcement", Json::str(m.kind.name())),
+                        ("rung", Json::Num(m.kind.rung() as f64)),
+                        ("site", Json::str(&m.site)),
+                    ]));
+                }
+            }
+        }
+        out
     }
 }
 

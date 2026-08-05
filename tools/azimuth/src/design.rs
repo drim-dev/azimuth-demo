@@ -1,0 +1,371 @@
+//! The design artifact.
+//!
+//! The mechanism facet (D3): what makes a claim true, and how strongly. Nothing structural is
+//! written here — that is derivable from the code and the `realizes` tags — so an entry is a
+//! **falsifiable assertion about a named artifact**. When the code stops matching, that is a hole
+//! rather than stale prose, which is what design documents have never had.
+//!
+//! Required for `critical` requirements, optional for `standard`, absent for `routine` (D6.5).
+
+use crate::diag::{validate_id, Diag};
+use crate::labels::read_block;
+use std::fs;
+use std::path::{Path, PathBuf};
+
+const ENTRY_LABELS: &[&str] = &["Enforcement", "Site"];
+
+/// D7's ladder, strongest first. Strength is never written in an entry: it is derived from the
+/// kind, and writing it would duplicate a derivable fact.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Enforcement {
+    /// unrepresentable in the type system
+    Type,
+    /// unrepresentable in the data schema
+    Schema,
+    /// rejected by storage — unique index, FK, check, RLS
+    Constraint,
+    /// only possible through one place
+    ChokePoint,
+    /// prevented where applied, and application is opt-in
+    Middleware,
+    /// checked at each site
+    Guard,
+}
+
+impl Enforcement {
+    pub fn parse(s: &str) -> Option<Self> {
+        match s {
+            "type" => Some(Enforcement::Type),
+            "schema" => Some(Enforcement::Schema),
+            "constraint" => Some(Enforcement::Constraint),
+            "choke-point" => Some(Enforcement::ChokePoint),
+            "middleware" => Some(Enforcement::Middleware),
+            "guard" => Some(Enforcement::Guard),
+            _ => None,
+        }
+    }
+
+    pub fn name(self) -> &'static str {
+        match self {
+            Enforcement::Type => "type",
+            Enforcement::Schema => "schema",
+            Enforcement::Constraint => "constraint",
+            Enforcement::ChokePoint => "choke-point",
+            Enforcement::Middleware => "middleware",
+            Enforcement::Guard => "guard",
+        }
+    }
+
+    pub fn rung(self) -> u8 {
+        match self {
+            Enforcement::Type | Enforcement::Schema => 1,
+            Enforcement::Constraint | Enforcement::ChokePoint => 2,
+            Enforcement::Middleware => 3,
+            Enforcement::Guard => 4,
+        }
+    }
+
+    /// D7: the top two rungs **are** proof-strength evidence — strong enforcement is
+    /// self-evidencing. It does not follow that they discharge any particular claim; whether a
+    /// mechanism covers what a claim asserts is an evidence judgment, and stays in the plan.
+    pub fn is_proof_capable(self) -> bool {
+        self.rung() <= 2
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct Mechanism {
+    pub kind: Enforcement,
+    pub site: String,
+    pub line: usize,
+}
+
+/// An entry keys on the coarsest level where its statement is true. One unique index makes all
+/// three `captured-once` scenarios true, and recording it three times would be duplication.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Target {
+    Requirement(String),
+    Scenario(String),
+}
+
+impl Target {
+    pub fn id(&self) -> &str {
+        match self {
+            Target::Requirement(id) | Target::Scenario(id) => id,
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct DesignEntry {
+    pub target: Target,
+    pub mechanisms: Vec<Mechanism>,
+    pub line: usize,
+}
+
+#[derive(Debug, Clone)]
+pub struct Design {
+    pub spec: String,
+    pub path: String,
+    pub entries: Vec<DesignEntry>,
+    /// Never parsed, never derived. Orientation, danger zones, deliberately broken corners — the
+    /// durable half, and the one part the machine must never pretend to understand.
+    pub residue: String,
+}
+
+impl Design {
+    pub fn for_requirement(&self, id: &str) -> Option<&DesignEntry> {
+        self.entries.iter().find(|e| e.target == Target::Requirement(id.to_string()))
+    }
+
+    pub fn for_scenario(&self, id: &str) -> Option<&DesignEntry> {
+        self.entries.iter().find(|e| e.target == Target::Scenario(id.to_string()))
+    }
+}
+
+pub fn load_designs(root: &Path) -> Result<Vec<Design>, Vec<Diag>> {
+    if !root.exists() {
+        return Ok(Vec::new());
+    }
+    let mut files = Vec::new();
+    collect(root, &mut files).map_err(|e| {
+        vec![Diag::file(&root.display().to_string(), format!("cannot read designs: {e}"))]
+    })?;
+    files.sort();
+
+    let mut designs: Vec<Design> = Vec::new();
+    let mut errors = Vec::new();
+    for path in files {
+        let display = path.display().to_string();
+        let source = match fs::read_to_string(&path) {
+            Ok(s) => s,
+            Err(e) => {
+                errors.push(Diag::file(&display, format!("cannot read: {e}")));
+                continue;
+            }
+        };
+        match parse_design(&display, &source) {
+            Ok(design) => {
+                if let Some(prev) = designs.iter().find(|d| d.spec == design.spec) {
+                    errors.push(Diag::at(
+                        &display,
+                        1,
+                        format!("a design for `{}` is already declared by {}", design.spec, prev.path),
+                    ));
+                    continue;
+                }
+                designs.push(design);
+            }
+            Err(mut d) => errors.append(&mut d),
+        }
+    }
+
+    if errors.is_empty() {
+        Ok(designs)
+    } else {
+        Err(errors)
+    }
+}
+
+fn collect(dir: &Path, out: &mut Vec<PathBuf>) -> std::io::Result<()> {
+    for entry in fs::read_dir(dir)? {
+        let entry = entry?;
+        let path = entry.path();
+        if path.is_dir() {
+            collect(&path, out)?;
+        } else if path.extension().and_then(|e| e.to_str()) == Some("md")
+            && path.file_name().and_then(|n| n.to_str()) != Some("README.md")
+        {
+            out.push(path);
+        }
+    }
+    Ok(())
+}
+
+pub fn parse_design(path: &str, source: &str) -> Result<Design, Vec<Diag>> {
+    let lines: Vec<&str> = source.lines().collect();
+    let mut errors = Vec::new();
+    let mut spec: Option<String> = None;
+    let mut entries: Vec<DesignEntry> = Vec::new();
+    let mut residue = String::new();
+    let mut fenced = false;
+    let mut i = 0;
+
+    while i < lines.len() {
+        let trimmed = lines[i].trim();
+        let ln = i + 1;
+
+        if trimmed.starts_with("```") {
+            fenced = !fenced;
+            i += 1;
+            continue;
+        }
+        if fenced {
+            i += 1;
+            continue;
+        }
+
+        if let Some(rest) = trimmed.strip_prefix("# ") {
+            match rest.strip_prefix("Design:") {
+                Some(id) => {
+                    let id = id.trim();
+                    if spec.is_some() {
+                        errors.push(Diag::at(path, ln, "a file designs exactly one spec"));
+                    } else if let Err(why) = validate_id(id, true) {
+                        errors.push(Diag::at(path, ln, format!("invalid spec id: {why}")));
+                    } else {
+                        spec = Some(id.to_string());
+                    }
+                }
+                None => errors.push(Diag::expecting(
+                    path,
+                    ln,
+                    format!("unrecognized top-level heading `# {rest}`"),
+                    "`# Design: <spec-id>`",
+                )),
+            }
+            i += 1;
+            continue;
+        }
+
+        if trimmed == "## Residue" {
+            let (block, next) = read_block(&lines, i + 1, &[]);
+            residue = block.prose;
+            i = next;
+            continue;
+        }
+
+        let target = trimmed
+            .strip_prefix("## Requirement:")
+            .map(|r| (Target::Requirement(r.trim().to_string()), r.trim().to_string()))
+            .or_else(|| {
+                trimmed
+                    .strip_prefix("## Claim:")
+                    .map(|r| (Target::Scenario(r.trim().to_string()), r.trim().to_string()))
+            });
+
+        if let Some((target, id)) = target {
+            let (block, next) = read_block(&lines, i + 1, ENTRY_LABELS);
+            i = next;
+            if let Err(why) = validate_id(&id, false) {
+                errors.push(Diag::at(path, ln, format!("invalid id: {why}")));
+                continue;
+            }
+            if entries.iter().any(|e| e.target == target) {
+                errors.push(Diag::at(path, ln, format!("`{id}` has two entries")));
+                continue;
+            }
+            for (text, sl) in &block.stray {
+                errors.push(Diag::expecting(
+                    path,
+                    *sl,
+                    format!("unrecognized line `{text}` under `{id}`"),
+                    "`Enforcement:` and `Site:`, in pairs",
+                ));
+            }
+
+            // Pairs, in order: each `Enforcement` opens a mechanism and the `Site` after it closes
+            // one. C2 in the concern catalog is the worked example — a choke point *and* a
+            // representation constraint, for one rule.
+            let mut mechanisms: Vec<Mechanism> = Vec::new();
+            let mut pending: Option<(Enforcement, usize)> = None;
+            for label in &block.labels {
+                match label.key.as_str() {
+                    "Enforcement" => {
+                        if let Some((kind, line)) = pending.take() {
+                            errors.push(Diag::expecting(
+                                path,
+                                line,
+                                format!("`{}` names no site", kind.name()),
+                                "a `Site:` line after every `Enforcement:`",
+                            ));
+                        }
+                        match Enforcement::parse(&label.value) {
+                            Some(kind) => pending = Some((kind, label.line)),
+                            None => errors.push(Diag::expecting(
+                                path,
+                                label.line,
+                                format!("unknown enforcement `{}`", label.value),
+                                "type, schema, constraint, choke-point, middleware or guard",
+                            )),
+                        }
+                    }
+                    "Site" => match pending.take() {
+                        Some((kind, _)) => {
+                            if label.value.is_empty() {
+                                errors.push(Diag::at(path, label.line, "`Site:` is empty"));
+                            }
+                            mechanisms.push(Mechanism {
+                                kind,
+                                site: label.value.clone(),
+                                line: label.line,
+                            });
+                        }
+                        None => errors.push(Diag::expecting(
+                            path,
+                            label.line,
+                            "`Site:` with no enforcement",
+                            "an `Enforcement:` line before it",
+                        )),
+                    },
+                    _ => unreachable!("labels are restricted at read time"),
+                }
+            }
+            if let Some((kind, line)) = pending {
+                errors.push(Diag::expecting(
+                    path,
+                    line,
+                    format!("`{}` names no site", kind.name()),
+                    "a `Site:` line after every `Enforcement:`",
+                ));
+            }
+
+            if mechanisms.is_empty() {
+                errors.push(Diag::expecting(
+                    path,
+                    ln,
+                    format!("`{id}` declares no mechanism"),
+                    "an `Enforcement:` and `Site:` pair",
+                ));
+            }
+            // Without a reason, an entry records a fact the code already knows.
+            if block.prose.is_empty() {
+                errors.push(Diag::expecting(
+                    path,
+                    ln,
+                    format!("`{id}` gives no reason"),
+                    "prose: why this mechanism, what was rejected, what breaks if it changes",
+                ));
+            }
+
+            entries.push(DesignEntry { target, mechanisms, line: ln });
+            continue;
+        }
+
+        if trimmed.starts_with('#') {
+            errors.push(Diag::expecting(
+                path,
+                ln,
+                format!("unrecognized heading `{trimmed}`"),
+                "`# Design:`, `## Requirement:`, `## Claim:` or `## Residue`",
+            ));
+        }
+        i += 1;
+    }
+
+    let Some(spec) = spec else {
+        errors.push(Diag::expecting(
+            path,
+            0,
+            "no spec designed",
+            "a `# Design: <spec-id>` heading",
+        ));
+        return Err(errors);
+    };
+
+    if errors.is_empty() {
+        Ok(Design { spec, path: path.to_string(), entries, residue })
+    } else {
+        Err(errors)
+    }
+}

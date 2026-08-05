@@ -7,6 +7,7 @@
 //! No dependencies, by decision (D17).
 
 pub mod check;
+pub mod design;
 pub mod diag;
 pub mod json;
 pub mod manifest;
@@ -38,6 +39,7 @@ pub fn selects(pattern: &str, spec_id: &str) -> bool {
 pub fn load(
     specs_dir: &Path,
     verification_dir: &Path,
+    design_dir: &Path,
     manifests: &[std::path::PathBuf],
     only: &[String],
 ) -> Result<Loaded, Vec<Diag>> {
@@ -64,6 +66,16 @@ pub fn load(
             &standards_path.display().to_string(),
             "no standards file; no evidence standard is known, so wrong-form cannot be reported",
         ));
+    }
+
+    match design::load_designs(design_dir) {
+        Ok(designs) => {
+            model.designs = designs;
+            if !only.is_empty() {
+                model.designs.retain(|d| only.iter().any(|pat| selects(pat, &d.spec)));
+            }
+        }
+        Err(mut d) => errors.append(&mut d),
     }
 
     match plan::load_plans(verification_dir) {

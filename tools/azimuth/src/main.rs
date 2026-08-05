@@ -21,6 +21,7 @@ CHECKS
 OPTIONS
     --specs <dir>          spec root (default: specs)
     --verification <dir>   verification plans (default: verification)
+    --design <dir>         design artifacts (default: design)
     --manifest <file>      a linkage manifest; repeatable
     --only <pattern>       restrict to spec ids; `trip/**` or an exact id; repeatable
     --out <file>           export destination (default: stdout)
@@ -44,6 +45,7 @@ fn main() -> ExitCode {
 struct Options {
     specs: PathBuf,
     verification: PathBuf,
+    design: PathBuf,
     manifests: Vec<PathBuf>,
     only: Vec<String>,
     out: Option<PathBuf>,
@@ -74,6 +76,7 @@ fn parse_options(args: &[String]) -> Result<Options, String> {
     let mut o = Options {
         specs: PathBuf::from("specs"),
         verification: PathBuf::from("verification"),
+        design: PathBuf::from("design"),
         manifests: Vec::new(),
         only: Vec::new(),
         out: None,
@@ -88,6 +91,10 @@ fn parse_options(args: &[String]) -> Result<Options, String> {
                 .ok_or_else(|| format!("`{name}` needs a value"))
         };
         match arg.as_str() {
+            "--design" => {
+                o.design = PathBuf::from(value("--design")?);
+                i += 2;
+            }
             "--verification" => {
                 o.verification = PathBuf::from(value("--verification")?);
                 i += 2;
@@ -131,7 +138,7 @@ fn report(diags: &[Diag], label: &str) {
 }
 
 fn command_check(options: Options) -> Result<ExitCode, String> {
-    let loaded = match azimuth::load(&options.specs, &options.verification, &options.manifests, &options.only) {
+    let loaded = match azimuth::load(&options.specs, &options.verification, &options.design, &options.manifests, &options.only) {
         Ok(l) => l,
         Err(diags) => {
             report(&diags, "error");
@@ -198,7 +205,7 @@ fn command_check(options: Options) -> Result<ExitCode, String> {
 }
 
 fn command_export(options: Options) -> Result<ExitCode, String> {
-    let loaded = match azimuth::load(&options.specs, &options.verification, &options.manifests, &options.only) {
+    let loaded = match azimuth::load(&options.specs, &options.verification, &options.design, &options.manifests, &options.only) {
         Ok(l) => l,
         Err(diags) => {
             report(&diags, "error");

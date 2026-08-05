@@ -5,6 +5,7 @@
 //! without intent, mechanism without intent. A hole kind that is *not* one of those would imply a
 //! fourth facet, and is the recorded falsifier for D3.
 
+use crate::design::Target;
 use crate::json::Json;
 use crate::model::{Criticality, Model, Quantification, Required, Scope, Site, Strength};
 use crate::plan::EvidenceItem;
@@ -48,6 +49,13 @@ pub enum HoleKind {
     /// A plan requires less than the standard without recording and accepting the residual.
     /// Incomplete-facet, like `Unclassified`.
     UnacceptedWeakening,
+    /// mechanism present, intent absent — a design entry for a requirement that does not exist
+    DanglingDesignEntry,
+    /// D6.5 requires a design entry for a `critical` requirement. Incomplete-facet: the mechanism
+    /// may well exist in code, but its strategy is undeclared and therefore uncheckable.
+    UndeclaredMechanism,
+    /// A plan declares proof-strength evidence that no proof-capable mechanism backs.
+    UnbackedProof,
 }
 
 impl HoleKind {
@@ -62,6 +70,9 @@ impl HoleKind {
             HoleKind::WrongForm => "wrong-form",
             HoleKind::Unclassified => "unclassified",
             HoleKind::UnacceptedWeakening => "unaccepted-weakening",
+            HoleKind::DanglingDesignEntry => "dangling-design-entry",
+            HoleKind::UndeclaredMechanism => "undeclared-mechanism",
+            HoleKind::UnbackedProof => "unbacked-proof",
         }
     }
 }
@@ -226,6 +237,7 @@ pub fn rtm(model: &Model) -> Vec<Hole> {
     }
 
     holes.extend(plan_holes(model));
+    holes.extend(design_holes(model));
 
     for (sites, kind) in
         [(&model.covers, HoleKind::DanglingTag), (&model.realizes, HoleKind::DanglingRealization)]
@@ -357,6 +369,120 @@ fn plan_holes(model: &Model) -> Vec<Hole> {
             }
         }
     }
+    holes
+}
+
+/// Holes about the mechanism facet, and the first check that needs all three artifacts.
+fn design_holes(model: &Model) -> Vec<Hole> {
+    let mut holes = Vec::new();
+
+    for design in &model.designs {
+        let Some(spec) = model.specs.iter().find(|s| s.id == design.spec) else {
+            holes.push(Hole {
+                kind: HoleKind::DanglingDesignEntry,
+                severity: Severity::Error,
+                claim: Some(design.spec.clone()),
+                criticality: None,
+                path: design.path.clone(),
+                line: 1,
+                detail: format!("designs spec `{}`, which does not exist", design.spec),
+            });
+            continue;
+        };
+        for entry in &design.entries {
+            let id = entry.target.id();
+            let exists = match &entry.target {
+                Target::Requirement(_) => spec.requirements.iter().any(|r| r.id == id),
+                Target::Scenario(_) => {
+                    spec.requirements.iter().any(|r| r.scenarios.iter().any(|s| s.id == id))
+                }
+            };
+            if !exists {
+                holes.push(Hole {
+                    kind: HoleKind::DanglingDesignEntry,
+                    severity: Severity::Error,
+                    claim: Some(format!("{}#{}", design.spec, id)),
+                    criticality: None,
+                    path: design.path.clone(),
+                    line: entry.line,
+                    detail: "names a requirement or claim that does not exist".into(),
+                });
+            }
+        }
+    }
+
+    // D6.5: a design entry is required for `critical`, optional for `standard`, absent for
+    // `routine`. Nothing here says the mechanism is missing from the code — only that its strategy
+    // is undeclared, and therefore that no check can ever compare claim against reality.
+    //
+    // Gated on the artifact being in use at all. D8.1 requires each mechanism to be usable alone —
+    // `rtm` without the design artifact — and a project that has not adopted it must not be told
+    // that every critical requirement is a hole. Partial adoption still reports: one design file
+    // means the artifact is in use, and the specs it omits are visible.
+    for spec in &model.specs {
+        if model.designs.is_empty() {
+            break;
+        }
+        let design = model.design_for(&spec.id);
+        for requirement in &spec.requirements {
+            if requirement.criticality != Some(Criticality::Critical) {
+                continue;
+            }
+            let declared = design.is_some_and(|d| {
+                d.for_requirement(&requirement.id).is_some()
+                    || requirement.scenarios.iter().any(|s| d.for_scenario(&s.id).is_some())
+            });
+            if !declared {
+                holes.push(Hole {
+                    kind: HoleKind::UndeclaredMechanism,
+                    severity: Severity::Error,
+                    claim: Some(format!("{}#{}", spec.id, requirement.id)),
+                    criticality: requirement.criticality,
+                    path: spec.path.clone(),
+                    line: requirement.line,
+                    detail: "critical requirement declares no enforcement mechanism".into(),
+                });
+            }
+        }
+    }
+
+    // The three-artifact check. A plan may cite proof-strength evidence, but proof comes from a
+    // mechanism at the top of the enforcement ladder (D7) — and the developer owns which mechanism
+    // that is. A plan claiming proof with no proof-capable mechanism behind it is asserting the
+    // strongest available result out of thin air.
+    for plan in &model.plans {
+        for entry in &plan.entries {
+            let Some(evidence) = &entry.evidence else { continue };
+            if evidence.strength != Strength::Proof {
+                continue;
+            }
+            let Some(claim) = model.find_claim(&plan.spec, &entry.scenario) else { continue };
+            let backed = model.design_for(&plan.spec).is_some_and(|d| {
+                let for_scenario = d.for_scenario(&entry.scenario);
+                let for_requirement = d.for_requirement(&claim.requirement.id);
+                for_scenario
+                    .into_iter()
+                    .chain(for_requirement)
+                    .any(|e| e.mechanisms.iter().any(|m| m.kind.is_proof_capable()))
+            });
+            if !backed {
+                holes.push(Hole {
+                    kind: HoleKind::UnbackedProof,
+                    severity: Severity::Error,
+                    claim: Some(format!("{}#{}", plan.spec, entry.scenario)),
+                    criticality: claim.requirement.criticality,
+                    path: plan.path.clone(),
+                    line: entry.line,
+                    detail: format!(
+                        "claims proof-strength evidence, but `{}` declares no mechanism at the top \
+                         two rungs of the enforcement ladder",
+                        claim.requirement.id
+                    ),
+                });
+            }
+        }
+    }
+
     holes
 }
 
