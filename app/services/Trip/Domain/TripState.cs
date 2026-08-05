@@ -1,7 +1,7 @@
 using Azimuth.Annotations;
 using Pricing;
 
-namespace Trip.Domain;
+namespace Trips.Domain;
 
 public enum TripState
 {

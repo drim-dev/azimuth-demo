@@ -1,7 +1,7 @@
 using Azimuth.Annotations;
 using Pricing;
 
-namespace Trip.Domain;
+namespace Trips.Domain;
 
 /// <summary>
 /// A rider's contact detail. Like <see cref="DriverPosition"/>, it has no serializer and no
@@ -45,8 +45,8 @@ public static class DriverProjection
     [Realizes("trip/driver-view", "pickup-shown-on-offer")]
     [Realizes("trip/driver-view", "rider-contact-hidden-on-offer")]
     [Realizes("trip/driver-view", "rider-contact-confined-to-held-trips")]
-    public static DriverOfferView Offer(Guid tripId, string pickupArea, Money fare) =>
-        new(tripId.ToString(), pickupArea, fare.MinorUnits, fare.Currency);
+    public static DriverOfferView Offer(string tripId, string pickupArea, Money fare) =>
+        new(tripId, pickupArea, fare.MinorUnits, fare.Currency);
 
     /// <summary>The only reveal of a rider contact, and only while the driver holds the trip.</summary>
     [Realizes("trip/driver-view", "proxy-contact-while-held")]
@@ -54,7 +54,7 @@ public static class DriverProjection
     [Realizes("trip/driver-view", "rider-contact-hidden-on-offer")]
     [Realizes("trip/driver-view", "rider-contact-confined-to-held-trips")]
     public static DriverTripView For(
-        Guid tripId,
+        string tripId,
         TripState phase,
         string pickupArea,
         Money fare,
@@ -63,7 +63,7 @@ public static class DriverProjection
     {
         var live = phase is TripState.Assigned or TripState.InProgress;
         return new DriverTripView(
-            tripId.ToString(),
+            tripId,
             TripStateMachine.Name(phase),
             pickupArea,
             fare.MinorUnits,

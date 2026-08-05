@@ -19,6 +19,7 @@
 
   <ItemGroup>
     <ProjectReference Include="../Trip/Trip.csproj" />
+    <ProjectReference Include="../Common/Common.csproj" />
   </ItemGroup>
 
 </Project>

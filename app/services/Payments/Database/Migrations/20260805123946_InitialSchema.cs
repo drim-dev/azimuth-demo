@@ -1,0 +1,83 @@
+﻿using System;
+using Microsoft.EntityFrameworkCore.Migrations;
+using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
+
+#nullable disable
+
+namespace Payments.Database.Migrations
+{
+    /// <inheritdoc />
+    public partial class InitialSchema : Migration
+    {
+        /// <inheritdoc />
+        protected override void Up(MigrationBuilder migrationBuilder)
+        {
+            migrationBuilder.CreateTable(
+                name: "capture_failures",
+                columns: table => new
+                {
+                    id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    trip_id = table.Column<long>(type: "bigint", nullable: false),
+                    reason = table.Column<string>(type: "text", nullable: false),
+                    occurred_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_capture_failures", x => x.id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "capture_intents",
+                columns: table => new
+                {
+                    trip_id = table.Column<long>(type: "bigint", nullable: false),
+                    amount_minor = table.Column<long>(type: "bigint", nullable: false),
+                    currency = table.Column<string>(type: "text", nullable: false),
+                    written_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    dispatched_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_capture_intents", x => x.trip_id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "captures",
+                columns: table => new
+                {
+                    id = table.Column<long>(type: "bigint", nullable: false),
+                    trip_id = table.Column<long>(type: "bigint", nullable: false),
+                    amount_minor = table.Column<long>(type: "bigint", nullable: false),
+                    currency = table.Column<string>(type: "text", nullable: false),
+                    adjustment_reason = table.Column<string>(type: "text", nullable: true),
+                    voided = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    captured_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_captures", x => x.id);
+                });
+
+            migrationBuilder.CreateIndex(
+                name: "ux_capture_trip",
+                table: "captures",
+                column: "trip_id",
+                unique: true,
+                filter: "NOT voided");
+        }
+
+        /// <inheritdoc />
+        protected override void Down(MigrationBuilder migrationBuilder)
+        {
+            migrationBuilder.DropTable(
+                name: "capture_failures");
+
+            migrationBuilder.DropTable(
+                name: "capture_intents");
+
+            migrationBuilder.DropTable(
+                name: "captures");
+        }
+    }
+}

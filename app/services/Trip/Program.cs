@@ -1,6 +1,12 @@
-using Trip;
-using Trip.Domain;
-using Trip.Storage;
+using Common.Exceptions;
+using Common.Http;
+using Common.Identity;
+using Common.Time;
+using Common.Validation;
+using FluentValidation;
+using MediatR;
+using Microsoft.EntityFrameworkCore;
+using Trips.Database;
 
 // The trip service. Slice 1 (D16.2): pricing lives here as a module and is split out in slice 3.
 
@@ -11,22 +17,29 @@ var connectionString =
     ?? Environment.GetEnvironmentVariable("TRIP_DB")
     ?? "Host=localhost;Port=5432;Database=trip;Username=postgres;Password=postgres";
 
-builder.Services.AddSingleton(new Database(connectionString));
-builder.Services.AddSingleton<QuoteStore>();
-builder.Services.AddSingleton<TripStore>();
-builder.Services.AddSingleton<OfferStore>();
-builder.Services.AddSingleton<Clock>(_ => new Clock(() => DateTimeOffset.UtcNow));
+builder.Services.AddDbContext<TripDbContext>(options => options.UseNpgsql(connectionString));
+
+builder.Services.AddMediatR(c => c.RegisterServicesFromAssemblyContaining<TripDbContext>());
+builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
+builder.Services.AddValidatorsFromAssemblyContaining<TripDbContext>();
+
+builder.Services.AddSingleton(
+    new IdFactory(generatorId: 0, new DateTimeOffset(2024, 1, 1, 0, 0, 0, TimeSpan.Zero)));
+builder.Services.AddSingleton(Clock.System);
+
+builder.Services.AddExceptionHandler<DomainExceptionHandler>();
+builder.Services.AddProblemDetails();
 
 var app = builder.Build();
-await app.Services.GetRequiredService<Database>().MigrateAsync();
-Routes.Map(app);
-app.Run();
 
-/// <summary>Injected so tests can settle time without waiting for it.</summary>
-public sealed class Clock(Func<DateTimeOffset> now)
+using (var scope = app.Services.CreateScope())
 {
-    public DateTimeOffset Now => now();
+    await scope.ServiceProvider.GetRequiredService<TripDbContext>().Database.MigrateAsync();
 }
 
-/// <summary>Exposed so the component tests can host the real routes over a real store.</summary>
+app.UseExceptionHandler();
+app.MapEndpoints<TripDbContext>();
+app.Run();
+
+/// <summary>Exposed so the component tests can host the real slices over a real store.</summary>
 public partial class Program;

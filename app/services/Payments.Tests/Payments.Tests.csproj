@@ -19,6 +19,7 @@
 
   <ItemGroup>
     <ProjectReference Include="../Payments/Payments.csproj" />
+    <ProjectReference Include="../Common/Common.csproj" />
   </ItemGroup>
 
 </Project>

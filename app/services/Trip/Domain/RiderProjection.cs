@@ -1,7 +1,7 @@
 using Azimuth.Annotations;
 using Pricing;
 
-namespace Trip.Domain;
+namespace Trips.Domain;
 
 /// <summary>
 /// A driver's precise position. Deliberately has no serializer and no property returning its raw
@@ -67,7 +67,7 @@ public static class RiderProjection
     [Realizes("trip/rider-view", "driver-identity-remains-on-receipt")]
     [Realizes("trip/rider-view", "position-confined-to-live-phases")]
     public static RiderTripView For(
-        Guid tripId,
+        string tripId,
         TripState phase,
         Money fare,
         string? driverDisplay,
@@ -79,7 +79,7 @@ public static class RiderProjection
         var terminal = TripStateMachine.IsTerminal(phase);
 
         return new RiderTripView(
-            tripId.ToString(),
+            tripId,
             TripStateMachine.Name(phase),
             fare.MinorUnits,
             fare.Currency,

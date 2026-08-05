@@ -1,9 +1,9 @@
 using Azimuth.Annotations;
 using Pricing;
-using Trip.Domain;
+using Trips.Domain;
 using Xunit;
 
-namespace Trip.Tests;
+namespace Trips.Tests;
 
 /// <summary>
 /// Claims whose truth needs nothing real. Under D15 that is exactly what <c>unit</c> means, and it
@@ -136,7 +136,7 @@ public sealed class StateMachineTests
 public sealed class RiderProjectionTests
 {
     private static RiderTripView View(TripState phase) => RiderProjection.For(
-        Guid.Empty,
+        "0000000000000",
         phase,
         Money.Of(1500, "EUR"),
         driverDisplay: "Sam",
