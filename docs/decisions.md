@@ -25,7 +25,8 @@ meet real concerns, design artifacts that fit them. Notation is the last step, n
 
 Five primitives carry the framework:
 
-1. **Claims** — stable ids, criticality, and the domain they range over (D13)
+1. **Claims** — stable ids, criticality, the domain they range over (D13), and three facets:
+   intent, mechanism, evidence (D3)
 2. **Tags** — `realizes` and `covers`, binding code and tests to claims
 3. **Evidence** — with strength and freshness (D4)
 4. **The derived model** over the above, exported (D10)
@@ -139,64 +140,102 @@ that has no users.
 
 ---
 
-## D3 — Three artifacts, one per accountable role
+## D3 — A claim has three facets: intent, mechanism, evidence *(re-justified)*
 
-**Decision.** The framework is built around three artifacts, each owned by a role that is
-accountable for it. Any role may read and modify any artifact; exactly one is answerable for
-each.
+**Decision.** Every claim has exactly three facets, each recorded in its own artifact.
 
-| Role | Artifact | Accountable for |
-|---|---|---|
-| Analyst | **Spec** | What must be true, and how much it matters |
-| Developer | **Design** | How it is built and how rules are enforced |
-| QA | **Verification plan** | Whether the evidence is sufficient to believe it |
+| Artifact | Facet | Question it answers | Typically authored by |
+|---|---|---|---|
+| **Spec** | intent | What must be true, over what domain, how much it matters | Analyst |
+| **Design** | mechanism | What makes it true, and how strongly | Developer |
+| **Verification plan** | evidence | How we know it is true, and how freshly | QA |
 
-**Why roles survive the agent era.** Not division of labour — agents genuinely erode that — but
-**accountability**, which cannot be delegated to something that cannot be held to account. This
-premise survives arbitrarily capable agents, which is the test of a load-bearing framework
-assumption.
+**Why three, and why these three.** The original justification was "because there are three
+accountable roles". That is backwards, and it cannot survive D3.1. The real reason is that
+*intent / mechanism / evidence* — necessity, causation, knowledge — is a complete and
+irreducible decomposition of what can be said about a claim. The decisive evidence is that
+**the entire hole taxonomy falls out of its missing-facet combinations**:
 
-**Why this specific split.** It was reached twice from opposite directions. Bottom-up from the
-concern catalog, the sharpest finding was that *enforcement and verification must be separate
-fields*. Top-down from accountability, developer and QA are separate accountable parties. Same
-seam, found independently.
+| Facets present | Hole |
+|---|---|
+| intent, no mechanism | **unrealized** |
+| intent, no evidence | **uncovered** |
+| evidence, no intent | **dangling tag** |
+| mechanism, no intent | **dangling realization** — rogue complexity |
+| intent + evidence below the declared standard | **wrong-form** |
+
+Every hole kind the alpha arrived at by enumeration turns out to be a facet-presence
+combination. Nothing else in the design generates that taxonomy, and it suggests the list is
+complete rather than accidental — a strong sign the facets are real.
+
+**Could there be a fourth?** It would have to be something that is neither what must be true,
+nor what makes it true, nor how we know it. Nothing in the catalog is. Criticality is a property
+of intent; ownership is a projection (D3.1); time is the change axis (D11) rather than a facet
+of a claim.
+
+**Could there be fewer?** D7 shows mechanism and evidence *coincide* at the top of the
+enforcement ladder — a unique index both makes a claim true and shows it is true. That is one
+artifact of code filling two facets, not the two facets being one. At the bottom of the ladder
+they come apart completely: a per-site guard makes something true and proves nothing.
+
+**Model versus layout.** In the model these are three facets of one object, keyed by claim id —
+D13's logic applied one level up, so that an authorship difference is not promoted to a
+structural one. On disk they are three artifacts, for reasons that are real but not structural:
+they change at different rates (intent with the requirement, mechanism with a refactor, evidence
+with a new test), giving three clean diffs and three blame trails; they attract different
+reviewers; and the derivability rule below needs separable containers to be stated at all.
 
 **The rule that keeps three artifacts from becoming three rot sites.** Each artifact contains
 **only what is not derivable from the other two plus the code**. For any line, ask whether a
-machine could derive it; if yes, delete it. In particular the design artifact holds only the
-*judgment half* of the code-map — decisions, rejected alternatives, enforcement strategy, danger
-zones, deliberate debt. Everything structural is derived. Design docs rot as a rule; this is the
-only known antidote.
+machine could derive it; if yes, delete it. Everything structural is derived. Design docs rot as
+a rule; this is the only known antidote.
+
+**The residue.** Not everything belongs to a claim. Orientation, danger zones, deliberately
+broken corners, what is deliberately *not* here and why — the code-map's judgment half — is what
+remains once every claim-linked fact has been factored out. It sits beside the design artifact,
+participates in no check, and is the one part the machine must never pretend to derive. Naming
+it as residue rather than as design content is what stops the design artifact from becoming a
+dumping ground.
 
 **The contested case, stated in advance.** Spec was right, design was right, evidence was
-collected per plan, production broke anyway → **QA's accountability**: the evidence standard was
-insufficient. A role model that cannot assign a post-mortem is decoration.
+collected per plan, production broke anyway → the **evidence** facet was insufficient, and
+whoever owns it is accountable. A framework that cannot locate a post-mortem is decoration.
 
-**N=1 constraint.** On the demo, one person holds all three roles. The artifacts must separate
-cleanly when accountability collapses into one person, or the framework cannot be dogfooded.
+**N=1 constraint.** On the demo, one person authors all three. The facets must separate cleanly
+when authorship collapses into one person, or the framework cannot be dogfooded.
 
-**Cross-artifact checks — the reason three beats one.** These pay for the ceremony:
+**Cross-facet checks — the reason three beats one.** These pay for the ceremony:
 
-- every requirement has a declared evidence standard (no requirement silently accepted on a
-  happy path)
+- every claim has a declared evidence standard (nothing silently accepted on a happy path)
 - every standard is met by actual evidence at that strength (today's RTM)
-- every requirement has a realizing design decision; every design decision traces to a
-  requirement (catches rogue complexity)
+- every claim has a realizing mechanism; every mechanism traces to a claim (rogue complexity)
 - the enforcement strategy claimed in design is the one found in code
 
 The last is new and is the highest-value check of the four.
 
-### D3.1 — Role ownership is process, not schema
+### D3.1 — Ownership is an optional layer, not part of the model *(revised)*
 
-**Decision.** The model does not encode role ownership. The artifacts and their fields exist in
-the schema; who is accountable for each is org policy, recorded in project documentation.
+**Decision.** The core model has no owner field. Ownership is expressible as a separate,
+optional mapping — CODEOWNERS-shaped — from artifacts, specs or areas to whoever is accountable.
+Absent by default, never required, and removable without breaking anything beneath it (D8.1).
 
-**Why.** Accountability is the framework's *motivation*, but the mechanism does not depend on
-it. The three artifacts earn their place because they hold structurally different information —
-true whether or not an org has analysts or a QA function, and most have neither. Hard-coding
-ownership breaks the tool for those teams and buys nothing for the rest. Keeping it out means
-one model serves N=1 and a three-role team unchanged, which is also what D3's N=1 constraint
-demands.
+**Why not in the schema.** Most teams have no analyst and many have no QA function. A required
+owner field makes the tool either complain or lie for them, and it breaks outright at N=1 where
+one person holds all three facets. Ownership also changes with reorganizations, and artifact
+structure must not churn when it does.
+
+**Why an explicit layer rather than nothing.** Accountability is the reason the artifacts are
+separated physically at all, and a team that wants it should be able to state it and have
+findings routed accordingly — an uncovered critical claim goes to whoever owns evidence. What
+the framework contributes is the **separable locus of responsibility**: without the facet split,
+"who is accountable for verification sufficiency" has no object to attach to, because nobody can
+own "quality" as such. Making the loci exist is the framework's job; assigning names to them is
+org policy.
+
+**Ordering, stated plainly.** The role triad is a *consequence* of the facet triad, not its
+cause — engineering organizations evolved analyst/developer/QA around intent/mechanism/evidence.
+The model therefore stands without roles, and a team lacking any of them loses nothing
+structural.
 
 ---
 
@@ -269,7 +308,7 @@ keyed by scenario id.
 
 **Why.** Under D3 it is currently an analyst declaring a standard of evidence, which is not
 their accountability. Analysts should not reason about test forms. This is a concrete,
-falsifiable consequence of the role model.
+falsifiable consequence of the facet model.
 
 **Refined by D13.** `quantification` is the claim's own quantifier over its domain and stays
 with the claim; `scope` is a property of *evidence* for the behavioural domain and belongs
@@ -292,13 +331,16 @@ site inherits it wherever it lives. No separate configuration for code at all. T
 is a critical requirement realized partly inside a low-rigor component: directory config
 silently downgrades it, requirement-carried criticality does not.
 
-### D6.1 — Who owns what
+### D6.1 — Which facet each half belongs to
 
-- **Analyst declares criticality** — business and regulatory impact. A requirements judgment.
-- **The verification plan maps criticality → required evidence strength.** A QA judgment,
-  written once per project rather than negotiated per requirement.
+- **Criticality is part of intent** — business and regulatory impact, declared on the claim.
+- **The mapping criticality → required evidence strength is part of evidence**, written once
+  per project rather than negotiated per requirement.
 
-QA never argues about which features matter; analysts never reason about test forms.
+The split is what keeps the two judgments from contaminating each other: nobody arguing about
+evidence has to re-litigate which features matter, and nobody declaring importance has to reason
+about test forms. Where teams do have roles, this is the analyst/QA boundary — but the boundary
+is the facet, not the job title (D3.1).
 
 ### D6.2 — The declaration is never optional
 
@@ -442,12 +484,12 @@ Azimuth internals, reading only the export? Verify this early.
 stays stateless and grows no database. Freshness (D4.2) only gets teeth when something looks at
 it over time.
 
-**A test of whether D3 is real.** Each role wants a different view — analyst: unclassified
-requirements, requirements with no evidence standard. Developer: unrealized scenarios,
-enforcement claimed vs. found, design decisions tracing to nothing. QA: residual risk, freshness
-decay, detection items without a detector test. **If the three views turn out to be
-substantially the same view, the three-artifact split is decorative.** Costs nothing to check
-once the export exists.
+**A test of whether D3 is real.** Each facet generates a different view — intent: unclassified
+claims, claims with no evidence standard. Mechanism: unrealized claims, enforcement claimed vs.
+found, mechanisms tracing to nothing. Evidence: residual risk, freshness decay, detection items
+without a detector test. **If the three views turn out to be substantially the same view, the
+facet split is decorative and the artifacts should collapse.** Costs nothing to check once the
+export exists.
 
 **Scope guard.** Dashboards are a scope magnet. This is a constraint satisfied now (ship the
 export, keep checks on the consumer side) and a deliverable much later. The highest-value
@@ -502,8 +544,9 @@ concern demands it, never in anticipation.
 conservation, C18 retention purge) stay in scope.
 
 **Why the reversal.** They were initially parked because production oracles had no owner among
-the three roles. D4 resolves that: QA's artifact names monitors as evidence, so QA owns their
-*adequacy* even when someone else operates them. No fourth role is needed. D4.3 makes them
+the three roles. D4 resolves that: the evidence facet names monitors as evidence, so whoever
+owns evidence owns their *adequacy* even when someone else operates them. No fourth facet and no
+fourth role is needed. D4.3 makes them
 checkable before release.
 
 ---
@@ -608,9 +651,12 @@ address.
 
 Written before the demo so the answer cannot be retrofitted afterwards.
 
-- **The role split is decorative** if the three role views over the export (D10) turn out
-  substantially identical. This is the sharpest test available and costs nothing once the export
-  exists.
+- **The facet split is decorative** if the three views over the export (D10) turn out
+  substantially identical — if intent, mechanism and evidence generate the same questions, they
+  are one facet wearing three names. Sharpest test available, and free once the export exists.
+- **The facet decomposition is incomplete** if a hole kind appears in practice that is *not* a
+  missing-facet combination. D3 claims the taxonomy is generated; one counter-example refutes
+  that and implies a fourth facet.
 - **The level mechanism is theatre** if requirements keep landing at top criticality — say above
   ~40% — even with D6.6's counter-pressure in place.
 - **The framework is ceremony** if authored-artifact and annotation cost per change exceeds what
