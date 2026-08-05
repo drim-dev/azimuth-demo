@@ -1,0 +1,17 @@
+{
+  "name": "@azimuth/annotations",
+  "version": "0.0.1",
+  "description": "Azimuth linkage tags for TypeScript: realizes on production code, covers on tests.",
+  "license": "MIT",
+  "type": "commonjs",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "prepublishOnly": "npm run build"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}

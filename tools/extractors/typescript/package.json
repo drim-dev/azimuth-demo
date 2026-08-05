@@ -1,0 +1,15 @@
+{
+  "name": "@azimuth/emit-ts",
+  "version": "0.0.1",
+  "description": "Static-scan emitter: TypeScript linkage tags to the Azimuth manifest.",
+  "license": "MIT",
+  "private": true,
+  "type": "commonjs",
+  "bin": { "azimuth-emit-ts": "dist/cli.js" },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "node --test dist/*.test.js"
+  },
+  "dependencies": { "typescript": "^5.9.3" },
+  "devDependencies": { "@types/node": "^22.10.0" }
+}
