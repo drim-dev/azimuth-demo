@@ -75,6 +75,20 @@ declared.
 
 ## Style
 
+- **An id is a compressed proposition** — a subject plus what must hold of it. If an id cannot be
+  read as an assertion that is either satisfied or not, it is naming a topic rather than a rule:
+  `terminal-states-are-final`, not `termination`; `captured-once`, not `capture`. A topic-shaped
+  id will quietly absorb unrelated rules over time, which is how one requirement becomes five
+  wearing a single identity.
+- **Ids are never imperative.** `quote-issued`, not `issue-quote`. A requirement states what must
+  be true, not what the system does; verb-first ids drift toward one requirement per endpoint,
+  which is the same mistake as organizing specs by service. Most requirements have no verb at
+  all — an imperative convention would only fit the CRUD-shaped minority.
+- **Scenario ids must stand alone.** They appear in tags far from any context
+  (`Covers("trip/dispatch", "late-acceptance-rejected")`) and have to be self-explanatory at the
+  call site.
+- **Keep requirement and scenario ids visibly distinct.** They are separate namespaces, but a
+  scenario repeating its requirement's id is unreadable in a diff.
 - **SHALL statements are normative and singular.** One rule per requirement. If it needs an
   "and", it is probably two requirements.
 - **Scenarios are declarative, not mechanical.** They say what must be true, never how it is

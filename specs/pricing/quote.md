@@ -23,7 +23,7 @@ WHEN a rider requests a fare for that pickup
 THEN no quote is issued
 AND the rider is told the area is not served
 
-## Requirement: quote-validity-window
+## Requirement: quote-valid-until-expiry
 Criticality: standard
 
 A quote SHALL be valid from issuance until its expiry instant, and SHALL NOT be extended,

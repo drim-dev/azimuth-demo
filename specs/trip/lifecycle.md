@@ -8,7 +8,7 @@ be assigned (`trip/dispatch`) or what happens to money afterwards (`payments/cap
 States: `requested` → `assigned` → `in-progress` → `completed`, with `cancelled` reachable from
 `requested`, `assigned` and `in-progress`. `completed` and `cancelled` are terminal.
 
-## Requirement: permitted-transitions
+## Requirement: transitions-follow-state-machine
 Criticality: critical
 
 A trip SHALL move only along the permitted transitions of its state machine.
@@ -61,7 +61,7 @@ WHEN any further transition occurs
 THEN the earlier history is unchanged
 AND the new transition is appended
 
-## Requirement: cancellation
+## Requirement: cancellable-before-completion
 Criticality: standard
 
 A trip SHALL be cancellable by either party before completion, and the cancelling party SHALL be

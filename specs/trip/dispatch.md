@@ -51,12 +51,12 @@ WHEN any further driver accepts an offer for that trip
 THEN the acceptance is rejected
 AND the assignment is unchanged
 
-## Requirement: offer-withdrawal
+## Requirement: offers-withdrawn-on-assignment
 Criticality: standard
 
 Once a trip is assigned, outstanding offers for it SHALL be withdrawn.
 
-### Scenario: offers-withdrawn-on-assignment
+### Scenario: other-offers-withdrawn
 GIVEN a trip offered to several drivers
 WHEN one driver is assigned to the trip
 THEN every other driver's offer for that trip is withdrawn
