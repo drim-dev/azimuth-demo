@@ -9,11 +9,24 @@ sites, three languages.
 Owns rider-facing visibility. Does not own what the driver sees (`trip/driver-view`, later) or
 the underlying states (`trip/lifecycle`).
 
-> The prohibition below is stated here as an ordinary behavioural claim about one surface. The
-> general rule — that *no* rider-reachable surface may expose precise driver location before
-> acceptance — is concern C1 in `docs/concern-catalog.md` and is deliberately left as prose for
-> now. Whether the per-scenario matrix notices a new surface that forgets it is exactly what the
-> steel thread is meant to find out.
+> The behavioural claims below constrain the surfaces that existed when they were written. The
+> general rule — that *no* rider-reachable surface may carry a driver's precise position outside
+> the live phases — is stated as an invariant, because slice 2 demonstrated that the per-scenario
+> claims cannot carry it: a receipt endpoint satisfied every one of them and leaked anyway, and the
+> matrix reported no new hole. Concern C1 in `docs/concern-catalog.md`.
+
+## Invariant: position-confined-to-live-phases
+Criticality: critical
+Over: trip/rider-view
+
+No site that carries trip information to a rider SHALL expose a driver's precise position outside
+the assigned and in-progress phases.
+
+This claim ranges over a *set of sites*, not over executions, and its class is every site realizing
+a claim in this spec. Membership is derived from what the code built: a new rider-facing site joins
+the class by being written, without anyone remembering to add it. A member discharges the invariant
+by realizing it — which is a statement that the site's author considered the rule and routed the
+position through the projection, or does not touch a position at all.
 
 ## Requirement: driver-hidden-before-assignment
 Criticality: critical

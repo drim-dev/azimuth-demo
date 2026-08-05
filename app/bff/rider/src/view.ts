@@ -51,6 +51,7 @@ export function riderTrip(trip: ServiceTrip): RiderTrip {
   realizes('trip/rider-view', 'no-position-after-completion');
   realizes('trip/rider-view', 'no-position-after-cancellation');
   realizes('trip/rider-view', 'driver-identity-remains-on-receipt');
+  realizes('trip/rider-view', 'position-confined-to-live-phases');
 
   const assigned = ASSIGNED.has(trip.state);
   const terminal = TERMINAL.has(trip.state);
@@ -102,26 +103,26 @@ export interface RiderReceipt {
   state: string;
   fare: { minor: number; currency: string };
   driver: { name: string; vehicle: string | null } | null;
-  /** Last known pickup/dropoff positions, for the map thumbnail on the receipt. */
-  route: { pickup: string | null; dropoff: string | null; lastKnown: string | null };
+  /** The rider's own pickup and dropoff, for the map thumbnail. */
+  route: { pickup: string | null; dropoff: string | null };
 }
 
 /**
  * A receipt for a finished trip.
  *
  * The driver's display name stays visible on a receipt, which is what
- * `driver-identity-remains-on-receipt` asks for. The map thumbnail needs coordinates.
+ * `driver-identity-remains-on-receipt` asks for. The thumbnail uses the rider's own pickup and
+ * dropoff; an earlier version fetched the driver's last position for it, and the invariant caught
+ * that a receipt is a rider-reachable site like any other.
  */
-export function riderReceipt(
-  trip: ServiceTrip,
-  driver: { position: string | null } | null,
-): RiderReceipt {
+export function riderReceipt(trip: ServiceTrip, driver: { display?: string } | null): RiderReceipt {
   realizes('trip/rider-view', 'driver-identity-remains-on-receipt');
+  realizes('trip/rider-view', 'position-confined-to-live-phases');
   return {
     id: trip.tripId,
     state: trip.state,
     fare: { minor: trip.fareMinor, currency: trip.currency },
     driver: trip.driverDisplay ? { name: trip.driverDisplay, vehicle: trip.vehicle } : null,
-    route: { pickup: null, dropoff: null, lastKnown: driver?.position ?? null },
+    route: { pickup: null, dropoff: null },
   };
 }

@@ -67,6 +67,13 @@ pub enum HoleKind {
     StaleJudgment,
     /// A critical claim the agent tier has never judged. Incomplete-facet, like `Unclassified`.
     Unjudged,
+    /// A site that joined a claim's class and discharges nothing.
+    ///
+    /// The one hole kind the per-scenario matrix structurally cannot find: a claim quantified over
+    /// a *set of sites* is not established by evidence about one site, however good.
+    InvariantBreach,
+    /// An invariant naming a class no spec defines.
+    DanglingClass,
 }
 
 impl HoleKind {
@@ -89,6 +96,8 @@ impl HoleKind {
             HoleKind::SpecGap => "spec-gap",
             HoleKind::StaleJudgment => "stale-judgment",
             HoleKind::Unjudged => "unjudged",
+            HoleKind::InvariantBreach => "invariant-breach",
+            HoleKind::DanglingClass => "dangling-class",
         }
     }
 }
@@ -255,6 +264,7 @@ pub fn rtm(model: &Model) -> Vec<Hole> {
     holes.extend(plan_holes(model));
     holes.extend(design_holes(model));
     holes.extend(judgment_holes(model));
+    holes.extend(surface_holes(model));
 
     for (sites, kind) in
         [(&model.covers, HoleKind::DanglingTag), (&model.realizes, HoleKind::DanglingRealization)]
@@ -503,6 +513,85 @@ fn design_holes(model: &Model) -> Vec<Hole> {
     holes
 }
 
+/// Claims whose domain is a set of sites (D13).
+///
+/// Membership is **derived**: a site joins the class by realizing any claim in the named spec, so
+/// it cannot escape by forgetting to declare itself. That is D13.1 — an enumerator must come from
+/// the same source the system is built from, because a hand-listed surface reproduces the very bug
+/// the rule prevents and reports green.
+///
+/// Discharge is a `realizes` tag naming the invariant. No new tag: one claim type parameterized by
+/// domain means one of everything downstream.
+///
+/// **Limitation, stated rather than hidden.** This verifies the weakest rung of the enforcement
+/// ladder — a guard at every site. A choke point that every member routes through would show as N−1
+/// breaches, which is exactly the defect D7 names in the alpha. Crediting a choke point needs
+/// call-graph analysis, which belongs to the extractor and D10.1's code-consuming check class.
+fn surface_holes(model: &Model) -> Vec<Hole> {
+    let mut holes = Vec::new();
+
+    for spec in &model.specs {
+        for requirement in &spec.requirements {
+            if requirement.domain != crate::model::Domain::Sites {
+                continue;
+            }
+            let Some(over) = &requirement.over else { continue };
+            let Some(class_spec) = model.specs.iter().find(|s| &s.id == over) else {
+                holes.push(Hole {
+                    kind: HoleKind::DanglingClass,
+                    severity: Severity::Error,
+                    claim: Some(format!("{}#{}", spec.id, requirement.id)),
+                    criticality: requirement.criticality,
+                    path: spec.path.clone(),
+                    line: requirement.line,
+                    detail: format!("`Over: {over}` names a spec that does not exist"),
+                });
+                continue;
+            };
+
+            let behavioural: Vec<&str> = class_spec
+                .requirements
+                .iter()
+                .filter(|r| r.domain == crate::model::Domain::Behaviour)
+                .flat_map(|r| r.scenarios.iter().map(|s| s.id.as_str()))
+                .collect();
+
+            let mut members: Vec<(&str, &str)> = model
+                .realizes
+                .iter()
+                .filter(|site| site.spec == class_spec.id && behavioural.contains(&site.scenario.as_str()))
+                .map(|site| (site.site.as_str(), site.file.as_str()))
+                .collect();
+            members.sort();
+            members.dedup();
+
+            let discharged: Vec<&str> = model
+                .realizes
+                .iter()
+                .filter(|site| site.spec == spec.id && site.scenario == requirement.id)
+                .map(|site| site.site.as_str())
+                .collect();
+
+            for (site, file) in members {
+                if discharged.contains(&site) {
+                    continue;
+                }
+                holes.push(Hole {
+                    kind: HoleKind::InvariantBreach,
+                    severity: severity_for(requirement.criticality),
+                    claim: Some(format!("{}#{}", spec.id, requirement.id)),
+                    criticality: requirement.criticality,
+                    path: file.to_string(),
+                    line: 0,
+                    detail: format!("`{site}` is in the class and discharges nothing"),
+                });
+            }
+        }
+    }
+
+    holes
+}
+
 /// Holes the machine tier cannot find on its own.
 ///
 /// The machine makes structure checkable; it does not make truth checkable. Everything here comes
@@ -610,6 +699,8 @@ pub fn counts_by_kind(holes: &[Hole]) -> Vec<(&'static str, usize)> {
         HoleKind::ToothlessEvidence,
         HoleKind::DishonestTag,
         HoleKind::SpecGap,
+        HoleKind::InvariantBreach,
+        HoleKind::DanglingClass,
         HoleKind::Unclassified,
         HoleKind::Unrealized,
         HoleKind::Uncovered,

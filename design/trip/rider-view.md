@@ -24,6 +24,26 @@ The projection covers what a request returns. The stream teardown covers what an
 connection keeps pushing, which the projection cannot reach — the interesting failure is a
 subscription that was correct while the trip ran and is never torn down.
 
+## Requirement: position-confined-to-live-phases
+Enforcement: type
+Site: `DriverPosition` has no serializer; `RiderProjection.For(tripPhase)` is its only reveal
+Enforcement: choke-point
+Site: no rider-facing route returns a driver record carrying a position — `GetTripDriver` returns
+display and vehicle only
+
+Two mechanisms, because the type alone did not hold. A receipt endpoint reached past the projection
+for the stored record, satisfied every behavioural claim in the spec, and leaked a completed trip's
+position. The type protected one path; the class of rider-reachable paths was unprotected, and kept
+growing.
+
+The second mechanism is the negative one: no rider-facing route hands out a position at all, so
+there is nothing for a new surface to reach for. That is weaker than it sounds — it is a property of
+the routes that exist, and the invariant over the site class is what makes a new route's silence
+visible rather than assumed.
+
+Rejected: giving the receipt a redacted position through the projection. It would have worked and it
+would have left the raw route in place for the next surface to find.
+
 ## Residue
 
 **Coarse supply density is computed from real driver positions and is not differentially

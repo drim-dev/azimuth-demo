@@ -14,7 +14,7 @@
 //! into something a reviewer never sees in the matrix.
 
 use crate::diag::{validate_id, Diag};
-use crate::model::{Criticality, Requirement, Scenario, Spec, Step, StepKind};
+use crate::model::{Criticality, Domain, Requirement, Scenario, Spec, Step, StepKind};
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -146,6 +146,8 @@ impl<'a> SpecParser<'a> {
             if let Some(rest) = trimmed.strip_prefix("# ") {
                 self.spec_heading(rest, line_no);
                 i += 1;
+            } else if let Some(rest) = trimmed.strip_prefix("## Invariant:") {
+                i = self.invariant(rest, line_no, &lines, i);
             } else if let Some(rest) = trimmed.strip_prefix("## ") {
                 i = self.requirement(rest, line_no, &lines, i);
             } else if trimmed.starts_with("### ") {
@@ -196,6 +198,111 @@ impl<'a> SpecParser<'a> {
             return;
         }
         self.id = Some(id.to_string());
+    }
+
+    /// A claim whose domain is a set of sites (D13).
+    ///
+    /// It carries no scenarios: there is no WHEN, because the claim does not range over executions.
+    /// One implicit scenario is synthesized so that tags, plans and judgments key on it exactly as
+    /// they do for a behavioural claim — one claim type, parameterized by domain, means one of
+    /// everything downstream.
+    fn invariant(&mut self, rest: &str, line_no: usize, lines: &[&str], start: usize) -> usize {
+        let id = rest.trim().to_string();
+        if let Err(why) = validate_id(&id, false) {
+            self.errors.push(Diag::at(self.path, line_no, format!("invalid invariant id: {why}")));
+        }
+        if self.requirements.iter().any(|r| r.id == id) {
+            self.errors.push(Diag::at(self.path, line_no, format!("`{id}` is declared twice")));
+        }
+
+        let mut i = start + 1;
+        let mut criticality = None;
+        let mut over = None;
+        while i < lines.len() {
+            let trimmed = lines[i].trim();
+            if trimmed.is_empty() {
+                i += 1;
+                break;
+            }
+            let ln = i + 1;
+            if let Some(value) = trimmed.strip_prefix("Criticality:") {
+                match Criticality::parse(value.trim()) {
+                    Some(c) => criticality = Some(c),
+                    None => self.errors.push(Diag::expecting(
+                        self.path,
+                        ln,
+                        format!("unknown criticality `{}`", value.trim()),
+                        "critical, standard or routine",
+                    )),
+                }
+            } else if let Some(value) = trimmed.strip_prefix("Over:") {
+                let value = value.trim();
+                if let Err(why) = validate_id(value, true) {
+                    self.errors.push(Diag::at(self.path, ln, format!("invalid `Over:` id: {why}")));
+                } else {
+                    over = Some(value.to_string());
+                }
+            } else if let Some((label, _)) = split_label(trimmed) {
+                self.errors.push(Diag::expecting(
+                    self.path,
+                    ln,
+                    format!("unknown label `{label}:` on an invariant"),
+                    "Criticality: or Over:",
+                ));
+            } else {
+                self.errors.push(Diag::expecting(
+                    self.path,
+                    ln,
+                    "prose directly under an invariant heading",
+                    "labelled lines first, then a blank line, then the SHALL statement",
+                ));
+            }
+            i += 1;
+        }
+
+        if over.is_none() {
+            self.errors.push(Diag::expecting(
+                self.path,
+                line_no,
+                format!("invariant `{id}` names no class"),
+                "`Over: <spec-id>` — the class is every site realizing a claim in that spec, so \
+                 membership is derived from what the code built rather than declared",
+            ));
+        }
+
+        let mut statement = String::new();
+        while i < lines.len() {
+            let trimmed = lines[i].trim();
+            if trimmed.starts_with("## ") || trimmed.starts_with("# ") || trimmed.starts_with("### ") {
+                break;
+            }
+            if !trimmed.is_empty() && !trimmed.starts_with('>') {
+                if !statement.is_empty() {
+                    statement.push(' ');
+                }
+                statement.push_str(trimmed);
+            }
+            i += 1;
+        }
+        if statement.is_empty() {
+            self.errors.push(Diag::expecting(
+                self.path,
+                line_no,
+                format!("invariant `{id}` has no statement"),
+                "a SHALL statement in prose",
+            ));
+        }
+
+        self.requirements.push(Requirement {
+            id: id.clone(),
+            criticality,
+            statement,
+            scenarios: vec![Scenario { id, steps: Vec::new(), line: line_no }],
+            line: line_no,
+            domain: Domain::Sites,
+            over,
+        });
+        i
     }
 
     /// Consumes a requirement and every scenario under it. Returns the next unconsumed index.
@@ -343,6 +450,8 @@ impl<'a> SpecParser<'a> {
             statement,
             scenarios,
             line: line_no,
+            domain: Domain::Behaviour,
+            over: None,
         });
         i
     }

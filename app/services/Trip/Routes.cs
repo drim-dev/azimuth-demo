@@ -147,6 +147,7 @@ public static class Routes
     [Realizes("trip/rider-view", "no-position-after-completion")]
     [Realizes("trip/rider-view", "no-position-after-cancellation")]
     [Realizes("trip/rider-view", "driver-identity-remains-on-receipt")]
+    [Realizes("trip/rider-view", "position-confined-to-live-phases")]
     private static async Task<IResult> GetTripForRider(Guid id, TripStore trips)
     {
         var trip = await trips.FindAsync(id);
@@ -167,14 +168,18 @@ public static class Routes
             supplyDensity: "moderate"));
     }
 
-    /// <summary>
-    /// The assigned driver's record for a trip, including their last known position.
-    /// </summary>
+    /// <summary>The assigned driver's display record for a trip. Carries no position.</summary>
     /// <remarks>
-    /// Added for the receipt's map thumbnail: the rider view projects the position away once a trip
-    /// is terminal, and the thumbnail needs coordinates. Returns the stored record directly.
+    /// This route was written to give the receipt's map thumbnail coordinates, by reaching past the
+    /// projection for the stored record. The invariant caught it: a rider-facing site that hands
+    /// out a raw position discharges nothing, whatever phase the trip is in.
+    /// <para>
+    /// The thumbnail uses the trip's pickup and dropoff, which are the rider's own data. The
+    /// driver's position was never the right source for it.
+    /// </para>
     /// </remarks>
     [Realizes("trip/rider-view", "driver-identity-remains-on-receipt")]
+    [Realizes("trip/rider-view", "position-confined-to-live-phases")]
     private static async Task<IResult> GetTripDriver(Guid id, TripStore trips)
     {
         var trip = await trips.FindAsync(id);
@@ -186,7 +191,7 @@ public static class Routes
         var driver = await trips.DriverAsync(trip.AssignedDriverId);
         return driver is null
             ? Results.NotFound()
-            : Results.Ok(new { driver.Id, driver.Display, driver.Vehicle, driver.Position });
+            : Results.Ok(new { driver.Id, driver.Display, driver.Vehicle });
     }
 
     [Realizes("trip/dispatch", "offer-sent-to-available-nearby-driver")]

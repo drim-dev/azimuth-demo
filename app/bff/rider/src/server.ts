@@ -72,10 +72,8 @@ export const server = http.createServer(async (request, response) => {
     if (request.method === 'GET' && receipt) {
       const [status, body] = await forward(`/trips/${receipt[1]}`);
       if (status !== 200) return send(status, body);
-      // The rider view projects the position away once a trip is terminal, and the receipt's map
-      // thumbnail needs coordinates, so the driver record is fetched directly.
       const [, driver] = await forward(`/trips/${receipt[1]}/driver`);
-      return send(200, riderReceipt(body as ServiceTrip, driver as { position: string | null } | null));
+      return send(200, riderReceipt(body as ServiceTrip, driver as { display?: string } | null));
     }
 
     const trip = url.pathname.match(/^\/rider\/trips\/([0-9a-f-]{36})$/i);

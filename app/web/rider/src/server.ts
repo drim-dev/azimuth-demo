@@ -26,6 +26,7 @@ function tripPage(trip: any): string {
   realizes('trip/rider-view', 'driver-position-follows-driver');
   realizes('trip/rider-view', 'no-position-after-completion');
   realizes('trip/rider-view', 'no-position-after-cancellation');
+  realizes('trip/rider-view', 'position-confined-to-live-phases');
 
   const driver = trip.driver
     ? `<p>Driver: ${escapeHtml(trip.driver.name)} — ${escapeHtml(trip.driver.vehicle)}</p>`
@@ -42,8 +43,9 @@ function tripPage(trip: any): string {
 /** The receipt page. */
 function receiptPage(receipt: any): string {
   realizes('trip/rider-view', 'driver-identity-remains-on-receipt');
-  const map = receipt.route?.lastKnown
-    ? `<img class="thumb" alt="route" src="/map?at=${encodeURIComponent(receipt.route.lastKnown)}">`
+  realizes('trip/rider-view', 'position-confined-to-live-phases');
+  const map = receipt.route?.pickup
+    ? `<img class="thumb" alt="route" src="/map?from=${encodeURIComponent(receipt.route.pickup)}">`
     : '';
   return `<h1>Receipt</h1>
 <p>${escapeHtml(receipt.fare.minor)} ${escapeHtml(receipt.fare.currency)}</p>

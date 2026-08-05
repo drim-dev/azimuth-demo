@@ -185,14 +185,14 @@ test('a fare outside every serviced area is refused', async () => {
 });
 
 /**
- * Not a claim. This test exists to document a defect the matrix does not see, and it asserts the
- * *presence* of the leak so that whoever fixes it has a failing test the moment they do.
+ * Was a defect test asserting the leak; now a regression test asserting its absence.
  *
- * `verification/trip/rider-view.md` predicted this before any of the code existed: the spec
- * constrains three named surfaces and does not constrain the next one. The receipt is the next one.
+ * The receipt is a second rider-reachable surface. It satisfied every behavioural claim in
+ * `trip/rider-view` and leaked a completed trip's driver position anyway, and the matrix reported
+ * no new hole — which is what the invariant over the site class was written against.
  */
-test('DEFECT: the receipt exposes a completed trip\'s driver position', async () => {
-  untraced('documents a known leak that no claim covers; see the rider-reachable-surface residual');
+test('no rider-reachable surface carries a position outside the live phases', async () => {
+  covers('trip/rider-view', 'position-confined-to-live-phases', 'e2e', 'invariant');
 
   const id = await requestedTrip(`rider-${Date.now()}-leak`);
   await driver(`/trips/${id}/accept/driver-e2e`);
@@ -204,10 +204,14 @@ test('DEFECT: the receipt exposes a completed trip\'s driver position', async ()
   assert.equal(view.body.driverPosition, null);
   assert.equal(JSON.stringify(view.body).includes('52.37'), false);
 
-  // The path they do not cover is not.
+  // And so is the receipt, which is the surface that used to leak.
   const receipt = await get(`/rider/trips/${id}/receipt`);
-  assert.equal(receipt.body.route.lastKnown, '52.37,4.89');
-  assert.equal(JSON.stringify(receipt.body).includes('52.37'), true);
+  assert.equal(JSON.stringify(receipt.body).includes('52.37'), false);
+  assert.equal(receipt.body.driver?.name, 'Sam');
+
+  // The raw route the receipt used to reach through carries no position either.
+  const raw = await fetch(`http://127.0.0.1:${TRIP_PORT}/trips/${id}/driver`);
+  assert.equal(JSON.stringify(await raw.json()).includes('52.37'), false);
 });
 
 test('the stack is reachable', () => {

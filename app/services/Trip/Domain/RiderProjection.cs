@@ -64,6 +64,7 @@ public static class RiderProjection
     [Realizes("trip/rider-view", "no-position-after-completion")]
     [Realizes("trip/rider-view", "no-position-after-cancellation")]
     [Realizes("trip/rider-view", "driver-identity-remains-on-receipt")]
+    [Realizes("trip/rider-view", "position-confined-to-live-phases")]
     public static RiderTripView For(
         Guid tripId,
         TripState phase,

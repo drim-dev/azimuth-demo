@@ -152,6 +152,17 @@ pub struct Scenario {
     pub line: usize,
 }
 
+/// What a claim ranges over (D13). The behavioural domain is implicit and never written; a second
+/// domain arrived only when the demo produced evidence that the first could not carry it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Domain {
+    /// Executions of a behaviour — inputs matching the WHEN.
+    Behaviour,
+    /// A set of sites. Membership is derived from what the code built, so a new site joins the
+    /// class without anyone declaring it.
+    Sites,
+}
+
 #[derive(Debug, Clone)]
 pub struct Requirement {
     pub id: String,
@@ -161,6 +172,9 @@ pub struct Requirement {
     pub statement: String,
     pub scenarios: Vec<Scenario>,
     pub line: usize,
+    pub domain: Domain,
+    /// For `Domain::Sites`: the spec whose realizing sites form the class.
+    pub over: Option<String>,
 }
 
 #[derive(Debug, Clone)]
