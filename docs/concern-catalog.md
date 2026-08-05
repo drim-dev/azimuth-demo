@@ -324,8 +324,8 @@ thing. It isn't — but neither is it six things needing six notations. Every en
 catalog, and every ordinary scenario, has the same shape:
 
 ```
-claim    = (domain, quantifier, predicate)   — what it ranges over, ∃ or ∀, what must hold
-evidence = (strength, freshness)             — how well we know it, and for how long
+claim    = (domain, predicate)      — what it ranges over, and what must hold of it
+evidence = (strength, freshness)    — how well we know it, and for how long
 ```
 
 What the catalog found is **six domains**:
@@ -343,6 +343,11 @@ The alpha's notation (`invariant` over a `class`, discharged by `guard`s at memb
 expresses row 2 and, partially, rows 1 and 5. It cannot express rows 3, 4 or 6 at all. The
 cross-cutting design isn't wrong; it's **one row of a six-row table**.
 
+Note the quantifier column: it is constant. Every claim in this catalog is universal, and the
+only existential claims are marginal capability statements. That constancy is why the claim
+carries no quantifier field — the *domain* does the work the quantifier appeared to do, and
+`example` vs `invariant` belongs to evidence, not to the claim (decisions D13, D5).
+
 ### One artifact with a domain field, not six artifact types
 
 The obvious reading of that table is "four new artifacts are needed." That is the wrong
@@ -353,10 +358,10 @@ Six domains are six *values of a field*, not six notations. The gain is not tidi
 
 - A new kind of rule needs a domain value, a way to enumerate that domain, and its admissible
   evidence kinds. No new artifact, no new syntax, and existing checks generalize to it.
-- The alpha's `quantification ∈ {example, invariant}` turns out to be ∃/∀ over the *first*
-  domain only. It hard-coded one domain and exposed the quantifier as though that were the
-  whole story. `scope` is likewise a property of evidence for that domain, not of claims in
-  general.
+- The alpha exposed a `quantification` field where it should have exposed a domain: `example`
+  vs `invariant` is how thoroughly the *evidence* ranges, and the domain is what the *claim*
+  ranges over. `scope` is likewise an evidence property — and only for demonstration-strength
+  evidence at that, since a static rule executes nothing.
 - Behavioural scenarios are unaffected: they take the first domain by default and never mention
   it.
 

@@ -310,10 +310,16 @@ keyed by scenario id.
 their accountability. Analysts should not reason about test forms. This is a concrete,
 falsifiable consequence of the facet model.
 
-**Refined by D13.** `quantification` is the claim's own quantifier over its domain and stays
-with the claim; `scope` is a property of *evidence* for the behavioural domain and belongs
-squarely in the plan. The split is cleaner than "required form moves wholesale", and the part
-that moves is the part that was always an evidence judgment.
+**Both halves move** *(revised)*. An intermediate draft split them — `quantification` staying
+with the claim as its quantifier, `scope` moving to the plan. D13 now drops the claim quantifier
+entirely (claims are ∀), so there is nothing to split: **required scope and required
+quantification both live in the verification plan**, and the whole evidence standard sits in one
+artifact.
+
+The tag on a test declares what that test *actually* is — its real scope and whether it is an
+example or a property. `wrong-form` is the comparison between declared-actual and
+required-in-plan. Easy to misread D5 as removing form from tags; it removes the *requirement*,
+not the declaration.
 
 ---
 
@@ -557,7 +563,7 @@ checkable before release.
 cross-cutting rule is **what the claim ranges over**.
 
 ```
-claim    = (domain, quantifier, predicate)
+claim    = (domain, predicate)
 evidence = (strength, freshness)
 ```
 
@@ -570,10 +576,17 @@ response to a right observation. The alpha already carries roughly fifteen coord
 adding four more artifact types with four notations is how a framework becomes unlearnable, and
 it violates 0.1 directly.
 
-**What it subsumes.** The alpha's `quantification ∈ {example, invariant}` is exactly ∃/∀ over
-*one* domain — executions matching a WHEN. `scope` is a property of evidence for that same
-domain. Both are one domain's parameters promoted to universal status; under D13 they take their
-proper place and cost nothing.
+**No quantifier field** *(revised)*. An earlier draft wrote `claim = (domain, quantifier,
+predicate)`, reading the alpha's `quantification` as the claim's own ∃/∀. Checked against the
+catalog, every claim is ∀ — over sites, over aggregate state, over paired derivations, over
+eventual absence, and over executions matching a WHEN. The only existential claims are
+capability statements ("there exists a way to export"), which are marginal. A field whose value
+is constant carries no information, so it is dropped: **the domain does the work the quantifier
+appeared to do.**
+
+`example` vs `invariant` therefore returns to the **evidence** side, where the alpha effectively
+had it. It never asked what the claim asserts (always ∀); it asked whether one case or all cases
+were checked — a sufficiency judgment. See D5.
 
 **What it buys.** Supporting a new kind of rule requires a domain value, a derived enumerator
 for it, and its admissible evidence kinds — no new artifact, no new syntax, and every existing
@@ -623,6 +636,40 @@ evidence is an agent judgment from forty commits ago" becomes a state the tool c
 than an invisible one.
 
 **Consequence.** An agent judgment is never proof-strength, whatever its confidence.
+
+---
+
+## D15 — Scope is defined by what is real, and applies only to demonstration *(closes open question 3)*
+
+**Decision.** Two changes to the inherited `scope` ladder.
+
+**1. Scope is a parameter of demonstration-strength evidence only.** Proof-strength evidence —
+types, schema constraints, static rules — has no scope, because it is not an execution.
+Detection-strength evidence has a target, not a scope. This removes the awkward question of what
+scope an architecture rule runs at: none.
+
+**2. The rungs are defined by what must be *real*, not by how much runs.**
+
+| Rung | What is real |
+|---|---|
+| `unit` | nothing external; all collaborators substituted |
+| `component` | real persistence and real serialization; external services substituted |
+| `e2e` | real process boundaries and real transport between the components under test |
+
+**Why this closes the open question.** `component` previously named two different guarantees —
+C11 (one active trip per driver) is meaningless against an in-memory fake, while C5
+(authorization) does not care. Under the definition above, C11 at `component` genuinely means
+"against a real store" because that is what the rung says, and C5 is honestly a `unit` claim. No
+fourth rung is needed; the ambiguity was a missing definition, not a missing level.
+
+**The bonus.** Defined this way, scope becomes partly *machine-checkable* rather than purely
+self-declared: a harness knows whether it started a real database, so a test using an in-memory
+repository cannot claim `component`. That moves one self-declaration from the agent tier to the
+machine tier, which is the direction the framework should always push.
+
+**Still open.** Where a contract test sits. It substitutes the counterparty but exercises real
+serialization against a real schema, which is `component` by the table and something stronger in
+practice.
 
 ---
 
@@ -679,9 +726,9 @@ Written before the demo so the answer cannot be retrofitted afterwards.
 2. **What realizes a scenario across a message broker.** Producer and consumer sites both carry
    honest tags; a misrouted topic leaves the matrix green with nothing in between. Is broker
    configuration a realization site? (C15, C16)
-3. **What `scope: component` guarantees.** In C11 it must mean "against a real store"; in C5 it
-   need not. One word currently names two different guarantees. Microservices may need a fourth
-   rung, or a redefinition — where does a contract test sit?
+3. *Closed by D15* — `scope: component` is now defined by what must be real. The residue: where
+   a contract test sits, since it substitutes the counterparty but exercises real serialization
+   against a real schema.
 4. **What `realizes` means for a rule with no site** (C8, conservation over global state).
 5. **What is tagged when enforcement is a DB constraint** — the migration?
 6. **Whether the domain set is right, and whether it should stay closed.** D13.3 fixes the six
