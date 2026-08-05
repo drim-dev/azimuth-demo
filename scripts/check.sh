@@ -17,13 +17,16 @@ dotnet test -v q --nologo tools/extractors/dotnet/Azimuth.Emit.Tests
 
 echo "== app =="
 dotnet test -v q --nologo app/services/Trip.Tests
+dotnet test -v q --nologo app/services/Payments.Tests
 (cd app/bff/rider && npx tsc -p tsconfig.json && node --test dist/e2e.test.js)
 
 echo "== emit =="
 EMIT="$ROOT/tools/extractors/dotnet/Azimuth.Emit/bin/Debug/net10.0/azimuth-emit-dotnet"
-"$EMIT" --output "$OUT/dotnet.json" --root "$ROOT" --traced-root Trip.Tests \
+"$EMIT" --output "$OUT/dotnet.json" --root "$ROOT" --traced-root Trip.Tests --traced-root Payments.Tests \
   app/services/Trip/bin/Debug/net10.0/Trip.dll \
-  app/services/Trip.Tests/bin/Debug/net10.0/Trip.Tests.dll
+  app/services/Trip.Tests/bin/Debug/net10.0/Trip.Tests.dll \
+  app/services/Payments/bin/Debug/net10.0/Payments.dll \
+  app/services/Payments.Tests/bin/Debug/net10.0/Payments.Tests.dll
 
 node tools/extractors/typescript/dist/cli.js --output "$OUT/rider-bff.json" --root "$ROOT" app/bff/rider/src
 
