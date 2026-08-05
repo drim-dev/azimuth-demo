@@ -25,6 +25,8 @@ public static class Routes
         app.MapGet("/trips/{id:guid}", GetTripForRider);
         app.MapGet("/trips/{id:guid}/offers", GetOffers);
         app.MapGet("/trips/{id:guid}/driver", GetTripDriver);
+        app.MapGet("/drivers/{driverId}/offers/{id:guid}", GetOfferForDriver);
+        app.MapGet("/drivers/{driverId}/trips/{id:guid}", GetTripForDriver);
         app.MapPost("/trips/{id:guid}/accept/{driverId}", AcceptOffer);
         app.MapPost("/trips/{id:guid}/start", (Guid id, string actor, TripStore trips, Clock clock) =>
             Transition(id, TripEvent.Start, actor, trips, clock));
@@ -192,6 +194,38 @@ public static class Routes
         return driver is null
             ? Results.NotFound()
             : Results.Ok(new { driver.Id, driver.Display, driver.Vehicle });
+    }
+
+    [Realizes("trip/driver-view", "pickup-shown-on-offer")]
+    [Realizes("trip/driver-view", "rider-contact-hidden-on-offer")]
+    [Realizes("trip/driver-view", "rider-contact-confined-to-held-trips")]
+    private static async Task<IResult> GetOfferForDriver(string driverId, Guid id, TripStore trips)
+    {
+        var trip = await trips.FindAsync(id);
+        return trip is null
+            ? Results.NotFound()
+            : Results.Ok(DriverProjection.Offer(trip.Id, "downtown", trip.Fare));
+    }
+
+    [Realizes("trip/driver-view", "proxy-contact-while-held")]
+    [Realizes("trip/driver-view", "contact-withdrawn-after-terminal")]
+    [Realizes("trip/driver-view", "rider-contact-hidden-on-offer")]
+    [Realizes("trip/driver-view", "rider-contact-confined-to-held-trips")]
+    private static async Task<IResult> GetTripForDriver(string driverId, Guid id, TripStore trips)
+    {
+        var trip = await trips.FindAsync(id);
+        if (trip is null)
+        {
+            return Results.NotFound();
+        }
+
+        return Results.Ok(DriverProjection.For(
+            trip.Id,
+            trip.State,
+            "downtown",
+            trip.Fare,
+            heldByThisDriver: trip.AssignedDriverId == driverId,
+            RiderContact.Of($"proxy:{trip.RiderId}")));
     }
 
     [Realizes("trip/dispatch", "offer-sent-to-available-nearby-driver")]

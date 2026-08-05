@@ -3,6 +3,7 @@ import { spawn, spawnSync, ChildProcess } from 'node:child_process';
 import { after, before, test } from 'node:test';
 import { covers, untraced } from '@azimuth/annotations';
 import { server } from './server';
+import { server as driverBff } from '../../driver/src/server';
 
 /**
  * End to end, in D15's sense: real process boundaries and real transport between the components
@@ -17,7 +18,9 @@ import { server } from './server';
 const PG = 'azimuth-e2e-pg';
 const TRIP_PORT = 5081;
 const BFF_PORT = 5091;
+const DRIVER_PORT = 5096;
 const BFF = `http://127.0.0.1:${BFF_PORT}`;
+const DRIVER_BFF = `http://127.0.0.1:${DRIVER_PORT}`;
 
 let trip: ChildProcess | undefined;
 
@@ -98,11 +101,13 @@ before(async () => {
 
   process.env.TRIP_URL = `http://127.0.0.1:${TRIP_PORT}`;
   await new Promise<void>((resolve) => server.listen(BFF_PORT, resolve));
+  await new Promise<void>((resolve) => driverBff.listen(DRIVER_PORT, resolve));
 }, { timeout: 180_000 });
 
 after(async () => {
   trip?.kill();
   await new Promise<void>((resolve) => server.close(() => resolve()));
+  await new Promise<void>((resolve) => driverBff.close(() => resolve()));
   docker('rm', '-f', PG);
 });
 
@@ -212,6 +217,52 @@ test('no rider-reachable surface carries a position outside the live phases', as
   // The raw route the receipt used to reach through carries no position either.
   const raw = await fetch(`http://127.0.0.1:${TRIP_PORT}/trips/${id}/driver`);
   assert.equal(JSON.stringify(await raw.json()).includes('52.37'), false);
+});
+
+async function asDriver(path: string) {
+  const response = await fetch(`${DRIVER_BFF}${path}`);
+  return { status: response.status, body: (await response.json()) as any };
+}
+
+test('an offer shows the pickup and no rider', async () => {
+  covers('trip/driver-view', 'pickup-shown-on-offer', 'e2e', 'invariant');
+  covers('trip/driver-view', 'rider-contact-hidden-on-offer', 'e2e', 'invariant');
+
+  const rider = `rider-${Date.now()}-drv`;
+  const id = await requestedTrip(rider);
+  const offer = await asDriver(`/driver/driver-e2e/offers/${id}`);
+
+  assert.equal(offer.body.pickup, 'downtown');
+  assert.equal(typeof offer.body.fare.minor, 'number');
+  assert.equal(JSON.stringify(offer.body).includes(rider), false);
+  assert.equal(JSON.stringify(offer.body).includes('proxy'), false);
+});
+
+test('a rider contact reaches the driver only while they hold the trip', async () => {
+  covers('trip/driver-view', 'proxy-contact-while-held', 'e2e', 'invariant');
+  covers('trip/driver-view', 'contact-withdrawn-after-terminal', 'e2e', 'invariant');
+  covers('trip/driver-view', 'rider-contact-confined-to-held-trips', 'e2e', 'invariant');
+
+  const rider = `rider-${Date.now()}-hold`;
+  const id = await requestedTrip(rider);
+
+  // Before accepting, the driver holds nothing.
+  const before = await asDriver(`/driver/driver-e2e/trips/${id}`);
+  assert.equal(before.body.riderContact, null);
+
+  await driver(`/trips/${id}/accept/driver-e2e`);
+  const held = await asDriver(`/driver/driver-e2e/trips/${id}`);
+  assert.equal(held.body.riderContact, `proxy:${rider}`);
+
+  // Another driver holds nothing, even while the trip is live.
+  const other = await asDriver(`/driver/driver-other/trips/${id}`);
+  assert.equal(other.body.riderContact, null);
+
+  await driver(`/trips/${id}/start?actor=driver-e2e`);
+  await driver(`/trips/${id}/complete?actor=driver-e2e`);
+  const done = await asDriver(`/driver/driver-e2e/trips/${id}`);
+  assert.equal(done.body.riderContact, null);
+  assert.equal(JSON.stringify(done.body).includes(rider), false);
 });
 
 test('the stack is reachable', () => {
