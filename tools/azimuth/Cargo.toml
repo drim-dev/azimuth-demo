@@ -1,0 +1,16 @@
+[package]
+name = "azimuth"
+version = "0.0.1"
+edition = "2021"
+description = "Derives a model from claims, linkage tags and evidence, and flags its holes."
+license = "MIT"
+
+# No dependencies, by decision (D17). The destination is other people's CI.
+
+[[bin]]
+name = "azimuth"
+path = "src/main.rs"
+
+[lib]
+name = "azimuth"
+path = "src/lib.rs"

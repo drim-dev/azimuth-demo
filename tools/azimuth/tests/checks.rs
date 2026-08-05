@@ -1,0 +1,215 @@
+//! Model, manifest and check tests. Synthetic fixtures only (D2).
+
+use azimuth::check::{rtm, HoleKind, Severity};
+use azimuth::json;
+use azimuth::manifest;
+use azimuth::model::Model;
+use azimuth::selects;
+use azimuth::spec::parse_spec;
+
+const SPEC: &str = "\
+# Spec: alpha
+
+## Requirement: matters
+Criticality: critical
+
+A SHALL.
+
+### Scenario: guarded
+WHEN a thing happens
+THEN another thing happens
+
+## Requirement: cosmetic
+Criticality: routine
+
+A lesser SHALL.
+
+### Scenario: decorative
+WHEN a thing happens
+THEN it looks right
+";
+
+fn model_with(manifest_json: &str) -> Model {
+    let spec = parse_spec("alpha.md", SPEC).expect("spec parses");
+    let mut model = Model { specs: vec![spec], ..Default::default() };
+    if !manifest_json.is_empty() {
+        let root = json::parse(manifest_json).expect("manifest is valid json");
+        let m = manifest::parse("m.json", &root).expect("manifest parses");
+        model.realizes = m.realizes;
+        model.covers = m.covers;
+        model.untraced = m.untraced;
+    }
+    model
+}
+
+fn kinds(model: &Model) -> Vec<(HoleKind, String)> {
+    rtm(model)
+        .into_iter()
+        .map(|h| (h.kind, h.claim.unwrap_or_default()))
+        .collect()
+}
+
+#[test]
+fn an_untagged_claim_is_both_unrealized_and_uncovered() {
+    let holes = kinds(&model_with(""));
+    assert!(holes.contains(&(HoleKind::Unrealized, "alpha#guarded".into())));
+    assert!(holes.contains(&(HoleKind::Uncovered, "alpha#guarded".into())));
+}
+
+/// D6.5: `routine` requires a spec entry and nothing else, so no evidence was ever demanded of it.
+/// Reporting it as uncovered would make the level meaningless. It can still be unrealized —
+/// criticality gates evidence, not implementation.
+#[test]
+fn a_routine_claim_is_never_uncovered_but_can_be_unrealized() {
+    let holes = kinds(&model_with(""));
+    assert!(!holes.contains(&(HoleKind::Uncovered, "alpha#decorative".into())));
+    assert!(holes.contains(&(HoleKind::Unrealized, "alpha#decorative".into())));
+}
+
+/// D9.2: severity comes from criticality, not from the check.
+#[test]
+fn severity_follows_criticality() {
+    let holes = rtm(&model_with(""));
+    let critical = holes.iter().find(|h| h.claim.as_deref() == Some("alpha#guarded")).unwrap();
+    let routine = holes.iter().find(|h| h.claim.as_deref() == Some("alpha#decorative")).unwrap();
+    assert_eq!(critical.severity, Severity::Error);
+    assert_eq!(routine.severity, Severity::Warning);
+}
+
+#[test]
+fn tags_close_holes() {
+    let model = model_with(
+        r#"{
+          "realizes": [
+            {"spec":"alpha","scenario":"guarded","site":"Trip.Do","file":"a.cs","lang":"csharp"},
+            {"spec":"alpha","scenario":"decorative","site":"Ui.Show","file":"b.ts","lang":"ts"}
+          ],
+          "covers": [
+            {"spec":"alpha","scenario":"guarded","site":"Tests.Guarded","file":"t.cs",
+             "lang":"csharp","scope":"component","quantification":"invariant"}
+          ]
+        }"#,
+    );
+    assert!(rtm(&model).is_empty(), "{:?}", rtm(&model));
+}
+
+#[test]
+fn a_tag_naming_no_claim_is_dangling() {
+    let model = model_with(
+        r#"{
+          "covers": [
+            {"spec":"alpha","scenario":"ghost","site":"Tests.Ghost","file":"t.cs","lang":"csharp"}
+          ],
+          "realizes": [
+            {"spec":"beta","scenario":"guarded","site":"X.Y","file":"a.cs","lang":"csharp"}
+          ]
+        }"#,
+    );
+    let holes = kinds(&model);
+    assert!(holes.contains(&(HoleKind::DanglingTag, "alpha#ghost".into())));
+    assert!(holes.contains(&(HoleKind::DanglingRealization, "beta#guarded".into())));
+}
+
+#[test]
+fn an_untraced_test_is_a_hole() {
+    let model = model_with(
+        r#"{
+          "covers": [
+            {"spec":"alpha","scenario":"guarded","site":"T.A","file":"t.cs","lang":"csharp"}
+          ],
+          "untraced_tests": [{"site":"T.B","file":"t.cs","lang":"csharp"}]
+        }"#,
+    );
+    assert!(rtm(&model).iter().any(|h| h.kind == HoleKind::UntracedTest));
+}
+
+/// D6.2: a requirement without a declared criticality is a hole, and the parse still succeeds.
+#[test]
+fn an_unclassified_requirement_is_a_hole() {
+    let source = SPEC.replace("Criticality: critical\n", "");
+    let spec = parse_spec("alpha.md", &source).expect("parses");
+    let model = Model { specs: vec![spec], ..Default::default() };
+    let holes = rtm(&model);
+    let hole = holes.iter().find(|h| h.kind == HoleKind::Unclassified).expect("unclassified");
+    assert_eq!(hole.severity, Severity::Error);
+    assert_eq!(hole.claim.as_deref(), Some("alpha#matters"));
+}
+
+/// D2.2: the manifest key is the pair, not the alpha's triple. Silently ignoring `req` would leave
+/// a stale emitter producing tags that look fine and are not.
+#[test]
+fn the_triple_key_is_rejected_with_an_explanation() {
+    let root = json::parse(
+        r#"{"realizes":[{"spec":"alpha","req":"matters","scenario":"guarded",
+            "site":"X","file":"a.cs","lang":"csharp"}]}"#,
+    )
+    .unwrap();
+    let errors = manifest::parse("m.json", &root).unwrap_err();
+    let text = errors.iter().map(|d| d.to_string()).collect::<Vec<_>>().join("\n");
+    assert!(text.contains("the pair (spec, scenario)"), "{text}");
+}
+
+/// Form is how a test checks, not a property of code.
+#[test]
+fn realizes_cannot_carry_a_form() {
+    let root = json::parse(
+        r#"{"realizes":[{"spec":"alpha","scenario":"guarded","site":"X","file":"a.cs",
+            "lang":"csharp","scope":"unit"}]}"#,
+    )
+    .unwrap();
+    let errors = manifest::parse("m.json", &root).unwrap_err();
+    let text = errors.iter().map(|d| d.to_string()).collect::<Vec<_>>().join("\n");
+    assert!(text.contains("not a property of code"), "{text}");
+}
+
+#[test]
+fn unknown_form_values_are_rejected() {
+    let root = json::parse(
+        r#"{"covers":[{"spec":"alpha","scenario":"guarded","site":"X","file":"t.cs",
+            "lang":"csharp","scope":"integration"}]}"#,
+    )
+    .unwrap();
+    let errors = manifest::parse("m.json", &root).unwrap_err();
+    let text = errors.iter().map(|d| d.to_string()).collect::<Vec<_>>().join("\n");
+    assert!(text.contains("unknown scope `integration`"), "{text}");
+    assert!(text.contains("unit, component or e2e"), "{text}");
+}
+
+/// Selection operates on ids, not paths, so it survives a reorganization of the tree.
+#[test]
+fn selection_matches_id_prefixes() {
+    assert!(selects("trip/**", "trip/dispatch"));
+    assert!(selects("trip/**", "trip/a/b"));
+    assert!(selects("trip/**", "trip"));
+    assert!(!selects("trip/**", "trips/dispatch"));
+    assert!(!selects("trip/**", "driver/dispatch"));
+    assert!(selects("trip/dispatch", "trip/dispatch"));
+    assert!(!selects("trip/dispatch", "trip/dispatching"));
+}
+
+#[test]
+fn the_export_carries_claims_tags_and_holes() {
+    let model = model_with(
+        r#"{"covers":[{"spec":"alpha","scenario":"guarded","site":"T.A","file":"t.cs",
+            "lang":"csharp","scope":"unit","quantification":"example"}]}"#,
+    );
+    let holes = rtm(&model);
+    let text = model.to_json(&holes).to_string_pretty();
+    let round_tripped = json::parse(&text).expect("export is valid json");
+
+    assert!(round_tripped.get("specs").is_some());
+    assert!(round_tripped.get("covers").is_some());
+    assert!(round_tripped.get("holes").is_some());
+    assert_eq!(
+        round_tripped.get("holes").unwrap().as_array().unwrap().len(),
+        holes.len()
+    );
+}
+
+#[test]
+fn json_round_trips_escapes_and_unicode() {
+    let original = r#"{"a":"quote \" backslash \\ newline \n tab \t unicode é é"}"#;
+    let parsed = json::parse(original).unwrap();
+    let text = parsed.to_string_pretty();
+    assert_eq!(json::parse(&text).unwrap(), parsed);
+}
