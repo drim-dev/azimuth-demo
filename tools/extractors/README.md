@@ -56,8 +56,18 @@ opt-in area: a namespace prefix in .NET, a file already carrying at least one `c
 TypeScript. Holding every test in a repo to it would be noise, and partial adoption is what makes
 the ratchet work (D8).
 
-## Fixtures
+## Tests
 
-Each extractor has a synthetic fixture beside it. They are synthetic by decision (D2): the moment
-an extractor's tests assert against the real demo app, the two are welded together and neither can
+```
+dotnet test tools/extractors/dotnet/Azimuth.Emit.Tests
+(cd tools/extractors/typescript && npx tsc -p tsconfig.json && node --test dist/emitter.test.js)
+```
+
+Each extractor has a synthetic fixture beside it, synthetic by decision (D2): the moment an
+extractor's tests assert against the real demo app, the two are welded together and neither can
 move independently.
+
+The tests assert on the *shape* of what is emitted rather than merely that something was, because
+a silently wrong emitter produces a green matrix — the exact failure the framework exists to
+prevent. The .NET suite includes a regression for the enum-boxing bug that first emitted
+`"scope": "1"` instead of `"component"`.

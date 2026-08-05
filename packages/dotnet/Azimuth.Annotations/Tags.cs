@@ -17,14 +17,17 @@ namespace Azimuth.Annotations
     [AttributeUsage(AttributeTargets.Method | AttributeTargets.Class, AllowMultiple = true)]
     public sealed class RealizesAttribute : Attribute
     {
+        /// <summary>Tags a site as being on the path of <paramref name="scenario"/>.</summary>
         public RealizesAttribute(string spec, string scenario)
         {
             Spec = spec;
             Scenario = scenario;
         }
 
+        /// <summary>Stable spec id.</summary>
         public string Spec { get; }
 
+        /// <summary>Stable scenario id, unique within the spec.</summary>
         public string Scenario { get; }
     }
 
@@ -42,6 +45,7 @@ namespace Azimuth.Annotations
     [AttributeUsage(AttributeTargets.Method, AllowMultiple = true)]
     public sealed class CoversAttribute : Attribute
     {
+        /// <summary>Tags a test as verifying <paramref name="scenario"/> at the given form.</summary>
         public CoversAttribute(
             string spec,
             string scenario,
@@ -56,14 +60,19 @@ namespace Azimuth.Annotations
             Oracle = oracle;
         }
 
+        /// <summary>Stable spec id.</summary>
         public string Spec { get; }
 
+        /// <summary>Stable scenario id, unique within the spec.</summary>
         public string Scenario { get; }
 
+        /// <summary>How much of the real system this test actually runs against.</summary>
         public Scope Scope { get; }
 
+        /// <summary>Whether this test checks one case or ranges over all of them.</summary>
         public Quantification Quantification { get; }
 
+        /// <summary>How the expected result was obtained. Descriptive, never gated.</summary>
         public Oracle Oracle { get; }
     }
 
@@ -73,16 +82,18 @@ namespace Azimuth.Annotations
     /// </summary>
     /// <remarks>
     /// A deliberate, attributable, reviewable exemption is fine anywhere; a silent absence is not.
-    /// The <paramref name="reason"/> is what makes it the former.
+    /// The recorded reason is what makes it the former.
     /// </remarks>
     [AttributeUsage(AttributeTargets.Method)]
     public sealed class UntracedAttribute : Attribute
     {
+        /// <summary>Exempts a test, recording <paramref name="reason"/> for review.</summary>
         public UntracedAttribute(string reason)
         {
             Reason = reason;
         }
 
+        /// <summary>Why this test legitimately covers no claim.</summary>
         public string Reason { get; }
     }
 
@@ -120,10 +131,19 @@ namespace Azimuth.Annotations
     /// <summary>How the expected result was obtained. Descriptive, never gated.</summary>
     public enum Oracle
     {
+        /// <summary>The expected result was written out directly.</summary>
         Direct,
+
+        /// <summary>Compared against a recorded previous output.</summary>
         Golden,
+
+        /// <summary>Checked by a relation between inputs rather than an absolute answer.</summary>
         Metamorphic,
+
+        /// <summary>Compared against an independent model of the behaviour.</summary>
         ModelBased,
+
+        /// <summary>Checked against an agreed interface contract.</summary>
         Contract,
     }
 }
