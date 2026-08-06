@@ -185,10 +185,18 @@ Most hole kinds are missing-facet combinations, which is D3's central structural
 | mechanism, no intent | `dangling-realization` |
 | intent + evidence below the declared standard | `wrong-form` |
 
-Three are **not** missing-facet: `unclassified`, `unaccepted-weakening` and `undeclared-mechanism`
-are *incomplete*-facet — the facet is present but a required part of it is missing. This is
-recorded as a partial falsifier of D3: the premise fires, the conclusion does not, since none of
-the three implies a fourth facet. D3 has not been amended.
+Four are **not** missing-facet: `unclassified`, `unaccepted-weakening`, `undeclared-mechanism` and
+`unjudged` are *incomplete*-facet — the facet is present but a required part of it is missing. This
+is recorded as a partial falsifier of D3: the premise fires, the conclusion does not, since none of
+the four implies a fourth facet. D3 has not been amended.
+
+Whether *only* these four count against the falsifier is unsettled. Read strictly, several other
+kinds are also not missing-facet combinations — `unbacked-proof` is a cross-facet consistency
+check, the agent-tier kinds qualify evidence rather than record its absence, and `invariant-breach`
+and `dangling-class` concern a claim's machinery, which the glossary already carves out for
+`enumerator unsound or underived` (D13.2). The four above are the ones the source marks as
+incomplete-facet in so many words. The wider reading would make D3's falsifier fire far harder, and
+nothing has decided between them.
 
 Two tiers produce findings:
 
@@ -258,7 +266,7 @@ Recorded before the evidence existed. `status.md` holds the current results; two
 | Falsifier | Status |
 |---|---|
 | >40% of requirements at top criticality → the level mechanism is theatre | **fired** (54%) |
-| A hole kind that is not a missing-facet combination → D3 incomplete | **fired**, three times |
+| A hole kind that is not a missing-facet combination → D3 incomplete | **fired**, four times, and possibly harder — see above |
 | The three role views over the export turn out identical → the facet split is decorative | never tested |
 | Artifact and annotation cost exceeds what the defects justify → ceremony | never measured |
 | The agent tier cannot reliably detect a dishonest tag → the core claim fails | inconclusive |
