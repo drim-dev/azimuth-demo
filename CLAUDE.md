@@ -11,14 +11,24 @@ The alpha at `drim-dev/azimuth` is **frozen**. All development happens here.
 
 | Path | Holds |
 |---|---|
-| `docs/decisions.md` | numbered decisions D1–D15, with rationale and consequences. Authoritative. |
+| `docs/framework.md` | what the framework *is*, as it currently stands. Derived; start here. |
+| `docs/decisions.md` | numbered decisions D1–D18, with rationale and consequences. Authoritative. |
 | `docs/concern-catalog.md` | 18 cross-cutting concerns from the domain; the evidence the design was drawn from |
 | `docs/glossary.md` | bounded definitions. Authoritative for terminology. |
-| `specs/` | the steel-thread specs. `specs/README.md` is the parser contract. |
+| `docs/status.md` | the decisions checked against their own falsifiers. Two have fired. |
+| `specs/` | the intent facet. `specs/README.md` is the parser contract. |
+| `design/` | the mechanism facet (D3). `design/README.md` is the format and the enforcement ladder. |
+| `verification/` | the evidence facet (D3). `verification/standards.md` maps criticality to required evidence. |
+| `tools/azimuth/README.md` | what the tool checks today, and what it does not check yet |
+
+The three facets are `specs/`, `design/` and `verification/` — a claim is incompletely described
+until you have looked at all three (D3). `verification/standards.md` in particular answers what
+evidence a claim's criticality already requires, which is what decides whether a new test needs a
+`covers` tag or an exemption.
 
 Read `docs/decisions.md` before proposing anything structural. Most questions that look open have
 been decided, and several have been decided *and revised* — the revision history is deliberate and
-visible.
+visible. `docs/framework.md` is derived from it and never overrides it.
 
 ## Writing
 
