@@ -29,7 +29,7 @@ pub struct Loaded {
 /// Selection operates on **ids**, not paths — the hierarchy lives in the id string, so scoping
 /// keeps working if the folders are reorganized tomorrow.
 ///
-/// `trip/**` matches every spec whose id starts with `trip/`; anything else matches exactly.
+/// `billing/**` matches every spec whose id starts with `billing/`; anything else matches exactly.
 pub fn selects(pattern: &str, spec_id: &str) -> bool {
     match pattern.strip_suffix("/**") {
         Some(prefix) => spec_id == prefix || spec_id.starts_with(&format!("{prefix}/")),

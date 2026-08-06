@@ -27,7 +27,7 @@ OPTIONS
     --verification <dir>   verification plans (default: verification)
     --design <dir>         design artifacts (default: design)
     --manifest <file>      a linkage manifest; repeatable
-    --only <pattern>       restrict to spec ids; `trip/**` or an exact id; repeatable
+    --only <pattern>       restrict to spec ids; `billing/**` or an exact id; repeatable
     --out <file>           export destination (default: stdout)
     -h, --help
     -V, --version
