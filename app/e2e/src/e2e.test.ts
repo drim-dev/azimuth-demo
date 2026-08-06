@@ -94,7 +94,7 @@ before(async () => {
 
   trip = spawn(
     'dotnet',
-    ['run', '--no-build', '--project', path.join(APP_ROOT, 'services/Trip/Trip.csproj')],
+    ['run', '--no-build', '--project', path.join(APP_ROOT, 'services/Trips/Trips.csproj')],
     {
       env: {
         ...process.env,
@@ -146,9 +146,9 @@ async function requestedTrip(rider: string) {
 }
 
 test('a rider sees no individual driver before assignment', async () => {
-  covers('trip/rider-view', 'no-driver-position-before-assignment', 'e2e', 'invariant');
-  covers('trip/rider-view', 'no-driver-identity-before-assignment', 'e2e', 'invariant');
-  covers('trip/rider-view', 'supply-density-shown-before-assignment', 'e2e', 'invariant');
+  covers('trips/rider-view', 'no-driver-position-before-assignment', 'e2e', 'invariant');
+  covers('trips/rider-view', 'no-driver-identity-before-assignment', 'e2e', 'invariant');
+  covers('trips/rider-view', 'supply-density-shown-before-assignment', 'e2e', 'invariant');
 
   const id = await requestedTrip(`rider-${Date.now()}-a`);
   const view = await get(`/api/rider/trips/${id}`);
@@ -160,10 +160,10 @@ test('a rider sees no individual driver before assignment', async () => {
 });
 
 test("the driver's position reaches the rider only while the trip is live", async () => {
-  covers('trip/rider-view', 'driver-position-follows-driver', 'e2e', 'invariant');
-  covers('trip/rider-view', 'driver-shown-after-assignment', 'e2e', 'invariant');
-  covers('trip/rider-view', 'no-position-after-completion', 'e2e', 'invariant');
-  covers('trip/rider-view', 'driver-identity-remains-on-receipt', 'e2e', 'invariant');
+  covers('trips/rider-view', 'driver-position-follows-driver', 'e2e', 'invariant');
+  covers('trips/rider-view', 'driver-shown-after-assignment', 'e2e', 'invariant');
+  covers('trips/rider-view', 'no-position-after-completion', 'e2e', 'invariant');
+  covers('trips/rider-view', 'driver-identity-remains-on-receipt', 'e2e', 'invariant');
 
   const id = await requestedTrip(`rider-${Date.now()}-b`);
   assert.equal(await driver(`/trips/${id}/accept/driver-e2e`), 200);
@@ -183,7 +183,7 @@ test("the driver's position reaches the rider only while the trip is live", asyn
 });
 
 test('a cancelled trip shows no position either', async () => {
-  covers('trip/rider-view', 'no-position-after-cancellation', 'e2e', 'invariant');
+  covers('trips/rider-view', 'no-position-after-cancellation', 'e2e', 'invariant');
 
   const id = await requestedTrip(`rider-${Date.now()}-c`);
   assert.equal(await driver(`/trips/${id}/cancel?actor=rider`), 200);
@@ -194,8 +194,8 @@ test('a cancelled trip shows no position either', async () => {
 });
 
 test('a rider is told their trip exists and is awaiting a driver', async () => {
-  covers('trip/request', 'rider-informed-of-trip', 'e2e', 'invariant');
-  covers('trip/request', 'request-admitted-with-valid-quote', 'e2e', 'invariant');
+  covers('trips/request', 'rider-informed-of-trip', 'e2e', 'invariant');
+  covers('trips/request', 'request-admitted-with-valid-quote', 'e2e', 'invariant');
 
   const id = await requestedTrip(`rider-${Date.now()}-d`);
   const view = await get(`/api/rider/trips/${id}`);
@@ -217,14 +217,14 @@ test('a fare outside every serviced area is refused', async () => {
  * Was a defect test asserting the leak; now a regression test asserting its absence.
  *
  * The receipt is a second rider-reachable surface. It satisfied every behavioural claim in
- * `trip/rider-view` and leaked a completed trip's driver position anyway, and the matrix reported
+ * `trips/rider-view` and leaked a completed trip's driver position anyway, and the matrix reported
  * no new hole — which is what the invariant over the site class was written against.
  *
  * The rendered pages are checked alongside the API, because a page is a site in that class too: the
  * class grew when the web app did, which is the whole point of quantifying over it.
  */
 test('no rider-reachable surface carries a position outside the live phases', async () => {
-  covers('trip/rider-view', 'position-confined-to-live-phases', 'e2e', 'invariant');
+  covers('trips/rider-view', 'position-confined-to-live-phases', 'e2e', 'invariant');
 
   const id = await requestedTrip(`rider-${Date.now()}-leak`);
   await driver(`/trips/${id}/accept/driver-e2e`);
@@ -262,8 +262,8 @@ async function asDriver(path: string) {
 }
 
 test('an offer shows the pickup and no rider', async () => {
-  covers('trip/driver-view', 'pickup-shown-on-offer', 'e2e', 'invariant');
-  covers('trip/driver-view', 'rider-contact-hidden-on-offer', 'e2e', 'invariant');
+  covers('trips/driver-view', 'pickup-shown-on-offer', 'e2e', 'invariant');
+  covers('trips/driver-view', 'rider-contact-hidden-on-offer', 'e2e', 'invariant');
 
   const rider = `rider-${Date.now()}-drv`;
   const id = await requestedTrip(rider);
@@ -281,9 +281,9 @@ test('an offer shows the pickup and no rider', async () => {
 });
 
 test('a rider contact reaches the driver only while they hold the trip', async () => {
-  covers('trip/driver-view', 'proxy-contact-while-held', 'e2e', 'invariant');
-  covers('trip/driver-view', 'contact-withdrawn-after-terminal', 'e2e', 'invariant');
-  covers('trip/driver-view', 'rider-contact-confined-to-held-trips', 'e2e', 'invariant');
+  covers('trips/driver-view', 'proxy-contact-while-held', 'e2e', 'invariant');
+  covers('trips/driver-view', 'contact-withdrawn-after-terminal', 'e2e', 'invariant');
+  covers('trips/driver-view', 'rider-contact-confined-to-held-trips', 'e2e', 'invariant');
 
   const rider = `rider-${Date.now()}-hold`;
   const id = await requestedTrip(rider);

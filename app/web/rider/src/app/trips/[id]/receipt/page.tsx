@@ -8,13 +8,13 @@ export const dynamic = 'force-dynamic';
  * The receipt page.
  *
  * The second rider-reachable surface, and the one that leaked. It satisfied every behavioural claim
- * in `trip/rider-view` and showed a completed trip's driver position anyway, because the thumbnail
+ * in `trips/rider-view` and showed a completed trip's driver position anyway, because the thumbnail
  * reached past the projection for the stored record. The thumbnail now uses the rider's own pickup
  * and dropoff, which is what it should always have used.
  */
 export default async function ReceiptPage({ params }: { params: Promise<{ id: string }> }) {
-  realizes('trip/rider-view', 'driver-identity-remains-on-receipt');
-  realizes('trip/rider-view', 'position-confined-to-live-phases');
+  realizes('trips/rider-view', 'driver-identity-remains-on-receipt');
+  realizes('trips/rider-view', 'position-confined-to-live-phases');
 
   const { id } = await params;
   const result = await fetchReceipt(id);

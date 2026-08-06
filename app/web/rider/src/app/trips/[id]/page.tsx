@@ -17,14 +17,14 @@ const TERMINAL = new Set(['completed', 'cancelled']);
  * over the whole class of these sites rather than over any one of them.
  */
 export default async function TripPage({ params }: { params: Promise<{ id: string }> }) {
-  realizes('trip/rider-view', 'no-driver-identity-before-assignment');
-  realizes('trip/rider-view', 'no-driver-position-before-assignment');
-  realizes('trip/rider-view', 'supply-density-shown-before-assignment');
-  realizes('trip/rider-view', 'driver-shown-after-assignment');
-  realizes('trip/rider-view', 'driver-position-follows-driver');
-  realizes('trip/rider-view', 'no-position-after-completion');
-  realizes('trip/rider-view', 'no-position-after-cancellation');
-  realizes('trip/rider-view', 'position-confined-to-live-phases');
+  realizes('trips/rider-view', 'no-driver-identity-before-assignment');
+  realizes('trips/rider-view', 'no-driver-position-before-assignment');
+  realizes('trips/rider-view', 'supply-density-shown-before-assignment');
+  realizes('trips/rider-view', 'driver-shown-after-assignment');
+  realizes('trips/rider-view', 'driver-position-follows-driver');
+  realizes('trips/rider-view', 'no-position-after-completion');
+  realizes('trips/rider-view', 'no-position-after-cancellation');
+  realizes('trips/rider-view', 'position-confined-to-live-phases');
 
   const { id } = await params;
   const result = await fetchTrip(id);

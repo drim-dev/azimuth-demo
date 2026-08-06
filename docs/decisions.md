@@ -740,8 +740,8 @@ extraction, the scope rungs being real (D15), design-entry checkability (D3), an
 reading.
 
 **Slice 2 carries the prediction.** A receipt view that includes a position field should satisfy
-every claim in `trip/rider-view` while violating the rule that spec exists to express. The
-residual in `verification/trip/rider-view.md` records this in advance; slice 2 is where it is
+every claim in `trips/rider-view` while violating the rule that spec exists to express. The
+residual in `verification/trips/rider-view.md` records this in advance; slice 2 is where it is
 tested. If the matrix stays green, that is the primary evidence for what notation to add next.
 
 ### D16.3 — What is deliberately not in slice 1

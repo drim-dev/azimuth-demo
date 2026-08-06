@@ -25,12 +25,12 @@ AND <further outcome>         (optional, repeatable)
 
 ## Identity
 
-- **Spec ids are declared, never derived from the path.** `specs/trip/dispatch.md` and
-  `specs/backend/trip/dispatch.md` hold the same spec if both declare `# Spec: trip/dispatch`.
+- **Spec ids are declared, never derived from the path.** `specs/trips/dispatch.md` and
+  `specs/backend/trips/dispatch.md` hold the same spec if both declare `# Spec: trips/dispatch`.
   Moving a file breaks nothing.
 - **Spec ids may be hierarchical.** The `/` is part of the id string, not a filesystem fact. It
-  gives namespacing (`trip/dispatch` and `driver/dispatch` coexist) and selection
-  (`--only 'trip/**'`) without coupling identity to layout.
+  gives namespacing (`trips/dispatch` and `driver/dispatch` coexist) and selection
+  (`--only 'trips/**'`) without coupling identity to layout.
 - **Folder layout is convention.** A divergence between folder and id prefix is a warning, never
   an error.
 - **Scenario ids are unique per spec, not per requirement.** Tags reference the pair
@@ -65,7 +65,7 @@ therefore change its rigor — visibly, in the spec diff, which is where it belo
 
 ## Boundaries
 
-**Specs are organized by domain area, not by service.** `trip/dispatch`, not `trip-service` or
+**Specs are organized by domain area, not by service.** `trips/dispatch`, not `trip-service` or
 `rider-bff`. If specs mirror services, a scenario crossing five services gets duplicated five
 times and the fan-out this demo exists to study disappears. One claim, many realizing sites.
 
@@ -85,7 +85,7 @@ declared.
   which is the same mistake as organizing specs by service. Most requirements have no verb at
   all — an imperative convention would only fit the CRUD-shaped minority.
 - **Scenario ids must stand alone.** They appear in tags far from any context
-  (`Covers("trip/dispatch", "late-acceptance-rejected")`) and have to be self-explanatory at the
+  (`Covers("trips/dispatch", "late-acceptance-rejected")`) and have to be self-explanatory at the
   call site.
 - **Keep requirement and scenario ids visibly distinct.** They are separate namespaces, but a
   scenario repeating its requirement's id is unreadable in a diff.

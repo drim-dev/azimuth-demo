@@ -25,7 +25,7 @@ being used as an inventory.
 ```
 
 One plan per spec, declaring the spec id it covers. As with specs, the id is declared and the
-path is convention (`verification/trip/dispatch.md`). A spec needing no deviations, carrying no
+path is convention (`verification/trips/dispatch.md`). A spec needing no deviations, carrying no
 non-test evidence and accepting no residual needs **no plan file at all**.
 
 ## Entries

@@ -28,9 +28,9 @@ export default async function DriverTripPage({
 }: {
   params: Promise<{ driverId: string; id: string }>;
 }) {
-  realizes('trip/driver-view', 'proxy-contact-while-held');
-  realizes('trip/driver-view', 'contact-withdrawn-after-terminal');
-  realizes('trip/driver-view', 'rider-contact-confined-to-held-trips');
+  realizes('trips/driver-view', 'proxy-contact-while-held');
+  realizes('trips/driver-view', 'contact-withdrawn-after-terminal');
+  realizes('trips/driver-view', 'rider-contact-confined-to-held-trips');
 
   const { driverId, id } = await params;
 

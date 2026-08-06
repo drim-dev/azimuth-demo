@@ -47,15 +47,15 @@ const TERMINAL = new Set(['completed', 'cancelled']);
  * the defect `position-confined-to-live-phases` was written against.
  */
 export function riderTrip(trip: ServiceTrip): RiderTrip {
-  realizes('trip/rider-view', 'no-driver-identity-before-assignment');
-  realizes('trip/rider-view', 'no-driver-position-before-assignment');
-  realizes('trip/rider-view', 'supply-density-shown-before-assignment');
-  realizes('trip/rider-view', 'driver-shown-after-assignment');
-  realizes('trip/rider-view', 'driver-position-follows-driver');
-  realizes('trip/rider-view', 'no-position-after-completion');
-  realizes('trip/rider-view', 'no-position-after-cancellation');
-  realizes('trip/rider-view', 'driver-identity-remains-on-receipt');
-  realizes('trip/rider-view', 'position-confined-to-live-phases');
+  realizes('trips/rider-view', 'no-driver-identity-before-assignment');
+  realizes('trips/rider-view', 'no-driver-position-before-assignment');
+  realizes('trips/rider-view', 'supply-density-shown-before-assignment');
+  realizes('trips/rider-view', 'driver-shown-after-assignment');
+  realizes('trips/rider-view', 'driver-position-follows-driver');
+  realizes('trips/rider-view', 'no-position-after-completion');
+  realizes('trips/rider-view', 'no-position-after-cancellation');
+  realizes('trips/rider-view', 'driver-identity-remains-on-receipt');
+  realizes('trips/rider-view', 'position-confined-to-live-phases');
 
   const assigned = ASSIGNED.has(trip.state);
   const terminal = TERMINAL.has(trip.state);
@@ -98,8 +98,8 @@ export function riderQuote(quote: ServiceQuote): RiderQuote {
 }
 
 export function riderRequestAccepted(body: { tripId: string; fareMinor: number; currency: string }) {
-  realizes('trip/request', 'rider-informed-of-trip');
-  realizes('trip/request', 'trip-created-in-requested-state');
+  realizes('trips/request', 'rider-informed-of-trip');
+  realizes('trips/request', 'trip-created-in-requested-state');
   return {
     id: body.tripId,
     state: 'requested',
@@ -126,8 +126,8 @@ export interface RiderReceipt {
  * that a receipt is a rider-reachable site like any other.
  */
 export function riderReceipt(trip: ServiceTrip, driver: { display?: string } | null): RiderReceipt {
-  realizes('trip/rider-view', 'driver-identity-remains-on-receipt');
-  realizes('trip/rider-view', 'position-confined-to-live-phases');
+  realizes('trips/rider-view', 'driver-identity-remains-on-receipt');
+  realizes('trips/rider-view', 'position-confined-to-live-phases');
   return {
     id: trip.tripId,
     state: trip.state,

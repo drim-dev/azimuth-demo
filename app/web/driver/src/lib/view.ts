@@ -42,9 +42,9 @@ export interface DriverTrip {
 
 /** What a driver sees before accepting. Carries no rider. */
 export function driverOffer(offer: ServiceOffer): DriverOffer {
-  realizes('trip/driver-view', 'pickup-shown-on-offer');
-  realizes('trip/driver-view', 'rider-contact-hidden-on-offer');
-  realizes('trip/driver-view', 'rider-contact-confined-to-held-trips');
+  realizes('trips/driver-view', 'pickup-shown-on-offer');
+  realizes('trips/driver-view', 'rider-contact-hidden-on-offer');
+  realizes('trips/driver-view', 'rider-contact-confined-to-held-trips');
   return {
     tripId: offer.tripId,
     pickup: offer.pickupArea,
@@ -54,9 +54,9 @@ export function driverOffer(offer: ServiceOffer): DriverOffer {
 
 /** What a driver sees for a trip. The contact is whatever the service chose to include. */
 export function driverTrip(trip: ServiceDriverTrip): DriverTrip {
-  realizes('trip/driver-view', 'proxy-contact-while-held');
-  realizes('trip/driver-view', 'contact-withdrawn-after-terminal');
-  realizes('trip/driver-view', 'rider-contact-confined-to-held-trips');
+  realizes('trips/driver-view', 'proxy-contact-while-held');
+  realizes('trips/driver-view', 'contact-withdrawn-after-terminal');
+  realizes('trips/driver-view', 'rider-contact-confined-to-held-trips');
   return {
     tripId: trip.tripId,
     state: trip.state,

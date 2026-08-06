@@ -45,7 +45,7 @@ position leak — is clearly worth the price on its own. The rest are modest.
 ## What was actually demonstrated
 
 **The site-class result, and it is the only strong one.** The residual in
-`verification/trip/rider-view.md` predicted, before any application code existed, that a new
+`verification/trips/rider-view.md` predicted, before any application code existed, that a new
 rider-reachable surface would satisfy every behavioural claim and leak anyway. Slice 2 built the
 receipt; the matrix reported 23 errors before and 23 after. The invariant designed against that
 evidence found all seven sites in the class and named the three that leaked.
@@ -81,7 +81,7 @@ than an artifact of having designed the fixture to have them.
 - **`invariant-breach` verifies the weakest rung of the enforcement ladder** — a guard at every
   site. A choke point every member routes through would report N−1 breaches, which is exactly the
   defect D7 names in the alpha. Crediting one needs call-graph analysis in the extractor (D10.1).
-- **The quotes table was not split** with the pricing service. `design/trip/request.md` predicted
+- **The quotes table was not split** with the pricing service. `design/trips/request.md` predicted
   this would be the first thing to break, and it is.
 - **The criticality mechanism is not working** on current evidence, and no counter-pressure was
   ever built (D6.6 decided that there must be one and left the mechanism open).

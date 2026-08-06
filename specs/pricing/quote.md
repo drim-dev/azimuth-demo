@@ -3,7 +3,7 @@
 Fare quotation for a prospective trip. Owns what a quote contains, how long it stays valid, and
 what it costs.
 
-Does not own whether a ride request is accepted (`trip/request`), nor what is actually charged
+Does not own whether a ride request is accepted (`trips/request`), nor what is actually charged
 at the end of a trip (`payments/capture`). A quote is an offer, not a commitment to a ledger.
 
 ## Requirement: quote-issued

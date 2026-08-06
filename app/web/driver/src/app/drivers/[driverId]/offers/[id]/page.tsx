@@ -19,9 +19,9 @@ export default async function OfferPage({
   params: Promise<{ driverId: string; id: string }>;
   searchParams: Promise<{ taken?: string }>;
 }) {
-  realizes('trip/driver-view', 'pickup-shown-on-offer');
-  realizes('trip/driver-view', 'rider-contact-hidden-on-offer');
-  realizes('trip/driver-view', 'rider-contact-confined-to-held-trips');
+  realizes('trips/driver-view', 'pickup-shown-on-offer');
+  realizes('trips/driver-view', 'rider-contact-hidden-on-offer');
+  realizes('trips/driver-view', 'rider-contact-confined-to-held-trips');
 
   const { driverId, id } = await params;
   const { taken } = await searchParams;

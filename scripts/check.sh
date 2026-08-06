@@ -16,7 +16,7 @@ dotnet test -v q --nologo tools/extractors/dotnet/Azimuth.Emit.Tests
 (cd tools/extractors/typescript && npx tsc -p tsconfig.json && node --test dist/emitter.test.js)
 
 echo "== app =="
-dotnet test -v q --nologo app/services/Trip.Tests
+dotnet test -v q --nologo app/services/Trips.Tests
 dotnet test -v q --nologo app/services/Payments.Tests
 
 # The e2e rung speaks HTTP to built Next apps, so they are built rather than dev-served: a dev
@@ -27,10 +27,10 @@ dotnet test -v q --nologo app/services/Payments.Tests
 
 echo "== emit =="
 EMIT="$ROOT/tools/extractors/dotnet/Azimuth.Emit/bin/Debug/net10.0/azimuth-emit-dotnet"
-"$EMIT" --output "$OUT/dotnet.json" --root "$ROOT" --traced-root Trip.Tests --traced-root Payments.Tests \
+"$EMIT" --output "$OUT/dotnet.json" --root "$ROOT" --traced-root Trips.Tests --traced-root Payments.Tests \
   app/services/Pricing/bin/Debug/net10.0/Pricing.dll \
-  app/services/Trip/bin/Debug/net10.0/Trip.dll \
-  app/services/Trip.Tests/bin/Debug/net10.0/Trip.Tests.dll \
+  app/services/Trips/bin/Debug/net10.0/Trips.dll \
+  app/services/Trips.Tests/bin/Debug/net10.0/Trips.Tests.dll \
   app/services/Payments/bin/Debug/net10.0/Payments.dll \
   app/services/Payments.Tests/bin/Debug/net10.0/Payments.Tests.dll
 
