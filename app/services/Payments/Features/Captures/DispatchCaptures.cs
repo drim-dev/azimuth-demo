@@ -20,9 +20,14 @@ public static class DispatchCaptures
 {
     public sealed class Endpoint : IEndpoint
     {
+        /// <summary>
+        /// The reason travels on the request because an adjustment is a decision the caller makes,
+        /// not a property of the intent. It reaches the wire because a capability only a handler
+        /// call can exercise is one no client can use, and the claim asserts the product has it.
+        /// </summary>
         public void MapEndpoint(WebApplication app) =>
-            app.MapPost("/dispatch", async (ISender sender, CancellationToken ct) =>
-                Results.Ok(await sender.Send(new Request(), ct)));
+            app.MapPost("/dispatch", async (string? adjustmentReason, ISender sender, CancellationToken ct) =>
+                Results.Ok(await sender.Send(new Request(adjustmentReason), ct)));
     }
 
     public sealed record Request(string? AdjustmentReason = null) : IRequest<Response>;

@@ -15,11 +15,15 @@
     <PackageReference Include="xunit" Version="2.9.2" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
     <PackageReference Include="Testcontainers.PostgreSql" Version="4.1.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.10" />
+    <!-- Pinned to 7.x: 8.0 moved to a licence that is only free for non-commercial use. -->
+    <PackageReference Include="FluentAssertions" Version="7.2.2" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="../Payments/Payments.csproj" />
     <ProjectReference Include="../Common/Common.csproj" />
+    <ProjectReference Include="../Common.Testing/Common.Testing.csproj" />
   </ItemGroup>
 
 </Project>
