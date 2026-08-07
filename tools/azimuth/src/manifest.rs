@@ -9,7 +9,7 @@
 
 use crate::diag::Diag;
 use crate::json::{self, Json};
-use crate::model::{Quantification, Scope, Site, UntracedTest};
+use crate::model::{ClassMember, Quantification, Scope, Site, UntracedTest};
 use std::fs;
 use std::path::Path;
 
@@ -18,6 +18,7 @@ pub struct Manifest {
     pub realizes: Vec<Site>,
     pub covers: Vec<Site>,
     pub untraced: Vec<UntracedTest>,
+    pub class_members: Vec<ClassMember>,
 }
 
 pub fn load(path: &Path) -> Result<Manifest, Vec<Diag>> {
@@ -75,6 +76,31 @@ pub fn parse(path: &str, root: &Json) -> Result<Manifest, Vec<Diag>> {
                     lang: lang.unwrap_or_default(),
                 });
             }
+        }
+    }
+
+    if let Some(value) = root.get("class_members") {
+        let Some(items) = value.as_array() else {
+            errors.push(Diag::expecting(
+                path,
+                0,
+                "`class_members` is not an array",
+                "an array",
+            ));
+            return Err(errors);
+        };
+        for (index, item) in items.iter().enumerate() {
+            let where_ = format!("class_members[{index}]");
+            let class = string_field(path, &where_, item, "class", &mut errors);
+            let site = string_field(path, &where_, item, "site", &mut errors);
+            let file = string_field(path, &where_, item, "file", &mut errors);
+            let lang = string_field(path, &where_, item, "lang", &mut errors);
+            out.class_members.push(ClassMember {
+                class: class.unwrap_or_default(),
+                site: site.unwrap_or_default(),
+                file: file.unwrap_or_default(),
+                lang: lang.unwrap_or_default(),
+            });
         }
     }
 

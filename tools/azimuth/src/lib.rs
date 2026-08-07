@@ -105,6 +105,7 @@ pub fn load(
                 model.realizes.extend(m.realizes);
                 model.covers.extend(m.covers);
                 model.untraced.extend(m.untraced);
+                model.class_members.extend(m.class_members);
             }
             Err(mut d) => errors.append(&mut d),
         }

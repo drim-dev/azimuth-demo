@@ -515,10 +515,18 @@ fn design_holes(model: &Model) -> Vec<Hole> {
 
 /// Claims whose domain is a set of sites (D13).
 ///
-/// Membership is **derived**: a site joins the class by realizing any claim in the named spec, so
-/// it cannot escape by forgetting to declare itself. That is D13.1 — an enumerator must come from
-/// the same source the system is built from, because a hand-listed surface reproduces the very bug
-/// the rule prevents and reports green.
+/// Membership has two sources, and the second exists because the first is not enough.
+///
+/// A site joins by realizing any claim in the named spec — but that only reaches sites somebody
+/// already tagged, so a file carrying no tags at all can never be a member. That is the failure
+/// D13.1 names: an enumerator drawn from annotations reproduces the very bug the rule prevents and
+/// reports green. A project's extractor may therefore emit `class_members` derived from what the
+/// build produced — a route table, a container, a migration set — and those join too, whether or
+/// not anyone annotated them.
+///
+/// Identity differs between the two, which is deliberate. A tag-derived member is a named site in a
+/// file and discharges only at that site. An emitted member *is* the file, because the enumerator
+/// names files, and a discharge anywhere in it discharges the member.
 ///
 /// Discharge is a `realizes` tag naming the invariant. No new tag: one claim type parameterized by
 /// domain means one of everything downstream.
@@ -556,24 +564,40 @@ fn surface_holes(model: &Model) -> Vec<Hole> {
                 .flat_map(|r| r.scenarios.iter().map(|s| s.id.as_str()))
                 .collect();
 
-            let mut members: Vec<(&str, &str)> = model
+            // (site, file, by_file): `by_file` marks a member the extractor enumerated, whose
+            // identity is the file rather than a named site inside it.
+            let mut members: Vec<(&str, &str, bool)> = model
                 .realizes
                 .iter()
                 .filter(|site| site.spec == class_spec.id && behavioural.contains(&site.scenario.as_str()))
-                .map(|site| (site.site.as_str(), site.file.as_str()))
+                .map(|site| (site.site.as_str(), site.file.as_str(), false))
                 .collect();
+
+            members.extend(
+                model
+                    .class_members
+                    .iter()
+                    .filter(|m| m.class == class_spec.id)
+                    .map(|m| (m.site.as_str(), m.file.as_str(), true)),
+            );
+
             members.sort();
             members.dedup();
 
-            let discharged: Vec<&str> = model
+            let discharges: Vec<(&str, &str)> = model
                 .realizes
                 .iter()
                 .filter(|site| site.spec == spec.id && site.scenario == requirement.id)
-                .map(|site| site.site.as_str())
+                .map(|site| (site.site.as_str(), site.file.as_str()))
                 .collect();
 
-            for (site, file) in members {
-                if discharged.contains(&site) {
+            for (site, file, by_file) in members {
+                let discharged = if by_file {
+                    discharges.iter().any(|(_, f)| *f == file)
+                } else {
+                    discharges.iter().any(|(s, f)| *s == site && *f == file)
+                };
+                if discharged {
                     continue;
                 }
                 holes.push(Hole {

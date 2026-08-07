@@ -29,6 +29,37 @@ WHEN a thing happens
 THEN it looks right
 ";
 
+/// A class claim and one behavioural claim in the same spec, so a site can be a member by tag.
+const CLASS_SPEC: &str = "\
+# Spec: beta
+
+## Invariant: confined
+Criticality: critical
+Over: beta
+
+Nothing SHALL leak at any site in the class.
+
+## Requirement: shown
+Criticality: standard
+
+A lesser SHALL.
+
+### Scenario: rendered
+WHEN a thing is rendered
+THEN it looks right
+";
+
+fn class_model(manifest_json: &str) -> Model {
+    let spec = parse_spec("beta.md", CLASS_SPEC).expect("spec parses");
+    let mut model = Model { specs: vec![spec], ..Default::default() };
+    let root = json::parse(manifest_json).expect("manifest is valid json");
+    let m = manifest::parse("m.json", &root).expect("manifest parses");
+    model.realizes = m.realizes;
+    model.covers = m.covers;
+    model.class_members = m.class_members;
+    model
+}
+
 fn model_with(manifest_json: &str) -> Model {
     let spec = parse_spec("alpha.md", SPEC).expect("spec parses");
     let mut model = Model { specs: vec![spec], ..Default::default() };
@@ -38,6 +69,7 @@ fn model_with(manifest_json: &str) -> Model {
         model.realizes = m.realizes;
         model.covers = m.covers;
         model.untraced = m.untraced;
+        model.class_members = m.class_members;
     }
     model
 }
@@ -228,4 +260,54 @@ fn json_round_trips_escapes_and_unicode() {
     let parsed = json::parse(original).unwrap();
     let text = parsed.to_string_pretty();
     assert_eq!(json::parse(&text).unwrap(), parsed);
+}
+
+/// The pre-existing membership rule: a site joins by realizing a behavioural claim in the class
+/// spec, and must then discharge the invariant separately. Two different tags, so this can fail.
+#[test]
+fn a_tagged_site_that_does_not_discharge_breaches() {
+    let model = class_model(
+        r#"{"realizes":[{"spec":"beta","scenario":"rendered","site":"Page","file":"page.tsx",
+            "lang":"typescript"}]}"#,
+    );
+    let holes = kinds(&model);
+    assert!(holes.contains(&(HoleKind::InvariantBreach, "beta#confined".into())), "{holes:?}");
+}
+
+/// The case tags cannot reach, and the reason `class_members` exists: a file carrying no tag at all
+/// is invisible to a tag-derived enumerator, so the surface the claim ranges over silently stops at
+/// whatever somebody remembered to annotate (D13.1).
+#[test]
+fn an_emitted_member_with_no_tags_at_all_breaches() {
+    let model = class_model(
+        r#"{"realizes":[{"spec":"beta","scenario":"rendered","site":"Page","file":"page.tsx",
+            "lang":"typescript"},{"spec":"beta","scenario":"confined","site":"Page",
+            "file":"page.tsx","lang":"typescript"}],
+            "class_members":[{"class":"beta","site":"/untouched","file":"untouched.ts",
+            "lang":"typescript"}]}"#,
+    );
+    let holes = kinds(&model);
+    assert!(holes.contains(&(HoleKind::InvariantBreach, "beta#confined".into())), "{holes:?}");
+    assert_eq!(
+        holes.iter().filter(|(k, _)| *k == HoleKind::InvariantBreach).count(),
+        1,
+        "the tagged-and-discharged site must not also breach: {holes:?}"
+    );
+}
+
+/// An emitted member *is* its file — the enumerator names files, not symbols inside them — so a
+/// discharge anywhere in the file discharges the member, whatever the site is called.
+#[test]
+fn an_emitted_member_discharges_from_anywhere_in_its_file() {
+    let model = class_model(
+        r#"{"realizes":[{"spec":"beta","scenario":"confined","site":"GET",
+            "file":"route.ts","lang":"typescript"}],
+            "class_members":[{"class":"beta","site":"/thing","file":"route.ts",
+            "lang":"typescript"}]}"#,
+    );
+    let holes = kinds(&model);
+    assert!(
+        !holes.iter().any(|(k, _)| *k == HoleKind::InvariantBreach),
+        "discharge in the same file should clear the member: {holes:?}"
+    );
 }

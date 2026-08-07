@@ -198,6 +198,20 @@ pub struct Site {
     pub oracle: Option<String>,
 }
 
+/// A member of a class, enumerated by the project's extractor from what the build produced —
+/// a route table, a container, a manifest — rather than from a tag.
+///
+/// This exists because deriving membership from tags cannot see a site nobody tagged, which is the
+/// failure D13.1 names: an enumerator that misses a member reports green over the gap. Identity is
+/// the **file**: the member is the file, and a discharge anywhere in it discharges the member.
+#[derive(Debug, Clone)]
+pub struct ClassMember {
+    pub class: String,
+    pub site: String,
+    pub file: String,
+    pub lang: String,
+}
+
 #[derive(Debug, Clone)]
 pub struct UntracedTest {
     pub site: String,
@@ -211,6 +225,9 @@ pub struct Model {
     pub realizes: Vec<Site>,
     pub covers: Vec<Site>,
     pub untraced: Vec<UntracedTest>,
+    /// Class members enumerated by an extractor. Empty when no project emits them, in which case
+    /// a class is only as wide as its tags.
+    pub class_members: Vec<ClassMember>,
     /// Absent until a standards file is read. Without it no evidence standard is known, so
     /// `wrong-form` cannot fire and `uncovered` falls back to "has any evidence at all".
     pub standards: Option<crate::plan::Standards>,

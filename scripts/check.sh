@@ -34,7 +34,12 @@ EMIT="$ROOT/tools/extractors/dotnet/Azimuth.Emit/bin/Debug/net10.0/azimuth-emit-
   app/services/Payments/bin/Debug/net10.0/Payments.dll \
   app/services/Payments.Tests/bin/Debug/net10.0/Payments.Tests.dll
 
+# The two apps are enumerated as classes: membership comes from the built route table, so a route
+# that exists is in the class whether or not anyone tagged it. A tag-derived class only ever reaches
+# files somebody already annotated (D13.1).
 node tools/extractors/typescript/dist/cli.js --output "$OUT/web.json" --root "$ROOT" \
+  --next-app trips/rider-view=app/web/rider \
+  --next-app trips/driver-view=app/web/driver \
   app/web/rider/src app/web/driver/src app/e2e/src
 
 echo "== azimuth =="

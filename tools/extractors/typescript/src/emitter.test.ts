@@ -1,6 +1,9 @@
 import { strict as assert } from 'node:assert';
 import { test } from 'node:test';
-import { scanText } from './emitter';
+import * as fs from 'node:fs';
+import * as os from 'node:os';
+import * as path from 'node:path';
+import { nextRoutes, scanText } from './emitter';
 
 // Synthetic sources only (D2). A silently wrong emitter produces a green matrix, which is the exact
 // failure the framework exists to prevent — so these assert on the shape of what is emitted, not
@@ -162,4 +165,60 @@ test('tsx parses', () => {
 test('a mention of a marker in a string is not a tag', () => {
   const result = scanText(`const doc = "call realizes('a', 's') to tag a site";`, 'a.ts');
   assert.deepEqual(result.realizes, []);
+});
+
+function builtApp(routes: Record<string, string>, sources: string[]): string {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'azimuth-app-'));
+  fs.mkdirSync(path.join(dir, '.next'), { recursive: true });
+  fs.writeFileSync(
+    path.join(dir, '.next', 'app-path-routes-manifest.json'),
+    JSON.stringify(routes),
+  );
+  for (const source of sources) {
+    const full = path.join(dir, 'src', 'app', source);
+    fs.mkdirSync(path.dirname(full), { recursive: true });
+    fs.writeFileSync(full, '');
+  }
+  return dir;
+}
+
+test('enumerates class members from the build output, tagged or not', () => {
+  const dir = builtApp(
+    { '/page': '/', '/api/thing/route': '/api/thing', '/_not-found/page': '/_not-found' },
+    ['page.tsx', 'api/thing/route.ts'],
+  );
+
+  const { members, warnings } = nextRoutes('beta', dir, dir);
+
+  assert.equal(warnings.length, 0);
+  assert.deepEqual(
+    members.map((m) => m.site).sort(),
+    ['/', '/api/thing'],
+    'framework-generated pages are not sites the project wrote',
+  );
+  assert.ok(members.every((m) => m.class === 'beta'));
+  assert.deepEqual(
+    members.map((m) => m.file).sort(),
+    ['src/app/api/thing/route.ts', 'src/app/page.tsx'],
+  );
+});
+
+test('warns rather than silently narrowing the class when the app is not built', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'azimuth-app-'));
+
+  const { members, warnings } = nextRoutes('beta', dir, dir);
+
+  assert.equal(members.length, 0);
+  assert.equal(warnings.length, 1);
+  assert.match(warnings[0].message, /report green over the difference/);
+});
+
+test('warns when a route has no source, rather than dropping it in silence', () => {
+  const dir = builtApp({ '/ghost/page': '/ghost' }, []);
+
+  const { members, warnings } = nextRoutes('beta', dir, dir);
+
+  assert.equal(members.length, 0);
+  assert.equal(warnings.length, 1);
+  assert.match(warnings[0].message, /has no source/);
 });

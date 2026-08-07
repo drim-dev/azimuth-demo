@@ -39,10 +39,18 @@ export interface UntracedTest {
   lang: string;
 }
 
+export interface ClassMember {
+  class: string;
+  site: string;
+  file: string;
+  lang: string;
+}
+
 export interface Manifest {
   realizes: Entry[];
   covers: Entry[];
   untraced_tests: UntracedTest[];
+  class_members: ClassMember[];
 }
 
 export interface Warning {
@@ -239,7 +247,7 @@ export function walk(dir: string, out: string[] = []): string[] {
 }
 
 export function emit(roots: string[], repoRoot: string): { manifest: Manifest; warnings: Warning[] } {
-  const manifest: Manifest = { realizes: [], covers: [], untraced_tests: [] };
+  const manifest: Manifest = { realizes: [], covers: [], untraced_tests: [], class_members: [] };
   const warnings: Warning[] = [];
 
   const files: string[] = [];
@@ -271,4 +279,62 @@ function compare(a: Entry, b: Entry): number {
     a.scenario.localeCompare(b.scenario) ||
     a.site.localeCompare(b.site)
   );
+}
+
+/**
+ * Enumerates a Next.js app's routes as members of a class, from the build output rather than from
+ * annotations.
+ *
+ * The point is the source: `app-path-routes-manifest.json` is written by the build, so a route that
+ * exists is a member whether or not anyone remembered to tag it. Membership derived from tags can
+ * only ever reach files somebody already annotated, which is the enumerator failure D13.1 names.
+ *
+ * A member is identified by its file, because that is the unit the router names. Framework-generated
+ * pages (`/_not-found`, `/_global-error`) are excluded: they are not sites the project wrote.
+ */
+export function nextRoutes(
+  classId: string,
+  appDir: string,
+  repoRoot: string,
+): { members: ClassMember[]; warnings: Warning[] } {
+  const manifestPath = path.join(appDir, '.next', 'app-path-routes-manifest.json');
+  const warnings: Warning[] = [];
+
+  if (!fs.existsSync(manifestPath)) {
+    warnings.push({
+      file: manifestPath,
+      line: 0,
+      message: 'route manifest not found — build the app before emitting, or the class will be ' +
+        'narrower than the app and report green over the difference',
+    });
+    return { members: [], warnings };
+  }
+
+  const routes = JSON.parse(fs.readFileSync(manifestPath, 'utf8')) as Record<string, string>;
+  const members: ClassMember[] = [];
+
+  for (const [key, route] of Object.entries(routes)) {
+    if (key.startsWith('/_')) continue;
+
+    const base = path.join(appDir, 'src', 'app', key);
+    const source = ['.ts', '.tsx'].map((ext) => base + ext).find((f) => fs.existsSync(f));
+    if (!source) {
+      warnings.push({
+        file: manifestPath,
+        line: 0,
+        message: `route \`${route}\` has no source at ${base}.ts(x); it is left out of the class`,
+      });
+      continue;
+    }
+
+    members.push({
+      class: classId,
+      site: route,
+      file: path.relative(repoRoot, source).split(path.sep).join('/'),
+      lang: 'typescript',
+    });
+  }
+
+  members.sort((a, b) => a.class.localeCompare(b.class) || a.file.localeCompare(b.file));
+  return { members, warnings };
 }
