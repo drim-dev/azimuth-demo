@@ -15,6 +15,33 @@ The cause is not a defect. D18's fingerprint hashes the claim text and the *cont
 carrying evidence for the claim. A file whose bytes changed is a file the judgment did not see, and
 the fingerprint cannot tell a rewritten test from a renamed token.
 
+## The other half, found 2026-08-07 — it under-fires as well
+
+The fingerprint covers the claim text and the evidence files. **It does not cover the verification
+plan.**
+
+Measured: a `Scope: component` entry was added to `verification/trips/request.md` for
+`request-admitted-after-terminal`, changing that claim's required form from the inherited `unit`.
+The fingerprint before and after is byte-identical — `42dfddab6442d5f1` — and the verdict stayed
+`sound` without being re-examined.
+
+That is the more serious direction. A judgment is a claim that *this evidence meets that standard*.
+When the standard moves, the verdict is about a comparison nobody has made. Raise a claim's required
+quantification from `example` to `universal` and every existing `sound` judgment stands
+unchallenged, having been reached against a weaker requirement — and unlike the rename case, nothing
+in the output tells a reader to look.
+
+So the two failures come from one design choice about what the hash ranges over:
+
+| | Trigger | Effect |
+|---|---|---|
+| Over-fires | any byte in an evidence file — a rename, formatting, an unrelated test in the same file | 8 verdicts expired by D19 for no semantic reason |
+| Under-fires | any change to the plan entry that sets the required form | a verdict survives the standard it was measured against |
+
+The second is cheap to fix and does not need the granularity question settled: include the claim's
+effective required form — after plan entry and standard — in the hash. That is a small, bounded
+input, unlike the evidence-file question below.
+
 ## The question
 
 **Is file-granularity content hashing correctly conservative, or too coarse to survive routine

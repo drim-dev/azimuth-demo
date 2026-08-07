@@ -13,7 +13,11 @@ either genuinely out of scope or a proposal nobody has been willing to decide.
 |---|---|---|
 | `quantification-review.md` | prior art for `example`/`invariant` and what the field does and does not buy; the rename proposal graduated to D19 | observations · one failed prediction |
 | `site-class-evidence.md` | why a behavioural test cannot be universal evidence for a claim over a derived set of sites | finding · one proposal |
-| `fingerprint-granularity.md` | whether file-granularity content hashing is correctly conservative or too coarse | open question |
+| `fingerprint-granularity.md` | that the judgment fingerprint over-fires on renames and under-fires on plan changes | open question · one bounded fix |
+| `scope-field.md` | that the harness decided every scope tag in one spec, and that a mutation derived a required scope | observations · open question |
+| `exemption-visibility.md` | that 17 `Untraced` exemptions and their reasons never reach the model, and an unspecified 400/422 boundary | finding · candidate spec change |
+| `unclaimed-outcomes.md` | making "which claims must exist" checkable over a derived surface of client-visible refusals | proposed · one prediction |
+| `entry-point-surfaces.md` | an entry-point inventory with classes as subsets of it, and why choke-point crediting comes first | proposed · one measured finding |
 | `reader-and-problem.md` | that `framework.md` names no reader, and two candidate readers with their falsifiers | proposed |
 | `formal-registers.md` | languages that force precision, and what none of them force | reference · one proposal |
 | `reading-path.md` | the literatures behind the writing register, and an order to read them in | notes, outside the framework |
