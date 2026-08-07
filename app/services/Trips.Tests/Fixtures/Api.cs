@@ -44,6 +44,25 @@ public static class Api
         return (await response.Read<IssueQuote.Response>()).Id;
     }
 
+    /// <summary>
+    /// Issues a quote and hands back the whole response, for tests that vary its terms and need the
+    /// total and expiry the service actually decided rather than the ones they asked for.
+    /// </summary>
+    public static async Task<IssueQuote.Response> Quote(
+        this HttpClient client,
+        long baseMinor = 1000,
+        long distanceMinor = 500,
+        string currency = "EUR")
+    {
+        var response = await client.IssueQuote(
+            baseMinor: baseMinor,
+            distanceMinor: distanceMinor,
+            currency: currency);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        return await response.Read<IssueQuote.Response>();
+    }
+
     public static Task<HttpResponseMessage> GetQuote(this HttpClient client, string id) =>
         client.GetAsync($"/quotes/{id}");
 

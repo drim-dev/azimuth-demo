@@ -194,8 +194,8 @@ test('a cancelled trip shows no position either', async () => {
 });
 
 test('a rider is told their trip exists and is awaiting a driver', async () => {
-  covers('trips/request', 'rider-informed-of-trip', 'e2e', 'universal');
-  covers('trips/request', 'request-admitted-with-valid-quote', 'e2e', 'universal');
+  covers('trips/request', 'rider-informed-of-trip', 'e2e', 'example');
+  covers('trips/request', 'request-admitted-with-valid-quote', 'e2e', 'example');
 
   const id = await requestedTrip(`rider-${Date.now()}-d`);
   const view = await get(`/api/rider/trips/${id}`);
