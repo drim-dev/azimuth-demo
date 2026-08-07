@@ -12,8 +12,18 @@ cancellation-fee flow. An advisory lock was rejected: it protects the writers th
 
 ## Requirement: capture-on-completion
 Enforcement: choke-point
-Site: `CompleteTrip` writes a capture-intent row in the same transaction as the state change;
-`CaptureDispatcher` is the only reader of that table
+Site: `DispatchCaptures` is the only reader of `capture_intents` and the only constructor of a
+capture
+
+*(revised 2026-08-07)* The entry read "`CompleteTrip` writes a capture-intent row in the same
+transaction as the state change". **It does not, and no such site exists.** The trip service has no
+reference to payments, no intent table and no outbox; `WriteCaptureIntent` lives in payments, is
+reachable from nothing, and has no endpoint. What is built is the *reading* half: an intent, however
+it arrives, produces at most one capture.
+
+The outbox argument below still holds and is why the shape was chosen. It describes a design that
+was written down and not implemented, which is a different thing from a design that is wrong, and
+the distinction is worth keeping visible.
 
 A transactional outbox rather than a direct call. Calling the payment client inline from the
 completion handler is the single most-repeated mistake in the concern catalog (C16): it charges

@@ -1,5 +1,14 @@
 # Verification: payments/capture
 
+## Claim: capture-created-on-completion
+Residual: the trigger is not built. Evidence establishes that an intent produces exactly one capture
+for its amount; nothing establishes that completing a trip produces an intent, because the trip
+service does not write one and `WriteCaptureIntent` is unreachable.
+Accepted: no — recorded, not accepted. The chain has two halves and only one is claimed anywhere,
+so the gap is in the intent facet before it is in the evidence. Closing it means either a claim in
+`trips/lifecycle` that completion emits a capture intent, or building the outbox the design
+describes. Until then this claim reads as end-to-end and is not.
+
 ## Claim: concurrent-completion-processing
 Scope: component
 Quantification: universal
