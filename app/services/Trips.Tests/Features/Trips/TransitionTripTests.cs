@@ -55,6 +55,8 @@ public sealed class TransitionTripTests(TripTestFixture fixture) : IAsyncLifetim
     /// </summary>
     [Fact]
     [Covers("trips/lifecycle", "replayed-transition-is-inert", Scope.Component, Quantification.Universal)]
+    [Covers("payments/capture", "duplicate-completion-event", Scope.Component,
+        Quantification.Universal)]
     public async Task A_replayed_transition_changes_nothing_however_many_times_it_arrives()
     {
         var client = fixture.HttpClient.CreateClient();
@@ -74,6 +76,9 @@ public sealed class TransitionTripTests(TripTestFixture fixture) : IAsyncLifetim
 
             // One completion in the history, however many arrived.
             (await History(trip.Id)).Count(e => e.To == "completed").Should().Be(1);
+            (await fixture.Database.Count<CaptureIntent>(
+                x => x.TripId == trip.Id,
+                Cancellation.Token())).Should().Be(1);
         }
     }
 
@@ -146,7 +151,6 @@ public sealed class TransitionTripTests(TripTestFixture fixture) : IAsyncLifetim
     }
 
     [Fact]
-    [Untraced("absence of a resource; no claim asserts the shape of a miss")]
     public async Task An_unknown_trip_admits_no_event()
     {
         var client = fixture.HttpClient.CreateClient();
@@ -161,7 +165,6 @@ public sealed class TransitionTripTests(TripTestFixture fixture) : IAsyncLifetim
         private readonly TransitionTrip.RequestValidator _validator = new();
 
         [Fact]
-        [Untraced("shape only; the claim about recording the actor is settled against real storage")]
         public void A_transition_names_the_party_that_caused_it()
         {
             _validator.TestValidate(new TransitionTrip.Request("0000000000000", TripEvent.Start, string.Empty))
@@ -169,7 +172,6 @@ public sealed class TransitionTripTests(TripTestFixture fixture) : IAsyncLifetim
         }
 
         [Fact]
-        [Untraced("the accepting half of the rule above")]
         public void A_transition_with_an_actor_passes()
         {
             _validator.TestValidate(new TransitionTrip.Request("0000000000000", TripEvent.Start, "rider"))

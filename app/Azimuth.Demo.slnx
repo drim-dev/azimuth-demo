@@ -3,6 +3,8 @@
   <Project Path="services/Common/Common.csproj" />
   <Project Path="services/Common.Testing/Common.Testing.csproj" />
   <Project Path="services/Pricing/Pricing.csproj" />
+  <Project Path="services/Pricing.Service/Pricing.Service.csproj" />
+  <Project Path="services/Pricing.Tests/Pricing.Tests.csproj" />
   <Project Path="services/Trips/Trips.csproj" />
   <Project Path="services/Trips.Tests/Trips.Tests.csproj" />
   <Project Path="services/Payments/Payments.csproj" />

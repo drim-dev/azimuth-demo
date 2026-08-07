@@ -1,5 +1,14 @@
 # Judgments: trips/rider-view
 
+Re-judged 2026-08-08 after design bindings and their source entered the freshness fingerprint. The
+re-read rejected the earlier proof argument: `DriverPosition.Reveal()` is assembly-internal, so an
+unredacted position is representable. The plan now records example evidence plus an accepted
+derived-egress residual; the projection guard and every new route discharge were re-read.
+
+Fingerprints refreshed 2026-08-08 after the shared e2e file gained pricing and payment assertions.
+Every rider assertion and projection was re-read and the full e2e suite passed. The cancellation
+test became stronger by also checking absence of capture; its rider assertions are unchanged.
+
 **Re-judged 2026-08-07 after the evidence, the design and the class enumerator were all corrected.**
 The superseded verdicts were one `dishonest-tag`, three `toothless` and two `spec-gap`; each entry
 quotes what it replaces rather than deleting it.
@@ -20,9 +29,9 @@ hashes whole files, which D19.1 records.
 
 ## Claim: position-confined-to-live-phases
 Verdict: sound
-Fingerprint: 177694b2c0ab41dd
-Judged: 2026-08-07
-Judge: claude-opus-5
+Fingerprint: 0cc4ca7cb2a1d31a
+Judged: 2026-08-08
+Judge: codex
 
 *(supersedes `dishonest-tag` — "declares `universal` over the site class while the test hand-lists
 five URLs")*
@@ -35,20 +44,16 @@ against the corpus it produced eight breaches — five rider surfaces and three 
 which any tag-derived class could reach. All eight are now discharged, each with a stated reason:
 two forward the trip service's projection unchanged, and the rest carry no driver at all.
 
-**The e2e test is tagged `example`**, which is what five named surfaces are. The claim's universal
-requirement is met by the plan's proof-strength entry: `DriverPosition` has no serializer and no raw
-accessor, so an unredacted position is unrepresentable on the wire (D7), backed by `Enforcement:
-type` in the design.
-
-What makes this sound rather than merely re-labelled: the evidence for universality is now a
-mechanism that cannot be forgotten, plus an enumerator that grows with the build. The previous
-arrangement asserted the same thing with a list that grew when someone remembered.
+**The e2e test is tagged `example`**, which is what named surfaces are. The plan now says the same
+thing and records the missing universal predicate analysis as a residual. The class enumeration is
+universal over built routes; the truth of each discharge is still an agent judgment. This is sound
+because the evidence tag and plan no longer claim the type proof that the code cannot supply.
 
 ## Claim: no-driver-identity-before-assignment
 Verdict: sound
-Fingerprint: 1bdf7367dad642fd
-Judged: 2026-08-07
-Judge: claude-opus-5
+Fingerprint: e765c847ff339159
+Judged: 2026-08-08
+Judge: codex
 
 Unchanged from the first pass and re-judged only because the file moved. `Before_assignment_no
 _individual_driver_is_shown` asserts display, position and vehicle are null at the one phase that is
@@ -61,9 +66,9 @@ The doc comment above it, which claimed derivation this body does not do, is sti
 
 ## Claim: no-driver-position-before-assignment
 Verdict: sound
-Fingerprint: 558fa2e0b504ae99
-Judged: 2026-08-07
-Judge: claude-opus-5
+Fingerprint: 0abf5e8027459c95
+Judged: 2026-08-08
+Judge: codex
 
 Same two tests, same reasoning, and the plan's `e2e` scope is met by evidence that exercises the
 assembled path rather than the projection alone. Against `DriverPosition` unconditional the unit
@@ -71,9 +76,9 @@ test fails on the null assertion and the e2e on both the field and the substring
 
 ## Claim: supply-density-shown-before-assignment
 Verdict: sound
-Fingerprint: ce418900a1a1fe3e
-Judged: 2026-08-07
-Judge: claude-opus-5
+Fingerprint: 5844a7025e038ccc
+Judged: 2026-08-08
+Judge: codex
 
 *(supersedes `toothless` — and part of that verdict was simply wrong)*
 
@@ -92,9 +97,9 @@ The unit test remains a round-trip and adds nothing. It is not the evidence carr
 
 ## Claim: driver-shown-after-assignment
 Verdict: sound
-Fingerprint: 38cffe12f1241175
-Judged: 2026-08-07
-Judge: claude-opus-5
+Fingerprint: b18b9c8b8a7f7322
+Judged: 2026-08-08
+Judge: codex
 
 *(supersedes `toothless` — "no test anywhere checks the vehicle in the positive case")*
 
@@ -111,9 +116,9 @@ escape.
 
 ## Claim: driver-position-follows-driver
 Verdict: sound
-Fingerprint: 9c8ddaf890cf1dfd
-Judged: 2026-08-07
-Judge: claude-opus-5
+Fingerprint: 9626307e7b4d8f02
+Judged: 2026-08-08
+Judge: codex
 
 *(supersedes `toothless` — "the covering test never changes a position")*
 
@@ -129,9 +134,9 @@ and the claim does not say the driver moves via an endpoint.
 
 ## Claim: no-position-after-completion
 Verdict: sound
-Fingerprint: 8a141561dbc0fc67
-Judged: 2026-08-07
-Judge: claude-opus-5
+Fingerprint: 7eaab72f8a57eca7
+Judged: 2026-08-08
+Judge: codex
 
 *(supersedes `spec-gap` — which was the judge's error)*
 
@@ -152,9 +157,9 @@ asserts the position is gone.
 
 ## Claim: no-position-after-cancellation
 Verdict: sound
-Fingerprint: 9f72e9e06ee4747c
-Judged: 2026-08-07
-Judge: claude-opus-5
+Fingerprint: 7fe68b1a0e1308de
+Judged: 2026-08-08
+Judge: codex
 
 *(supersedes `spec-gap`, for the same reason as its sibling: the gap was in the design, not the
 spec, and the design was fiction)*
@@ -166,9 +171,9 @@ removed this claim would have no evidence that constructs the failure case.
 
 ## Claim: driver-identity-remains-on-receipt
 Verdict: sound
-Fingerprint: a1603562e5235798
-Judged: 2026-08-07
-Judge: claude-opus-5
+Fingerprint: 974ca690ab6cc8da
+Judged: 2026-08-08
+Judge: codex
 
 Unchanged. The positive half of the terminal rule, and what stops the requirement being satisfiable
 by returning nothing. Against `DriverDisplay: assigned ? … : null` — the over-redaction a

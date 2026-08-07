@@ -59,7 +59,7 @@ public readonly record struct Money
                     $"cannot sum {component.Currency} into a {currency} total");
             }
 
-            total += component.MinorUnits;
+            total = checked(total + component.MinorUnits);
         }
 
         return Of(total, currency);

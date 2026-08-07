@@ -88,27 +88,6 @@ namespace Azimuth.Annotations
     }
 
     /// <summary>
-    /// Opts a test out of tracing: it legitimately covers no claim — setup, infrastructure, a smoke
-    /// check.
-    /// </summary>
-    /// <remarks>
-    /// A deliberate, attributable, reviewable exemption is fine anywhere; a silent absence is not.
-    /// The recorded reason is what makes it the former.
-    /// </remarks>
-    [AttributeUsage(AttributeTargets.Method)]
-    public sealed class UntracedAttribute : Attribute
-    {
-        /// <summary>Exempts a test, recording <paramref name="reason"/> for review.</summary>
-        public UntracedAttribute(string reason)
-        {
-            Reason = reason;
-        }
-
-        /// <summary>Why this test legitimately covers no claim.</summary>
-        public string Reason { get; }
-    }
-
-    /// <summary>
     /// How much of the real system a check runs against — defined by what must be <em>real</em>,
     /// not by how much runs.
     /// </summary>

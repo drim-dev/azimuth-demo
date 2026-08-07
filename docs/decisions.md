@@ -276,6 +276,13 @@ when authorship collapses into one person, or the framework cannot be dogfooded.
 
 The last is new and is the highest-value check of the four.
 
+**Implemented boundary, 2026-08-08.** Current design entries carry a machine-addressable
+`Binding:` rather than a prose `Site:`. Extractors emit .NET symbols and migration-derived database
+indexes. The machine reports an unresolved binding and compares index uniqueness, ordered columns
+and predicates declared in `Expect:`. A symbol binding establishes existence only: exclusivity,
+transactionality and semantic correctness remain evidence and agent-tier questions. Treating
+symbol resolution as proof would recreate the design-fiction failure with a more formal spelling.
+
 ### D3.1 — Ownership is an optional layer, not part of the model *(revised)*
 
 **Decision.** The core model has no owner field. Ownership is expressible as a separate,
@@ -682,6 +689,17 @@ surface is worse than no rule at all.
 Follows from D13.1 and does not exist in the alpha. It is the first thing a claim over a set
 needs, before any check over its members means anything.
 
+**Implemented 2026-08-08.** A manifest carries an enumeration witness naming its derived source
+and source fingerprint. A site-domain claim with no witness reports
+`enumerator-unsound-or-underived`; tag-derived membership is no longer treated as complete. An
+extractor that cannot read its build source or resolve a member fails emission rather than returning
+a smaller set.
+
+The compact-trip-summary change supplied the discriminating observation: a new untagged Next route
+joined the rider class from the build manifest and produced `invariant-breach`. The machine did not
+infer the route's relationships to four behavioural claims. That negative result bounds an
+enumerator to domain membership; semantic realization remains declared and judged.
+
 ### D13.3 — The domain set is closed for this phase
 
 Six values, framework-defined. Whether projects may add domains stays open (see below): an open
@@ -843,10 +861,12 @@ never that it can add evidence; it is that it can withdraw belief in evidence th
 `dishonest-tag` (the declared form overstates the test) · `spec-gap` (the code is right, the test
 is toothy, and a reader would still be surprised).
 
-**Freshness is a fingerprint** over the claim's text and the content of every file carrying
-evidence for it. File-level rather than site-level on purpose: it over-invalidates, and that is the
-safe direction. A false stale costs one re-judgement; a false fresh means a verdict about code that
-no longer exists is still being counted.
+**Freshness is a fingerprint** over the claim text, effective verification requirements, covering
+evidence, applicable design file and source files of its machine bindings. *(revised 2026-08-08)*
+The earlier evidence-only fingerprint survived both a plan change and design fiction, although the
+rubric requires reading both. File-level rather than site-level remains deliberately conservative:
+a false stale costs one re-judgement; a false fresh carries a verdict about a comparison nobody
+made.
 
 **`unjudged` is a hole for `critical` claims**, gated on the agent tier being in use at all (D8.1).
 
@@ -984,9 +1004,10 @@ creates exemptions for legitimate tests and makes routine linkage mandatory by i
 `untraced-test` and the general `Untraced` mechanism therefore leave the core model when D20 is
 implemented. A project may impose a separate test-inventory policy, but it is not claim assurance.
 
-**Implementation status.** Not implemented. The current checker still emits `unrealized` for a
-routine claim, at warning severity, and both extractors still emit `untraced_tests` from opt-in
-areas. The first process experiment is documentation-only; tooling follows the evidence from it.
+**Implementation status.** Implemented by `market-aware-surge-quotes`. The checker skips routine
+claims before mechanism and evidence linkage, manifests have no `untraced_tests`, and both
+annotation packages removed `Untraced`. The routine rider-breakdown test remains an ordinary
+untagged test in the validating change.
 
 ---
 
@@ -1047,6 +1068,28 @@ duplication, findings, archive steps and every field nobody used.
 **Falsifier.** If the routine part costs materially more than an equivalent OpenSpec change, D20
 has not been implemented honestly. If the standard and critical parts produce the same artifacts
 or review questions, the progressive-rigor split is decorative.
+
+**Observed and completed 2026-08-08.** The first change found a missing `outcome.md` concept and
+four mechanical archive steps. The second change used a routine additive delta, reproduced the
+derived-site finding, and supplied the second lifecycle shape. Automation followed that evidence,
+not the provisional five-file sketch.
+
+### D21.4 — Additive projection and accepted archive are mechanical *(decided 2026-08-08)*
+
+**Decision.** `azimuth change check` parses additive intent deltas and reports current versus target
+claim counts, criticality-derived obligations and whether each addition is planned or applied.
+Unsupported delta operations fail parsing; the tool does not approximate replacement, removal,
+scenario movement or a criticality transition.
+
+`azimuth change finalize` requires an applied delta, completed plan, accepted proposal, authored
+outcome sections and a hole-free accepted-state model. It writes a derived SHA-256 model fingerprint
+and summary. `azimuth change archive` verifies that finalization is fresh and performs only the
+date-prefixed move. Neither command explains a departure, classifies a finding or accepts residual
+risk.
+
+**What would change it.** A third change needing a replacement, removal or criticality transition
+is evidence for the next delta operation. Until then, adding syntax would be prediction rather than
+derivation.
 
 ---
 

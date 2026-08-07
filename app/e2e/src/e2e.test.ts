@@ -2,7 +2,7 @@ import { strict as assert } from 'node:assert';
 import { spawn, spawnSync, ChildProcess } from 'node:child_process';
 import * as path from 'node:path';
 import { after, before, test } from 'node:test';
-import { covers, untraced } from '@azimuth/annotations';
+import { covers } from '@azimuth/annotations';
 
 /**
  * End to end, in D15's sense: real process boundaries and real transport between the components
@@ -19,7 +19,9 @@ import { covers, untraced } from '@azimuth/annotations';
  */
 
 const PG = 'azimuth-e2e-pg';
+const PRICING_PORT = 5071;
 const TRIP_PORT = 5081;
+const PAYMENTS_PORT = 5086;
 const RIDER_PORT = 5091;
 const DRIVER_PORT = 5096;
 const RIDER = `http://127.0.0.1:${RIDER_PORT}`;
@@ -28,6 +30,8 @@ const DRIVER_WEB = `http://127.0.0.1:${DRIVER_PORT}`;
 const APP_ROOT = path.join(__dirname, '..', '..');
 
 let trip: ChildProcess | undefined;
+let pricing: ChildProcess | undefined;
+let payments: ChildProcess | undefined;
 let riderWeb: ChildProcess | undefined;
 let driverWeb: ChildProcess | undefined;
 
@@ -44,10 +48,10 @@ async function waitFor(probe: () => Promise<boolean>, what: string, attempts = 2
 }
 
 /** Starts a built Next app on a fixed port, pointed at the trip service. */
-function startWeb(app: string, port: number, tripUrl: string): ChildProcess {
+function startWeb(app: string, port: number, tripUrl: string, pricingUrl: string): ChildProcess {
   return spawn('npx', ['next', 'start', '-p', String(port)], {
     cwd: path.join(APP_ROOT, 'web', app),
-    env: { ...process.env, TRIP_URL: tripUrl, NODE_ENV: 'production' },
+    env: { ...process.env, TRIP_URL: tripUrl, PRICING_URL: pricingUrl, NODE_ENV: 'production' },
     stdio: 'ignore',
   });
 }
@@ -72,6 +76,16 @@ async function page(base: string, path: string) {
   return { status: response.status, html: await response.text() };
 }
 
+async function servicePost(base: string, path: string, body?: unknown) {
+  const response = await fetch(`${base}${path}`, {
+    method: 'POST',
+    headers: body === undefined ? undefined : { 'content-type': 'application/json' },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  const text = await response.text();
+  return { status: response.status, body: text.length > 0 ? JSON.parse(text) as any : null };
+}
+
 /** Reaches past the apps to move the trip, standing in for the dispatch the driver app triggers. */
 async function driver(path: string) {
   const response = await fetch(`http://127.0.0.1:${TRIP_PORT}${path}`, { method: 'POST' });
@@ -91,6 +105,44 @@ before(async () => {
   const connection = `Host=127.0.0.1;Port=${pgPort};Database=trip;Username=postgres;Password=postgres`;
 
   await waitFor(async () => docker('exec', PG, 'pg_isready', '-U', 'postgres').status === 0, 'postgres');
+
+  const pricingUrl = `http://127.0.0.1:${PRICING_PORT}`;
+  pricing = spawn(
+    'dotnet',
+    ['run', '--no-build', '--project', path.join(APP_ROOT, 'services/Pricing.Service/Pricing.Service.csproj')],
+    {
+      env: {
+        ...process.env,
+        PRICING_DB: connection,
+        ASPNETCORE_URLS: pricingUrl,
+        ASPNETCORE_ENVIRONMENT: 'Development',
+      },
+      stdio: 'ignore',
+    },
+  );
+  await waitFor(
+    async () => (await fetch(`${pricingUrl}/quotes/${'0'.repeat(13)}`)).status < 500,
+    'pricing service',
+  );
+
+  const paymentsUrl = `http://127.0.0.1:${PAYMENTS_PORT}`;
+  payments = spawn(
+    'dotnet',
+    ['run', '--no-build', '--project', path.join(APP_ROOT, 'services/Payments/Payments.csproj')],
+    {
+      env: {
+        ...process.env,
+        PAYMENTS_DB: connection,
+        ASPNETCORE_URLS: paymentsUrl,
+        ASPNETCORE_ENVIRONMENT: 'Development',
+      },
+      stdio: 'ignore',
+    },
+  );
+  await waitFor(
+    async () => (await fetch(`${paymentsUrl}/captures/${'0'.repeat(13)}`)).status < 500,
+    'payments service',
+  );
 
   trip = spawn(
     'dotnet',
@@ -121,8 +173,8 @@ before(async () => {
   );
   assert.equal(seeded.status, 0, seeded.stderr);
 
-  riderWeb = startWeb('rider', RIDER_PORT, tripUrl);
-  driverWeb = startWeb('driver', DRIVER_PORT, tripUrl);
+  riderWeb = startWeb('rider', RIDER_PORT, tripUrl, pricingUrl);
+  driverWeb = startWeb('driver', DRIVER_PORT, tripUrl, pricingUrl);
 
   await waitFor(async () => (await fetch(`${RIDER}/`)).status < 500, 'rider web');
   await waitFor(async () => (await fetch(`${DRIVER_WEB}/`)).status < 500, 'driver web');
@@ -130,6 +182,8 @@ before(async () => {
 
 after(async () => {
   trip?.kill();
+  pricing?.kill();
+  payments?.kill();
   riderWeb?.kill();
   driverWeb?.kill();
   docker('rm', '-f', PG);
@@ -146,10 +200,10 @@ function moveDriver(position: string) {
 
 async function requestedTrip(rider: string) {
   const quote = await post('/api/rider/quotes', {
-    pickup: 'a', dropoff: 'b', baseMinor: 500, distanceMinor: 1000, currency: 'EUR',
+    pickup: 'downtown', dropoff: 'airport', distanceMeters: 10000, currency: 'EUR',
   });
   assert.equal(quote.status, 200);
-  const created = await post('/api/rider/trips', { riderId: rider, quoteId: quote.body.id });
+  const created = await post('/api/rider/trips', { riderId: rider, quoteToken: quote.body.token });
   assert.equal(created.status, 200, JSON.stringify(created.body));
   return created.body.id as string;
 }
@@ -202,6 +256,7 @@ test("the driver's position reaches the rider only while the trip is live", asyn
 
 test('a cancelled trip shows no position either', async () => {
   covers('trips/rider-view', 'no-position-after-cancellation', 'e2e', 'universal');
+  covers('payments/capture', 'no-capture-on-cancellation-without-fee', 'e2e', 'example', 'contract');
 
   const id = await requestedTrip(`rider-${Date.now()}-c`);
   assert.equal(await driver(`/trips/${id}/cancel?actor=rider`), 200);
@@ -209,6 +264,10 @@ test('a cancelled trip shows no position either', async () => {
   const view = await get(`/api/rider/trips/${id}`);
   assert.equal(view.body.state, 'cancelled');
   assert.equal(view.body.driverPosition, null);
+
+  const paymentsUrl = `http://127.0.0.1:${PAYMENTS_PORT}`;
+  await servicePost(paymentsUrl, '/dispatch');
+  assert.equal((await fetch(`${paymentsUrl}/captures/${id}`)).status, 404);
 });
 
 test('a rider is told their trip exists and is awaiting a driver', async () => {
@@ -225,7 +284,7 @@ test('a fare outside every serviced area is refused', async () => {
   covers('pricing/quote', 'unserviceable-area', 'e2e', 'example');
 
   const quote = await post('/api/rider/quotes', {
-    pickup: '', dropoff: 'b', baseMinor: 500, distanceMinor: 1000, currency: 'EUR',
+    pickup: 'outside', dropoff: 'airport', distanceMeters: 10000, currency: 'EUR',
   });
   assert.equal(quote.status, 400);
   assert.equal(quote.body.errorCode, 'pricing:quote:issue:unserviceable_area');
@@ -327,9 +386,55 @@ test('a rider contact reaches the driver only while they hold the trip', async (
   assert.equal(JSON.stringify(done.body).includes(rider), false);
 });
 
+test('surge survives quote admission and capture unchanged', async () => {
+  covers('pricing/quote', 'current-pressure-selects-surge', 'e2e', 'example', 'contract');
+  covers('pricing/quote', 'surge-is-a-quote-component', 'e2e', 'example', 'contract');
+  covers('payments/capture', 'capture-created-on-completion', 'e2e', 'example', 'contract');
+  covers('payments/capture', 'no-capture-before-completion', 'e2e', 'example', 'contract');
+  covers('payments/capture', 'capture-equals-trip-fare', 'e2e', 'example', 'contract');
+
+  const pricingUrl = `http://127.0.0.1:${PRICING_PORT}`;
+  const paymentsUrl = `http://127.0.0.1:${PAYMENTS_PORT}`;
+  const pressure = await servicePost(pricingUrl, '/market-pressure', {
+    market: 'downtown', openRequests: 8, availableDrivers: 2,
+  });
+  assert.equal(pressure.status, 200, JSON.stringify(pressure.body));
+
+  const quote = await post('/api/rider/quotes', {
+    pickup: 'downtown', dropoff: 'airport', distanceMeters: 10000, currency: 'EUR',
+  });
+  assert.equal(quote.status, 200, JSON.stringify(quote.body));
+  const surge = quote.body.breakdown.find((component: any) => component.label === 'surge');
+  assert.ok(surge.amountMinor > 0);
+  assert.equal(
+    quote.body.breakdown.reduce((sum: number, component: any) => sum + component.amountMinor, 0),
+    quote.body.fare.minor,
+  );
+
+  const created = await post('/api/rider/trips', {
+    riderId: `rider-${Date.now()}-surge`, quoteToken: quote.body.token,
+  });
+  assert.equal(created.status, 200, JSON.stringify(created.body));
+  const id = created.body.id as string;
+  await servicePost(paymentsUrl, '/dispatch');
+  assert.equal((await fetch(`${paymentsUrl}/captures/${id}`)).status, 404);
+  await driver(`/trips/${id}/accept/driver-e2e`);
+  await driver(`/trips/${id}/start?actor=driver-e2e`);
+  await driver(`/trips/${id}/complete?actor=driver-e2e`);
+
+  const dispatch = await servicePost(paymentsUrl, '/dispatch');
+  assert.equal(dispatch.status, 200, JSON.stringify(dispatch.body));
+  const captured = await fetch(`${paymentsUrl}/captures/${id}`);
+  assert.equal(captured.status, 200);
+  const capture = await captured.json() as any;
+  assert.equal(capture.amountMinor, quote.body.fare.minor);
+  assert.equal(capture.currency, quote.body.fare.currency);
+});
+
 test('the stack is reachable', () => {
-  untraced('a smoke check for the harness itself; maps to no claim');
   assert.ok(trip);
+  assert.ok(pricing);
+  assert.ok(payments);
   assert.ok(riderWeb);
   assert.ok(driverWeb);
 });

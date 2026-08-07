@@ -15,6 +15,9 @@ USAGE
     azimuth check [<check-id>...] [options]
     azimuth export [options]
     azimuth judge [options]
+    azimuth change check <dir> [options]
+    azimuth change finalize <dir> [options]
+    azimuth change archive <dir> --date <YYYY-MM-DD> [options]
 
 The judge command lists every claim with the fingerprint a judgment must carry, so the
 agent tier can record verdicts that expire when what they judged changes.
@@ -67,6 +70,9 @@ fn run(args: &[String]) -> Result<ExitCode, String> {
     }
 
     let command = args[0].clone();
+    if command == "change" {
+        return command_change(&args[1..]);
+    }
     let options = parse_options(&args[1..])?;
 
     match command.as_str() {
@@ -75,6 +81,193 @@ fn run(args: &[String]) -> Result<ExitCode, String> {
         "judge" => command_judge(options),
         other => Err(format!("unknown command `{other}`\n\n{USAGE}")),
     }
+}
+
+fn command_change(args: &[String]) -> Result<ExitCode, String> {
+    if args.len() < 2 {
+        return Err(format!(
+            "change needs an operation and directory\n\n{USAGE}"
+        ));
+    }
+    let operation = &args[0];
+    let root = PathBuf::from(&args[1]);
+    let mut option_args = Vec::new();
+    let mut date = None;
+    let mut index = 2;
+    while index < args.len() {
+        if args[index] == "--date" {
+            date = args.get(index + 1).cloned();
+            index += 2;
+        } else {
+            option_args.push(args[index].clone());
+            index += 1;
+        }
+    }
+    let options = parse_options(&option_args)?;
+    let loaded = match azimuth::load(
+        &options.specs,
+        &options.verification,
+        &options.design,
+        &options.manifests,
+        &options.only,
+    ) {
+        Ok(loaded) => loaded,
+        Err(diags) => {
+            report(&diags, "error");
+            return Ok(ExitCode::from(2));
+        }
+    };
+    let report = match azimuth::change::inspect(&root, &loaded.model) {
+        Ok(report) => report,
+        Err(errors) => {
+            for error in &errors {
+                eprintln!("error: {error}");
+            }
+            return Ok(ExitCode::from(2));
+        }
+    };
+    let holes = check::rtm(&loaded.model);
+
+    match operation.as_str() {
+        "check" => {
+            println!("change `{}`", report.id);
+            for addition in &report.additions {
+                let state = if addition.applied {
+                    "applied"
+                } else {
+                    "planned"
+                };
+                println!(
+                    "  add {}#{} · {} · {} scenario(s) · {state} · {}",
+                    addition.spec,
+                    addition.requirement,
+                    addition.criticality.name(),
+                    addition.scenarios.len(),
+                    change_obligations(addition.criticality)
+                );
+            }
+            println!(
+                "current {} claim(s) → target {} claim(s)",
+                report.current_claims, report.target_claims
+            );
+            println!("{} incomplete plan item(s)", report.incomplete_plan_items);
+            let summary = check::summarize(&loaded.model, &holes);
+            println!(
+                "accepted-state model: {} error(s), {} warning(s)",
+                summary.errors, summary.warnings
+            );
+            Ok(if summary.errors > 0 {
+                ExitCode::from(1)
+            } else {
+                ExitCode::SUCCESS
+            })
+        }
+        "finalize" => {
+            let issues = azimuth::change::completion_issues(&root, &report);
+            let summary = check::summarize(&loaded.model, &holes);
+            if summary.errors > 0 || summary.warnings > 0 {
+                eprintln!(
+                    "error: accepted-state model has {} error(s), {} warning(s)",
+                    summary.errors, summary.warnings
+                );
+            }
+            for issue in &issues {
+                eprintln!("error: {issue}");
+            }
+            if summary.errors > 0 || summary.warnings > 0 || !issues.is_empty() {
+                return Ok(ExitCode::from(1));
+            }
+            let (fingerprint, finalization) = azimuth::change::finalization(&loaded.model, &holes);
+            std::fs::write(root.join("finalization.json"), finalization).map_err(|error| {
+                format!("cannot write {}/finalization.json: {error}", root.display())
+            })?;
+            println!("finalized `{}` at model {fingerprint}", report.id);
+            Ok(ExitCode::SUCCESS)
+        }
+        "archive" => {
+            let Some(date) = date else {
+                return Err("change archive needs `--date <YYYY-MM-DD>`".into());
+            };
+            if !valid_date(&date) {
+                return Err(format!(
+                    "invalid archive date `{date}`; expected YYYY-MM-DD"
+                ));
+            }
+            let issues = azimuth::change::completion_issues(&root, &report);
+            if !issues.is_empty() {
+                for issue in &issues {
+                    eprintln!("error: {issue}");
+                }
+                return Ok(ExitCode::from(1));
+            }
+            let finalization_path = root.join("finalization.json");
+            let recorded = std::fs::read_to_string(&finalization_path).map_err(|_| {
+                format!(
+                    "{} is missing; run `azimuth change finalize` first",
+                    finalization_path.display()
+                )
+            })?;
+            let (_, expected) = azimuth::change::finalization(&loaded.model, &holes);
+            if recorded != expected {
+                return Ok({
+                    eprintln!("error: finalization is stale; run `azimuth change finalize` again");
+                    ExitCode::from(1)
+                });
+            }
+            if !holes.is_empty() {
+                eprintln!("error: accepted-state model has holes");
+                return Ok(ExitCode::from(1));
+            }
+            if root
+                .parent()
+                .and_then(|parent| parent.file_name())
+                .and_then(|name| name.to_str())
+                != Some("changes")
+            {
+                return Err("archive source must be a direct child of `changes/`".into());
+            }
+            let archive_root = root.parent().unwrap().join("archive");
+            std::fs::create_dir_all(&archive_root)
+                .map_err(|error| format!("cannot create {}: {error}", archive_root.display()))?;
+            let destination = archive_root.join(format!("{date}-{}", report.id));
+            if destination.exists() {
+                return Err(format!(
+                    "archive destination {} already exists",
+                    destination.display()
+                ));
+            }
+            std::fs::rename(&root, &destination).map_err(|error| {
+                format!(
+                    "cannot archive {} as {}: {error}",
+                    root.display(),
+                    destination.display()
+                )
+            })?;
+            println!("archived `{}` as {}", report.id, destination.display());
+            Ok(ExitCode::SUCCESS)
+        }
+        other => Err(format!("unknown change operation `{other}`")),
+    }
+}
+
+fn change_obligations(criticality: azimuth::model::Criticality) -> &'static str {
+    match criticality {
+        azimuth::model::Criticality::Routine => "intent only",
+        azimuth::model::Criticality::Standard => "realization + evidence",
+        azimuth::model::Criticality::Critical => {
+            "realization + design + critical evidence + judgment"
+        }
+    }
+}
+
+fn valid_date(value: &str) -> bool {
+    value.len() == 10
+        && value.as_bytes()[4] == b'-'
+        && value.as_bytes()[7] == b'-'
+        && value
+            .bytes()
+            .enumerate()
+            .all(|(index, byte)| index == 4 || index == 7 || byte.is_ascii_digit())
 }
 
 fn parse_options(args: &[String]) -> Result<Options, String> {
@@ -143,7 +336,13 @@ fn report(diags: &[Diag], label: &str) {
 }
 
 fn command_check(options: Options) -> Result<ExitCode, String> {
-    let loaded = match azimuth::load(&options.specs, &options.verification, &options.design, &options.manifests, &options.only) {
+    let loaded = match azimuth::load(
+        &options.specs,
+        &options.verification,
+        &options.design,
+        &options.manifests,
+        &options.only,
+    ) {
         Ok(l) => l,
         Err(diags) => {
             report(&diags, "error");
@@ -204,14 +403,27 @@ fn command_check(options: Options) -> Result<ExitCode, String> {
     } else {
         println!("{}", by_kind.join(" · "));
     }
-    println!("{} error(s), {} warning(s)", summary.errors, summary.warnings);
+    println!(
+        "{} error(s), {} warning(s)",
+        summary.errors, summary.warnings
+    );
 
-    Ok(if summary.errors > 0 { ExitCode::from(1) } else { ExitCode::SUCCESS })
+    Ok(if summary.errors > 0 {
+        ExitCode::from(1)
+    } else {
+        ExitCode::SUCCESS
+    })
 }
 
 /// Lists claims and their current fingerprints — the agent tier's worklist.
 fn command_judge(options: Options) -> Result<ExitCode, String> {
-    let loaded = match azimuth::load(&options.specs, &options.verification, &options.design, &options.manifests, &options.only) {
+    let loaded = match azimuth::load(
+        &options.specs,
+        &options.verification,
+        &options.design,
+        &options.manifests,
+        &options.only,
+    ) {
         Ok(l) => l,
         Err(diags) => {
             report(&diags, "error");
@@ -221,9 +433,8 @@ fn command_judge(options: Options) -> Result<ExitCode, String> {
     let model = &loaded.model;
 
     for claim in model.claims() {
-        let files = model.evidence_files(&claim.spec.id, &claim.scenario.id);
-        let fingerprint =
-            azimuth::judgment::fingerprint(&model.claim_text(&claim), files.clone());
+        let files = model.judgment_files(&claim.spec.id, &claim.scenario.id);
+        let fingerprint = azimuth::judgment::fingerprint(&model.claim_text(&claim), files.clone());
         let existing = model
             .judgments_for(&claim.spec.id)
             .and_then(|j| j.entry(&claim.scenario.id));
@@ -236,7 +447,11 @@ fn command_judge(options: Options) -> Result<ExitCode, String> {
             "{}\t{}\t{}\t{}\t{}",
             claim.spec.id,
             claim.scenario.id,
-            claim.requirement.criticality.map(|c| c.name()).unwrap_or("-"),
+            claim
+                .requirement
+                .criticality
+                .map(|c| c.name())
+                .unwrap_or("-"),
             fingerprint,
             state
         );
@@ -248,7 +463,13 @@ fn command_judge(options: Options) -> Result<ExitCode, String> {
 }
 
 fn command_export(options: Options) -> Result<ExitCode, String> {
-    let loaded = match azimuth::load(&options.specs, &options.verification, &options.design, &options.manifests, &options.only) {
+    let loaded = match azimuth::load(
+        &options.specs,
+        &options.verification,
+        &options.design,
+        &options.manifests,
+        &options.only,
+    ) {
         Ok(l) => l,
         Err(diags) => {
             report(&diags, "error");

@@ -1,5 +1,13 @@
 # Judgments: trips/driver-view
 
+Re-judged 2026-08-08 after design bindings and their source entered the freshness fingerprint.
+`RiderContact.Reveal()` disproved the earlier type/proof rationale. The plan now declares the e2e as
+an example with an accepted egress-analysis residual, and the projection guards were read directly.
+
+Fingerprints refreshed 2026-08-08 after the shared e2e file gained pricing and payment assertions.
+The five driver tests and their production projections were re-read and the full e2e suite passed;
+none of the driver paths changed, so the existing sound rationales remain applicable.
+
 First pass, 2026-08-07. Five e2e tags were corrected before judging — each declared `universal` over
 one scripted path — and two plan entries were added so that the two `critical` claims are carried by
 the mechanism that actually holds them rather than by an over-declared tag.
@@ -9,9 +17,9 @@ entries.
 
 ## Claim: rider-contact-confined-to-held-trips
 Verdict: sound
-Fingerprint: 84900865dd778dab
-Judged: 2026-08-07
-Judge: claude-opus-5
+Fingerprint: cfb70d0ff811dc63
+Judged: 2026-08-08
+Judge: codex
 
 The driver-side invariant, and the class is now derived: `invariant-breach` takes membership from
 the built route table of the driver app, so a route is a member because it exists. That found three
@@ -29,9 +37,9 @@ the trip was held by someone, the first two assertions pass and that one fails.
 
 ## Claim: pickup-shown-on-offer
 Verdict: sound
-Fingerprint: 3af62e02b5692777
-Judged: 2026-08-07
-Judge: claude-opus-5
+Fingerprint: cbf7393a0df815cf
+Judged: 2026-08-08
+Judge: codex
 
 `an offer shows the pickup and no rider` asserts the pickup area is `downtown` and that the fare is
 present as a number, through the driver app's API and again in the rendered page.
@@ -48,27 +56,24 @@ market repeatedly. That is the deviation path used deliberately rather than an o
 
 ## Claim: rider-contact-hidden-on-offer
 Verdict: sound
-Fingerprint: 429ae531392b0572
-Judged: 2026-08-07
-Judge: claude-opus-5
-
-Two independent things hold this claim, which is why it survives an `example` tag on its test.
+Fingerprint: 1eae622a24d52696
+Judged: 2026-08-08
+Judge: codex
 
 The e2e asserts the rider's identifier appears nowhere in the offer payload and that the string
 `proxy` appears nowhere either — a substring check over the whole serialized body, so a contact
 leaking through a differently-named field is still caught. It repeats the check against the rendered
 offer page.
 
-The plan now records the mechanism as proof-strength evidence: `RiderContact` has no serializer and
-no raw accessor, and `DriverProjection.For(held)` is its only reveal. `design/trips/driver-view.md`
-carries the matching `Enforcement: type`, so this is not proof claimed out of thin air, and a future
-driver-facing route cannot reach past it by accident.
+The tag is honestly `example`, and the plan now accepts that scope rather than claiming proof.
+`DriverProjection.Offer` has no contact field and the derived route class forces future surfaces to
+declare a discharge, but neither fact makes a false declaration impossible.
 
 ## Claim: proxy-contact-while-held
 Verdict: sound
-Fingerprint: 472ed318f13121f6
-Judged: 2026-08-07
-Judge: claude-opus-5
+Fingerprint: 69787fa8e8648c78
+Judged: 2026-08-08
+Judge: codex
 
 The positive half: once the driver accepts, the contact appears, and the test asserts its exact
 value rather than merely that something non-null arrived.
@@ -85,9 +90,9 @@ otherwise have to.
 
 ## Claim: contact-withdrawn-after-terminal
 Verdict: sound
-Fingerprint: 51d7d0136f8d6493
-Judged: 2026-08-07
-Judge: claude-opus-5
+Fingerprint: 9b2d6b3737ae5057
+Judged: 2026-08-08
+Judge: codex
 
 After completion the same driver reads the same trip and gets `null`, and the whole payload is
 checked for the rider's identifier as well as the contact field.

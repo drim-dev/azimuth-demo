@@ -2,8 +2,7 @@
 
 ## Requirement: single-acceptance
 Enforcement: constraint
-Site: `trips.assigned_driver_id` set by conditional update predicated on it being null; the
-affected-row count is the acceptance result
+Binding: dotnet-symbol:Trips.Features.Dispatch.AcceptOffer.RequestHandler.Handle
 
 Compare-and-set at the storage layer, not a check-then-write in the handler. Two accepts arriving
 together both read null; only the update matters. A distributed lock over the trip was rejected —

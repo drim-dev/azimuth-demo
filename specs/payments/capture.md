@@ -50,14 +50,15 @@ AND the caller is told the original outcome
 ## Requirement: capture-amount-matches-quote
 Criticality: critical
 
-The captured amount SHALL equal the fare the trip carries, unless an adjustment with a recorded
-reason applies.
+The captured amount SHALL equal both the fare the trip carries and the independently summed signed
+quote components, unless an adjustment with a recorded reason applies.
 
 ### Scenario: capture-equals-trip-fare
 GIVEN a trip carrying a fare total and no adjustment
 WHEN the trip is captured
 THEN the captured amount equals that total
 AND the captured currency equals the trip's currency
+AND the captured amount equals the sum of the signed quote components
 
 ### Scenario: adjusted-capture-records-reason
 GIVEN a trip with an adjustment applied

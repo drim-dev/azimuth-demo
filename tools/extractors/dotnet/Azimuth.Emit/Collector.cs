@@ -22,20 +22,6 @@ internal static class Collector
     private const string Lang = "csharp";
     private const string RealizesName = "Azimuth.Annotations.RealizesAttribute";
     private const string CoversName = "Azimuth.Annotations.CoversAttribute";
-    private const string UntracedName = "Azimuth.Annotations.UntracedAttribute";
-
-    /// <summary>
-    /// Matched by simple name so no test-framework reference is needed. A list rather than one
-    /// hard-wired name, so another framework can be added without touching the walk.
-    /// </summary>
-    private static readonly HashSet<string> TestAttributes = new(StringComparer.Ordinal)
-    {
-        "FactAttribute",
-        "TheoryAttribute",
-        "TestAttribute",
-        "TestMethodAttribute",
-    };
-
     private const BindingFlags Members = BindingFlags.Public
         | BindingFlags.NonPublic
         | BindingFlags.Instance
@@ -51,18 +37,23 @@ internal static class Collector
         string? Quantification,
         string? Oracle);
 
-    public sealed record Untraced(string Site, string File);
+    public sealed record Artifact(
+        string Id,
+        string Kind,
+        string File,
+        bool? Unique = null,
+        IReadOnlyList<string>? Columns = null,
+        string? Predicate = null);
 
     public sealed record Result(
         List<Entry> Realizes,
         List<Entry> Covers,
-        List<Untraced> UntracedTests,
+        List<Artifact> Artifacts,
         List<string> Warnings);
 
     public static Result Collect(
         IEnumerable<Assembly> assemblies,
-        string root,
-        IReadOnlyList<string> tracedRoots)
+        string root)
     {
         var result = new Result([], [], [], []);
 
@@ -78,13 +69,20 @@ internal static class Collector
 
             foreach (var type in Types(assembly, result.Warnings))
             {
-                CollectType(type, files, tracedRoots, result);
+                CollectType(type, files, result);
             }
         }
 
         result.Realizes.Sort(Compare);
         result.Covers.Sort(Compare);
-        result.UntracedTests.Sort((a, b) => string.CompareOrdinal(a.Site, b.Site));
+        result.Artifacts.Sort((a, b) => string.CompareOrdinal(a.Id, b.Id));
+        for (var index = result.Artifacts.Count - 1; index > 0; index--)
+        {
+            if (result.Artifacts[index].Id == result.Artifacts[index - 1].Id)
+            {
+                result.Artifacts.RemoveAt(index);
+            }
+        }
         return result;
     }
 
@@ -106,9 +104,19 @@ internal static class Collector
     private static void CollectType(
         Type type,
         SourceFiles files,
-        IReadOnlyList<string> tracedRoots,
         Result result)
     {
+        if (type.GetCustomAttributesData().Any(attribute =>
+                attribute.AttributeType.FullName ==
+                "System.Runtime.CompilerServices.CompilerGeneratedAttribute"))
+        {
+            return;
+        }
+
+        var typeName = SiteName(type);
+        result.Artifacts.Add(
+            new Artifact($"dotnet-symbol:{typeName}", "dotnet-type", files.PathOf(type)));
+
         foreach (var attribute in type.GetCustomAttributesData())
         {
             if (FullName(attribute) != RealizesName)
@@ -121,16 +129,17 @@ internal static class Collector
                 new Entry(spec, scenario, type.FullName ?? type.Name, files.PathOf(type), null, null, null));
         }
 
-        var traced = IsTraced(type, tracedRoots);
-
         foreach (var method in type.GetMethods(Members))
         {
-            var site = $"{type.FullName}.{method.Name}";
+            if (method.IsSpecialName)
+            {
+                continue;
+            }
+            var site = $"{typeName}.{method.Name}";
             var file = files.PathOf(method);
+            result.Artifacts.Add(
+                new Artifact($"dotnet-symbol:{site}", "dotnet-method", file));
             var data = method.GetCustomAttributesData();
-            var covered = false;
-            var exempt = false;
-
             foreach (var attribute in data)
             {
                 var name = FullName(attribute);
@@ -141,40 +150,82 @@ internal static class Collector
                 }
                 else if (name == CoversName)
                 {
-                    covered = true;
                     result.Covers.Add(Covers(attribute, site, file));
                 }
-                else if (name == UntracedName)
-                {
-                    exempt = true;
-                }
-            }
-
-            // The dual of an uncovered claim: a test in a traced area that declares nothing and is
-            // not exempt. Only meaningful under an opt-in root — holding every test in a repo to
-            // this would be noise, and D8's ratchet is what makes partial adoption work.
-            if (traced && !covered && !exempt && IsTest(data))
-            {
-                result.UntracedTests.Add(new Untraced(site, file));
             }
         }
+
+        CollectIndexes(type, files, result);
     }
 
-    private static bool IsTraced(Type type, IReadOnlyList<string> tracedRoots)
+    private static string SiteName(Type type) =>
+        (type.FullName ?? type.Name).Replace('+', '.');
+
+    private static void CollectIndexes(Type type, SourceFiles files, Result result)
     {
-        if (tracedRoots.Count == 0)
+        if (!Inherits(type, "Microsoft.EntityFrameworkCore.Migrations.Migration"))
         {
-            return false;
+            return;
         }
 
-        var ns = type.Namespace ?? string.Empty;
-        return tracedRoots.Any(root =>
-            ns.Equals(root, StringComparison.Ordinal)
-            || ns.StartsWith(root + ".", StringComparison.Ordinal));
+        try
+        {
+            var migration = Activator.CreateInstance(type);
+            var builderType = type.BaseType!.Assembly.GetType(
+                "Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder",
+                throwOnError: true)!;
+            var builder = Activator.CreateInstance(
+                builderType,
+                ["Npgsql.EntityFrameworkCore.PostgreSQL"])!;
+            type.GetMethod("Up", BindingFlags.Instance | BindingFlags.NonPublic)!
+                .Invoke(migration, [builder]);
+            var operations = (System.Collections.IEnumerable)builderType
+                .GetProperty("Operations")!
+                .GetValue(builder)!;
+
+            foreach (var operation in operations)
+            {
+                var operationType = operation.GetType();
+                if (operationType.FullName !=
+                    "Microsoft.EntityFrameworkCore.Migrations.Operations.CreateIndexOperation")
+                {
+                    continue;
+                }
+
+                var table = (string)operationType.GetProperty("Table")!.GetValue(operation)!;
+                var name = (string)operationType.GetProperty("Name")!.GetValue(operation)!;
+                var columns = (string[])operationType.GetProperty("Columns")!.GetValue(operation)!;
+                var unique = (bool)operationType.GetProperty("IsUnique")!.GetValue(operation)!;
+                var predicate = operationType.GetProperty("Filter")!.GetValue(operation) as string;
+                result.Artifacts.Add(new Artifact(
+                    $"postgres-index:{table}.{name}",
+                    "database-index",
+                    files.PathOf(type),
+                    unique,
+                    columns,
+                    predicate));
+            }
+        }
+        catch (Exception error)
+        {
+            result.Warnings.Add(
+                $"{type.FullName}: migration metadata could not be enumerated: "
+                + $"{error.GetBaseException().Message}");
+        }
     }
 
-    private static bool IsTest(IList<CustomAttributeData> data) =>
-        data.Any(a => TestAttributes.Contains(a.AttributeType.Name));
+    private static bool Inherits(Type type, string baseType)
+    {
+        for (var current = type.BaseType; current is not null; current = current.BaseType)
+        {
+            if (current.FullName == baseType)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     private static string FullName(CustomAttributeData attribute) =>
         attribute.AttributeType.FullName ?? string.Empty;
@@ -268,21 +319,42 @@ internal static class Collector
             writer.WriteStartObject();
             WriteEntries(writer, "realizes", result.Realizes, form: false);
             WriteEntries(writer, "covers", result.Covers, form: true);
-            writer.WriteStartArray("untraced_tests");
-            foreach (var test in result.UntracedTests)
-            {
-                writer.WriteStartObject();
-                writer.WriteString("site", test.Site);
-                writer.WriteString("file", test.File);
-                writer.WriteString("lang", Lang);
-                writer.WriteEndObject();
-            }
-
-            writer.WriteEndArray();
+            WriteArtifacts(writer, result.Artifacts);
             writer.WriteEndObject();
         }
 
         return Encoding.UTF8.GetString(stream.ToArray()) + "\n";
+    }
+
+    private static void WriteArtifacts(Utf8JsonWriter writer, IReadOnlyList<Artifact> artifacts)
+    {
+        writer.WriteStartArray("artifacts");
+        foreach (var artifact in artifacts)
+        {
+            writer.WriteStartObject();
+            writer.WriteString("id", artifact.Id);
+            writer.WriteString("kind", artifact.Kind);
+            writer.WriteString("file", artifact.File);
+            if (artifact.Unique is bool unique)
+            {
+                writer.WriteBoolean("unique", unique);
+            }
+            if (artifact.Columns is { } columns)
+            {
+                writer.WriteStartArray("columns");
+                foreach (var column in columns)
+                {
+                    writer.WriteStringValue(column);
+                }
+                writer.WriteEndArray();
+            }
+            if (artifact.Predicate is { } predicate)
+            {
+                writer.WriteString("predicate", predicate);
+            }
+            writer.WriteEndObject();
+        }
+        writer.WriteEndArray();
     }
 
     private static void WriteEntries(

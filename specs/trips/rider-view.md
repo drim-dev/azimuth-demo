@@ -28,6 +28,18 @@ the class by being written, without anyone remembering to add it. A member disch
 by realizing it — which is a statement that the site's author considered the rule and routed the
 position through the projection, or does not touch a position at all.
 
+## Requirement: compact-trip-summary
+Criticality: routine
+
+A rider MAY open a compact trip summary containing the trip identity, current state and quoted
+fare without driver detail.
+
+### Scenario: summary-shows-state-and-fare
+GIVEN a trip exists
+WHEN the rider opens its compact summary
+THEN the trip identity, current state and quoted fare are shown
+AND no driver detail is shown
+
 ## Requirement: driver-hidden-before-assignment
 Criticality: critical
 

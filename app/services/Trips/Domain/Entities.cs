@@ -2,31 +2,6 @@ using Pricing;
 
 namespace Trips.Domain;
 
-/// <summary>A price quoted for a journey, spendable by at most one request.</summary>
-public sealed class Quote
-{
-    public long Id { get; set; }
-
-    public required string Pickup { get; set; }
-
-    public required string Dropoff { get; set; }
-
-    public long TotalMinor { get; set; }
-
-    public required string Currency { get; set; }
-
-    public DateTimeOffset IssuedAt { get; set; }
-
-    public DateTimeOffset ExpiresAt { get; set; }
-
-    /// <summary>Set once, by the request that spends this quote. The partial unique index is what holds it.</summary>
-    public long? ConsumedByTripId { get; set; }
-
-    public Money Total => Money.Of(TotalMinor, Currency);
-
-    public bool IsExpiredAt(DateTimeOffset now) => ExpiresAt <= now;
-}
-
 public sealed class Trip
 {
     public long Id { get; set; }
@@ -43,6 +18,12 @@ public sealed class Trip
 
     public long QuoteId { get; set; }
 
+    public required string QuoteToken { get; set; }
+
+    public required string Pickup { get; set; }
+
+    public required string Dropoff { get; set; }
+
     public DateTimeOffset CreatedAt { get; set; }
 
     public List<TripTransition> Transitions { get; set; } = [];
@@ -50,6 +31,18 @@ public sealed class Trip
     public List<Offer> Offers { get; set; } = [];
 
     public Money Fare => Money.Of(FareMinor, Currency);
+}
+
+/// <summary>The transactional handoff from a completed trip to Payments.</summary>
+public sealed class CaptureIntent
+{
+    public long TripId { get; set; }
+
+    public required string QuoteToken { get; set; }
+
+    public DateTimeOffset WrittenAt { get; set; }
+
+    public DateTimeOffset? DispatchedAt { get; set; }
 }
 
 /// <summary>One move of a trip through the machine, written and never amended.</summary>

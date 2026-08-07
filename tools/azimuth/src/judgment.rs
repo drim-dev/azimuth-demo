@@ -83,7 +83,10 @@ pub fn load(root: &Path) -> Result<Vec<Judgments>, Vec<Diag>> {
     }
     let mut files = Vec::new();
     collect(root, &mut files).map_err(|e| {
-        vec![Diag::file(&root.display().to_string(), format!("cannot read judgments: {e}"))]
+        vec![Diag::file(
+            &root.display().to_string(),
+            format!("cannot read judgments: {e}"),
+        )]
     })?;
     files.sort();
 
@@ -213,12 +216,21 @@ pub fn parse(path: &str, source: &str) -> Result<Judgments, Vec<Diag>> {
     }
 
     let Some(spec) = spec else {
-        errors.push(Diag::expecting(path, 0, "no spec judged", "a `# Judgments: <spec-id>` heading"));
+        errors.push(Diag::expecting(
+            path,
+            0,
+            "no spec judged",
+            "a `# Judgments: <spec-id>` heading",
+        ));
         return Err(errors);
     };
 
     if errors.is_empty() {
-        Ok(Judgments { spec, path: path.to_string(), entries })
+        Ok(Judgments {
+            spec,
+            path: path.to_string(),
+            entries,
+        })
     } else {
         Err(errors)
     }

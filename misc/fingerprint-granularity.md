@@ -1,9 +1,10 @@
 # Fingerprint granularity — a question D19.1 raised and did not answer
 
-**Status: open question, stated so it can be argued with. Not a proposal.** The observation itself
-is recorded authoritatively in [`docs/decisions.md`](../docs/decisions.md) under **D19.1**; this
-file holds the question that follows from it and the options, neither of which belongs in the
-decision log until there is evidence.
+**Status: the under-firing half was fixed on 2026-08-08; over-invalidation remains open.** Judgment
+fingerprints now include effective verification files, applicable design and the source files of
+machine bindings. That deliberately expired all 60 recorded verdicts once. The normalized-body and
+split-fingerprint options below remain undecided because file-level over-invalidation still has no
+measured correctness cost.
 
 ## What happened
 

@@ -6,13 +6,15 @@
 //!
 //! No dependencies, by decision (D17).
 
+pub mod change;
 pub mod check;
 pub mod design;
 pub mod diag;
+pub mod fingerprint;
 pub mod json;
 pub mod judgment;
-pub mod manifest;
 pub mod labels;
+pub mod manifest;
 pub mod model;
 pub mod plan;
 pub mod spec;
@@ -45,11 +47,16 @@ pub fn load(
     only: &[String],
 ) -> Result<Loaded, Vec<Diag>> {
     let loaded = spec::load_specs(specs_dir)?;
-    let mut model = Model { specs: loaded.specs, ..Default::default() };
+    let mut model = Model {
+        specs: loaded.specs,
+        ..Default::default()
+    };
     let mut warnings = loaded.warnings;
 
     if !only.is_empty() {
-        model.specs.retain(|s| only.iter().any(|p| selects(p, &s.id)));
+        model
+            .specs
+            .retain(|s| only.iter().any(|p| selects(p, &s.id)));
     }
 
     let mut errors = Vec::new();
@@ -73,7 +80,9 @@ pub fn load(
         Ok(js) => {
             model.judgments = js;
             if !only.is_empty() {
-                model.judgments.retain(|j| only.iter().any(|p| selects(p, &j.spec)));
+                model
+                    .judgments
+                    .retain(|j| only.iter().any(|p| selects(p, &j.spec)));
             }
         }
         Err(mut d) => errors.append(&mut d),
@@ -83,7 +92,9 @@ pub fn load(
         Ok(designs) => {
             model.designs = designs;
             if !only.is_empty() {
-                model.designs.retain(|d| only.iter().any(|pat| selects(pat, &d.spec)));
+                model
+                    .designs
+                    .retain(|d| only.iter().any(|pat| selects(pat, &d.spec)));
             }
         }
         Err(mut d) => errors.append(&mut d),
@@ -93,7 +104,9 @@ pub fn load(
         Ok(plans) => {
             model.plans = plans;
             if !only.is_empty() {
-                model.plans.retain(|p| only.iter().any(|pat| selects(pat, &p.spec)));
+                model
+                    .plans
+                    .retain(|p| only.iter().any(|pat| selects(pat, &p.spec)));
             }
         }
         Err(mut d) => errors.append(&mut d),
@@ -104,8 +117,9 @@ pub fn load(
             Ok(m) => {
                 model.realizes.extend(m.realizes);
                 model.covers.extend(m.covers);
-                model.untraced.extend(m.untraced);
                 model.class_members.extend(m.class_members);
+                model.enumerations.extend(m.enumerations);
+                model.artifacts.extend(m.artifacts);
             }
             Err(mut d) => errors.append(&mut d),
         }
@@ -115,8 +129,12 @@ pub fn load(
     }
 
     if !only.is_empty() {
-        model.realizes.retain(|s| only.iter().any(|p| selects(p, &s.spec)));
-        model.covers.retain(|s| only.iter().any(|p| selects(p, &s.spec)));
+        model
+            .realizes
+            .retain(|s| only.iter().any(|p| selects(p, &s.spec)));
+        model
+            .covers
+            .retain(|s| only.iter().any(|p| selects(p, &s.spec)));
     }
 
     Ok(Loaded { model, warnings })

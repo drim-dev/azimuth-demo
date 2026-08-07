@@ -35,8 +35,6 @@ pub enum HoleKind {
     DanglingTag,
     /// mechanism present, intent absent
     DanglingRealization,
-    /// evidence present, intent absent — the test names nothing at all
-    UntracedTest,
     /// evidence present, intent absent — a plan entry for a claim that does not exist
     DanglingPlanEntry,
     /// intent and evidence present, but no evidence meets the declared standard
@@ -54,6 +52,10 @@ pub enum HoleKind {
     /// D6.5 requires a design entry for a `critical` requirement. Incomplete-facet: the mechanism
     /// may well exist in code, but its strategy is undeclared and therefore uncheckable.
     UndeclaredMechanism,
+    /// A current design names an artifact no extractor found.
+    UnresolvedDesignBinding,
+    /// The extractor found the artifact, but its derived properties contradict the enforcement.
+    EnforcementMismatch,
     /// A plan declares proof-strength evidence that no proof-capable mechanism backs.
     UnbackedProof,
     /// The agent tier judged the covering evidence as not discriminating: it exists, it passes, and
@@ -72,6 +74,8 @@ pub enum HoleKind {
     /// The one hole kind the per-scenario matrix structurally cannot find: a claim quantified over
     /// a *set of sites* is not established by evidence about one site, however good.
     InvariantBreach,
+    /// A site-domain claim has no successful derivation witness for the class it ranges over.
+    EnumeratorUnsoundOrUnderived,
     /// An invariant naming a class no spec defines.
     DanglingClass,
 }
@@ -83,13 +87,14 @@ impl HoleKind {
             HoleKind::Uncovered => "uncovered",
             HoleKind::DanglingTag => "dangling-tag",
             HoleKind::DanglingRealization => "dangling-realization",
-            HoleKind::UntracedTest => "untraced-test",
             HoleKind::DanglingPlanEntry => "dangling-plan-entry",
             HoleKind::WrongForm => "wrong-form",
             HoleKind::Unclassified => "unclassified",
             HoleKind::UnacceptedWeakening => "unaccepted-weakening",
             HoleKind::DanglingDesignEntry => "dangling-design-entry",
             HoleKind::UndeclaredMechanism => "undeclared-mechanism",
+            HoleKind::UnresolvedDesignBinding => "unresolved-design-binding",
+            HoleKind::EnforcementMismatch => "enforcement-mismatch",
             HoleKind::UnbackedProof => "unbacked-proof",
             HoleKind::ToothlessEvidence => "toothless-evidence",
             HoleKind::DishonestTag => "dishonest-tag-judged",
@@ -97,6 +102,7 @@ impl HoleKind {
             HoleKind::StaleJudgment => "stale-judgment",
             HoleKind::Unjudged => "unjudged",
             HoleKind::InvariantBreach => "invariant-breach",
+            HoleKind::EnumeratorUnsoundOrUnderived => "enumerator-unsound-or-underived",
             HoleKind::DanglingClass => "dangling-class",
         }
     }
@@ -165,10 +171,7 @@ pub fn rtm(model: &Model) -> Vec<Hole> {
                     criticality: None,
                     path: spec.path.clone(),
                     line: requirement.line,
-                    detail: format!(
-                        "requirement `{}` declares no criticality",
-                        requirement.id
-                    ),
+                    detail: format!("requirement `{}` declares no criticality", requirement.id),
                 });
             }
         }
@@ -177,6 +180,13 @@ pub fn rtm(model: &Model) -> Vec<Hole> {
     for claim in model.claims() {
         let id = claim.id();
         let criticality = claim.requirement.criticality;
+
+        // D20: a routine claim stops at intent. It makes no assertion about where production code
+        // realizes it or which tests cover it, so neither linkage facet can have a hole.
+        if criticality == Some(Criticality::Routine) {
+            continue;
+        }
+
         let severity = severity_for(criticality);
 
         let realized = model
@@ -195,8 +205,6 @@ pub fn rtm(model: &Model) -> Vec<Hole> {
             });
         }
 
-        // A `routine` claim cannot be uncovered: D6.5 requires no verification plan for it, so no
-        // evidence was ever demanded. Reporting it would make the level meaningless.
         let required = model.required_for(&claim);
         let evidence_required = match required {
             Some(r) => r.strength.is_some(),
@@ -234,7 +242,9 @@ pub fn rtm(model: &Model) -> Vec<Hole> {
         }
 
         let Some(required) = required else { continue };
-        let Some(min_strength) = required.strength else { continue };
+        let Some(min_strength) = required.strength else {
+            continue;
+        };
 
         // D7's identity: strong enforcement is self-evidencing, so proof-strength evidence
         // satisfies a demonstration requirement without any test. The old model penalized exactly
@@ -266,9 +276,10 @@ pub fn rtm(model: &Model) -> Vec<Hole> {
     holes.extend(judgment_holes(model));
     holes.extend(surface_holes(model));
 
-    for (sites, kind) in
-        [(&model.covers, HoleKind::DanglingTag), (&model.realizes, HoleKind::DanglingRealization)]
-    {
+    for (sites, kind) in [
+        (&model.covers, HoleKind::DanglingTag),
+        (&model.realizes, HoleKind::DanglingRealization),
+    ] {
         for site in sites {
             if !model.has_claim(&site.spec, &site.scenario) {
                 holes.push(Hole {
@@ -282,18 +293,6 @@ pub fn rtm(model: &Model) -> Vec<Hole> {
                 });
             }
         }
-    }
-
-    for test in &model.untraced {
-        holes.push(Hole {
-            kind: HoleKind::UntracedTest,
-            severity: Severity::Error,
-            claim: None,
-            criticality: None,
-            path: test.file.clone(),
-            line: 0,
-            detail: format!("`{}` declares no claim and is not exempt", test.site),
-        });
     }
 
     holes.sort_by(|a, b| {
@@ -320,7 +319,9 @@ fn describe_evidence(tags: &[&Site], declared: Option<&EvidenceItem>) -> String 
                 "{} ({}/{})",
                 t.site,
                 t.scope.map(|s| s.name()).unwrap_or("unit, undeclared"),
-                t.quantification.map(|q| q.name()).unwrap_or("example, undeclared")
+                t.quantification
+                    .map(|q| q.name())
+                    .unwrap_or("example, undeclared")
             )
         })
         .collect();
@@ -373,7 +374,9 @@ fn plan_holes(model: &Model) -> Vec<Hole> {
             else {
                 continue;
             };
-            let Some(level) = standards.for_level(criticality) else { continue };
+            let Some(level) = standards.for_level(criticality) else {
+                continue;
+            };
             let weakened = match (entry.quantification, level.quantification) {
                 (Some(entry_q), Some(level_q)) => entry_q < level_q,
                 _ => false,
@@ -420,9 +423,10 @@ fn design_holes(model: &Model) -> Vec<Hole> {
             let id = entry.target.id();
             let exists = match &entry.target {
                 Target::Requirement(_) => spec.requirements.iter().any(|r| r.id == id),
-                Target::Scenario(_) => {
-                    spec.requirements.iter().any(|r| r.scenarios.iter().any(|s| s.id == id))
-                }
+                Target::Scenario(_) => spec
+                    .requirements
+                    .iter()
+                    .any(|r| r.scenarios.iter().any(|s| s.id == id)),
             };
             if !exists {
                 holes.push(Hole {
@@ -434,6 +438,90 @@ fn design_holes(model: &Model) -> Vec<Hole> {
                     line: entry.line,
                     detail: "names a requirement or claim that does not exist".into(),
                 });
+            }
+
+            for mechanism in &entry.mechanisms {
+                let Some(artifact) = model.artifacts.iter().find(|a| a.id == mechanism.binding)
+                else {
+                    holes.push(Hole {
+                        kind: HoleKind::UnresolvedDesignBinding,
+                        severity: Severity::Error,
+                        claim: Some(format!("{}#{}", design.spec, id)),
+                        criticality: None,
+                        path: design.path.clone(),
+                        line: mechanism.line,
+                        detail: format!(
+                            "binding `{}` was not emitted by any compiler or schema extractor",
+                            mechanism.binding
+                        ),
+                    });
+                    continue;
+                };
+
+                let mut mismatches = Vec::new();
+                if let Some(expected) = mechanism.expected_unique {
+                    if artifact.unique != Some(expected) {
+                        mismatches.push(format!(
+                            "expected unique={expected}, found {:?}",
+                            artifact.unique
+                        ));
+                    }
+                }
+                if !mechanism.expected_columns.is_empty()
+                    && artifact.columns != mechanism.expected_columns
+                {
+                    mismatches.push(format!(
+                        "expected columns {}, found {}",
+                        mechanism.expected_columns.join(","),
+                        artifact.columns.join(",")
+                    ));
+                }
+                if let Some(expected) = &mechanism.expected_predicate {
+                    if artifact.predicate.as_ref() != Some(expected) {
+                        mismatches.push(format!(
+                            "expected predicate `{expected}`, found `{}`",
+                            artifact.predicate.as_deref().unwrap_or("<none>")
+                        ));
+                    }
+                }
+
+                let mismatch = match (mechanism.kind, artifact.kind.as_str()) {
+                    (crate::design::Enforcement::Constraint, "database-index") => (artifact.unique
+                        != Some(true))
+                    .then_some("a non-unique index does not reject duplicate state".to_string()),
+                    (kind, "database-index") if kind != crate::design::Enforcement::Constraint => {
+                        Some(format!(
+                            "a database index cannot establish `{}` enforcement",
+                            kind.name()
+                        ))
+                    }
+                    (crate::design::Enforcement::Type, "dotnet-method") => Some(
+                        "type enforcement must bind the type, not one method on it".to_string(),
+                    ),
+                    (crate::design::Enforcement::ChokePoint, "dotnet-type") => Some(
+                        "choke-point enforcement must bind the operation, not its containing type"
+                            .to_string(),
+                    ),
+                    _ => None,
+                };
+                if let Some(detail) = mismatch {
+                    mismatches.push(detail);
+                }
+                if !mismatches.is_empty() {
+                    holes.push(Hole {
+                        kind: HoleKind::EnforcementMismatch,
+                        severity: Severity::Error,
+                        claim: Some(format!("{}#{}", design.spec, id)),
+                        criticality: None,
+                        path: design.path.clone(),
+                        line: mechanism.line,
+                        detail: format!(
+                            "binding `{}`: {}",
+                            mechanism.binding,
+                            mismatches.join("; ")
+                        ),
+                    });
+                }
             }
         }
     }
@@ -457,7 +545,10 @@ fn design_holes(model: &Model) -> Vec<Hole> {
             }
             let declared = design.is_some_and(|d| {
                 d.for_requirement(&requirement.id).is_some()
-                    || requirement.scenarios.iter().any(|s| d.for_scenario(&s.id).is_some())
+                    || requirement
+                        .scenarios
+                        .iter()
+                        .any(|s| d.for_scenario(&s.id).is_some())
             });
             if !declared {
                 holes.push(Hole {
@@ -479,11 +570,15 @@ fn design_holes(model: &Model) -> Vec<Hole> {
     // strongest available result out of thin air.
     for plan in &model.plans {
         for entry in &plan.entries {
-            let Some(evidence) = &entry.evidence else { continue };
+            let Some(evidence) = &entry.evidence else {
+                continue;
+            };
             if evidence.strength != Strength::Proof {
                 continue;
             }
-            let Some(claim) = model.find_claim(&plan.spec, &entry.scenario) else { continue };
+            let Some(claim) = model.find_claim(&plan.spec, &entry.scenario) else {
+                continue;
+            };
             let backed = model.design_for(&plan.spec).is_some_and(|d| {
                 let for_scenario = d.for_scenario(&entry.scenario);
                 let for_requirement = d.for_requirement(&claim.requirement.id);
@@ -543,7 +638,9 @@ fn surface_holes(model: &Model) -> Vec<Hole> {
             if requirement.domain != crate::model::Domain::Sites {
                 continue;
             }
-            let Some(over) = &requirement.over else { continue };
+            let Some(over) = &requirement.over else {
+                continue;
+            };
             let Some(class_spec) = model.specs.iter().find(|s| &s.id == over) else {
                 holes.push(Hole {
                     kind: HoleKind::DanglingClass,
@@ -557,6 +654,22 @@ fn surface_holes(model: &Model) -> Vec<Hole> {
                 continue;
             };
 
+            if !model.enumerations.iter().any(|e| e.class == class_spec.id) {
+                holes.push(Hole {
+                    kind: HoleKind::EnumeratorUnsoundOrUnderived,
+                    severity: severity_for(requirement.criticality),
+                    claim: Some(format!("{}#{}", spec.id, requirement.id)),
+                    criticality: requirement.criticality,
+                    path: spec.path.clone(),
+                    line: requirement.line,
+                    detail: format!(
+                        "class `{}` has no successful enumerator witness; tag-derived membership is not complete",
+                        class_spec.id
+                    ),
+                });
+                continue;
+            }
+
             let behavioural: Vec<&str> = class_spec
                 .requirements
                 .iter()
@@ -569,7 +682,9 @@ fn surface_holes(model: &Model) -> Vec<Hole> {
             let mut members: Vec<(&str, &str, bool)> = model
                 .realizes
                 .iter()
-                .filter(|site| site.spec == class_spec.id && behavioural.contains(&site.scenario.as_str()))
+                .filter(|site| {
+                    site.spec == class_spec.id && behavioural.contains(&site.scenario.as_str())
+                })
                 .map(|site| (site.site.as_str(), site.file.as_str(), false))
                 .collect();
 
@@ -631,7 +746,9 @@ fn judgment_holes(model: &Model) -> Vec<Hole> {
 
     for claim in model.claims() {
         let id = claim.id();
-        let judged = model.judgments_for(&claim.spec.id).and_then(|j| j.entry(&claim.scenario.id));
+        let judged = model
+            .judgments_for(&claim.spec.id)
+            .and_then(|j| j.entry(&claim.scenario.id));
 
         let Some(judgment) = judged else {
             if claim.requirement.criticality == Some(Criticality::Critical) {
@@ -650,7 +767,7 @@ fn judgment_holes(model: &Model) -> Vec<Hole> {
 
         let expected = crate::judgment::fingerprint(
             &model.claim_text(&claim),
-            model.evidence_files(&claim.spec.id, &claim.scenario.id),
+            model.judgment_files(&claim.spec.id, &claim.scenario.id),
         );
         let path = model
             .judgments_for(&claim.spec.id)
@@ -705,8 +822,14 @@ pub struct Summary {
 pub fn summarize(model: &Model, holes: &[Hole]) -> Summary {
     Summary {
         claims: model.scenario_count(),
-        errors: holes.iter().filter(|h| h.severity == Severity::Error).count(),
-        warnings: holes.iter().filter(|h| h.severity == Severity::Warning).count(),
+        errors: holes
+            .iter()
+            .filter(|h| h.severity == Severity::Error)
+            .count(),
+        warnings: holes
+            .iter()
+            .filter(|h| h.severity == Severity::Warning)
+            .count(),
     }
 }
 
@@ -715,6 +838,8 @@ pub fn counts_by_kind(holes: &[Hole]) -> Vec<(&'static str, usize)> {
         HoleKind::DanglingPlanEntry,
         HoleKind::DanglingDesignEntry,
         HoleKind::UndeclaredMechanism,
+        HoleKind::UnresolvedDesignBinding,
+        HoleKind::EnforcementMismatch,
         HoleKind::UnbackedProof,
         HoleKind::UnacceptedWeakening,
         HoleKind::WrongForm,
@@ -724,13 +849,13 @@ pub fn counts_by_kind(holes: &[Hole]) -> Vec<(&'static str, usize)> {
         HoleKind::DishonestTag,
         HoleKind::SpecGap,
         HoleKind::InvariantBreach,
+        HoleKind::EnumeratorUnsoundOrUnderived,
         HoleKind::DanglingClass,
         HoleKind::Unclassified,
         HoleKind::Unrealized,
         HoleKind::Uncovered,
         HoleKind::DanglingTag,
         HoleKind::DanglingRealization,
-        HoleKind::UntracedTest,
     ];
     kinds
         .iter()

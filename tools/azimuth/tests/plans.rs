@@ -46,7 +46,11 @@ THEN it is an integer count of minor units
 fn model(plan_source: &str, manifest_json: &str) -> Model {
     let spec = parse_spec("alpha.md", SPEC).expect("spec parses");
     let standards = parse_standards("standards.md", STANDARDS).expect("standards parse");
-    let mut m = Model { specs: vec![spec], standards: Some(standards), ..Default::default() };
+    let mut m = Model {
+        specs: vec![spec],
+        standards: Some(standards),
+        ..Default::default()
+    };
     if !plan_source.is_empty() {
         m.plans = vec![parse_plan("alpha-plan.md", plan_source).expect("plan parses")];
     }
@@ -62,12 +66,19 @@ fn model(plan_source: &str, manifest_json: &str) -> Model {
 fn plan_err(source: &str) -> String {
     match parse_plan("p.md", source) {
         Ok(_) => panic!("expected a parse error"),
-        Err(d) => d.iter().map(|x| x.to_string()).collect::<Vec<_>>().join("\n"),
+        Err(d) => d
+            .iter()
+            .map(|x| x.to_string())
+            .collect::<Vec<_>>()
+            .join("\n"),
     }
 }
 
 fn kinds(m: &Model) -> Vec<(HoleKind, String)> {
-    rtm(m).into_iter().map(|h| (h.kind, h.claim.unwrap_or_default())).collect()
+    rtm(m)
+        .into_iter()
+        .map(|h| (h.kind, h.claim.unwrap_or_default()))
+        .collect()
 }
 
 fn covers(scenario: &str, scope: &str, quantification: &str) -> String {
@@ -93,9 +104,16 @@ fn standards_parse() {
 /// with no standard at all, which would read as a clean run.
 #[test]
 fn standards_must_cover_every_level() {
-    let source = STANDARDS.replace("## Level: routine\nStrength: none\nResidual: optional\n", "");
+    let source = STANDARDS.replace(
+        "## Level: routine\nStrength: none\nResidual: optional\n",
+        "",
+    );
     let errors = parse_standards("s.md", &source).unwrap_err();
-    let text = errors.iter().map(|d| d.to_string()).collect::<Vec<_>>().join("\n");
+    let text = errors
+        .iter()
+        .map(|d| d.to_string())
+        .collect::<Vec<_>>()
+        .join("\n");
     assert!(text.contains("no standard for `routine`"), "{text}");
 }
 
@@ -111,7 +129,10 @@ An in-memory repository serializes writes and cannot exhibit the race.
 
 #[test]
 fn a_plan_entry_raises_the_required_scope() {
-    let m = model(RAISED_SCOPE, &covers("concurrent-thing", "unit", "universal"));
+    let m = model(
+        RAISED_SCOPE,
+        &covers("concurrent-thing", "unit", "universal"),
+    );
     let holes = kinds(&m);
     assert!(
         holes.contains(&(HoleKind::WrongForm, "alpha#concurrent-thing".into())),
@@ -121,14 +142,20 @@ fn a_plan_entry_raises_the_required_scope() {
 
 #[test]
 fn evidence_at_the_required_form_satisfies() {
-    let m = model(RAISED_SCOPE, &covers("concurrent-thing", "component", "universal"));
+    let m = model(
+        RAISED_SCOPE,
+        &covers("concurrent-thing", "component", "universal"),
+    );
     assert!(!kinds(&m).iter().any(|(k, _)| *k == HoleKind::WrongForm));
 }
 
 /// Ladders: a stronger form on any axis satisfies a requirement for a weaker one.
 #[test]
 fn a_stronger_form_satisfies_a_weaker_requirement() {
-    let m = model(RAISED_SCOPE, &covers("concurrent-thing", "e2e", "universal"));
+    let m = model(
+        RAISED_SCOPE,
+        &covers("concurrent-thing", "e2e", "universal"),
+    );
     assert!(!kinds(&m).iter().any(|(k, _)| *k == HoleKind::WrongForm));
 }
 
@@ -138,7 +165,10 @@ fn a_stronger_form_satisfies_a_weaker_requirement() {
 fn an_example_does_not_satisfy_a_universal_requirement() {
     let m = model("", &covers("typed-thing", "unit", "example"));
     let holes = kinds(&m);
-    assert!(holes.contains(&(HoleKind::WrongForm, "alpha#typed-thing".into())), "{holes:?}");
+    assert!(
+        holes.contains(&(HoleKind::WrongForm, "alpha#typed-thing".into())),
+        "{holes:?}"
+    );
 }
 
 /// D7's identity: strong enforcement is self-evidencing. The alpha's model reported the better
@@ -156,8 +186,14 @@ Violation is unrepresentable rather than untested.
 ";
     let m = model(plan, "");
     let holes = kinds(&m);
-    assert!(!holes.contains(&(HoleKind::Uncovered, "alpha#typed-thing".into())), "{holes:?}");
-    assert!(!holes.contains(&(HoleKind::WrongForm, "alpha#typed-thing".into())), "{holes:?}");
+    assert!(
+        !holes.contains(&(HoleKind::Uncovered, "alpha#typed-thing".into())),
+        "{holes:?}"
+    );
+    assert!(
+        !holes.contains(&(HoleKind::WrongForm, "alpha#typed-thing".into())),
+        "{holes:?}"
+    );
     // Criticality gates evidence, not implementation.
     assert!(holes.contains(&(HoleKind::Unrealized, "alpha#typed-thing".into())));
 }
@@ -180,7 +216,10 @@ Recorded to show that a monitor is not a substitute here.
 ";
     let m = model(plan, "");
     let holes = kinds(&m);
-    assert!(holes.contains(&(HoleKind::WrongForm, "alpha#typed-thing".into())), "{holes:?}");
+    assert!(
+        holes.contains(&(HoleKind::WrongForm, "alpha#typed-thing".into())),
+        "{holes:?}"
+    );
 }
 
 /// D4.3: a monitor that can no longer fire is worse than no monitor, because it is carried on the
@@ -274,7 +313,9 @@ Residual: not checked across all currencies
 Accepted: single-currency market until the second one launches; revisit then
 ";
     let m = model(plan, &covers("typed-thing", "unit", "example"));
-    assert!(!kinds(&m).iter().any(|(k, _)| *k == HoleKind::UnacceptedWeakening));
+    assert!(!kinds(&m)
+        .iter()
+        .any(|(k, _)| *k == HoleKind::UnacceptedWeakening));
 }
 
 #[test]
@@ -355,7 +396,10 @@ A reason.
 ";
     let plan = parse_plan("p.md", source).expect("parses");
     let evidence = plan.entries[0].evidence.as_ref().unwrap();
-    assert!(evidence.description.ends_with("continues onto the next"), "{evidence:?}");
+    assert!(
+        evidence.description.ends_with("continues onto the next"),
+        "{evidence:?}"
+    );
 }
 
 /// A tag that omits a form is read at the weakest rung. An unstated claim should never satisfy a
@@ -368,7 +412,10 @@ fn an_undeclared_form_is_read_as_weakest() {
            "lang":"csharp"}]}"#,
     );
     let holes = kinds(&m);
-    assert!(holes.contains(&(HoleKind::WrongForm, "alpha#typed-thing".into())), "{holes:?}");
+    assert!(
+        holes.contains(&(HoleKind::WrongForm, "alpha#typed-thing".into())),
+        "{holes:?}"
+    );
 }
 
 /// Without a standards file nothing is known to require, so wrong-form cannot fire. It must not
@@ -378,6 +425,10 @@ fn without_standards_wrong_form_cannot_fire() {
     let spec = parse_spec("alpha.md", SPEC).unwrap();
     let root = json::parse(&covers("typed-thing", "unit", "example")).unwrap();
     let parsed = manifest::parse("m.json", &root).unwrap();
-    let m = Model { specs: vec![spec], covers: parsed.covers, ..Default::default() };
+    let m = Model {
+        specs: vec![spec],
+        covers: parsed.covers,
+        ..Default::default()
+    };
     assert!(!kinds(&m).iter().any(|(k, _)| *k == HoleKind::WrongForm));
 }

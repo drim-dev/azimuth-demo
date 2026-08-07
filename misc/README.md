@@ -12,14 +12,15 @@ either genuinely out of scope or a proposal nobody has been willing to decide.
 | File | Holds | Status |
 |---|---|---|
 | `quantification-review.md` | prior art for `example`/`invariant` and what the field does and does not buy; the rename proposal graduated to D19 | observations · one failed prediction |
-| `site-class-evidence.md` | why a behavioural test cannot be universal evidence for a claim over a derived set of sites | finding · one proposal |
-| `fingerprint-granularity.md` | that the judgment fingerprint over-fires on renames and under-fires on plan changes | open question · one bounded fix |
+| `site-class-evidence.md` | why a behavioural test cannot be universal evidence for a derived site set | finding confirmed · proposal applied |
+| `fingerprint-granularity.md` | judgment fingerprints over-fire on file changes; plan/design under-firing is fixed | partial resolution · over-fire open |
 | `scope-field.md` | that the harness decided every scope tag in one spec, and that a mutation derived a required scope | observations · open question |
 | `exemption-visibility.md` | 17 exemptions disappear; one 400/422 boundary is unspecified | implementation finding · D20.1 decided the framework fix |
 | `unclaimed-outcomes.md` | making "which claims must exist" checkable over a derived surface of client-visible refusals | proposed · one prediction |
-| `design-fiction.md` | three design entries named mechanisms nobody wrote, and the judging rubric that trusted them | finding · rubric fixed |
+| `design-fiction.md` | three design entries named mechanisms nobody wrote, and the judging rubric that trusted them | resolved structurally · semantics remain agent-tier |
 | `entry-point-surfaces.md` | an entry-point inventory with classes as subsets of it, and why choke-point crediting comes first | proposed · one measured finding |
 | `reader-and-problem.md` | that `framework.md` names no reader, and two candidate readers with their falsifiers | proposed |
+| `mechanism-growth.md` | sixteen mechanisms the fixture lacks, each tied to the domain, enforcement rung or open question it would instantiate | proposed · two conditions on proceeding |
 | `formal-registers.md` | languages that force precision, and what none of them force | reference · one proposal |
 | `reading-path.md` | the literatures behind the writing register, and an order to read them in | notes, outside the framework |
 | `business-application.md` | applying the framework's disciplines to teaching and consulting | notes, outside the framework |

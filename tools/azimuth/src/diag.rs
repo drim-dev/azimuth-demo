@@ -19,7 +19,12 @@ pub struct Diag {
 
 impl Diag {
     pub fn at(path: &str, line: usize, message: impl Into<String>) -> Self {
-        Diag { path: path.to_string(), line, message: message.into(), expected: None }
+        Diag {
+            path: path.to_string(),
+            line,
+            message: message.into(),
+            expected: None,
+        }
     }
 
     pub fn expecting(
@@ -37,7 +42,12 @@ impl Diag {
     }
 
     pub fn file(path: &str, message: impl Into<String>) -> Self {
-        Diag { path: path.to_string(), line: 0, message: message.into(), expected: None }
+        Diag {
+            path: path.to_string(),
+            line: 0,
+            message: message.into(),
+            expected: None,
+        }
     }
 }
 

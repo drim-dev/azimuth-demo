@@ -64,12 +64,10 @@ namespace Azimuth.Fixture.Traced
         }
 
         [Fact]
-        [Untraced("smoke check; maps to no claim by design")]
-        public void Exempt()
+        public void SmokeCheck()
         {
         }
 
-        /// The dual of an uncovered claim.
         [Fact]
         public void Bare()
         {
@@ -77,12 +75,10 @@ namespace Azimuth.Fixture.Traced
     }
 }
 
-namespace Azimuth.Fixture.Untraced
+namespace Azimuth.Fixture.Ordinary
 {
     using Azimuth.Fixture;
 
-    /// Outside every traced root: a bare test here is not a finding, because the area was never
-    /// opted in. D8's ratchet is what makes partial adoption work.
     public sealed class Tests
     {
         [Fact]

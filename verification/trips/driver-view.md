@@ -2,19 +2,19 @@
 
 ## Claim: rider-contact-hidden-on-offer
 Scope: e2e
-Strength: proof
-Evidence: `RiderContact` has no serializer and no accessor returning its raw value;
-`DriverProjection.For(held)` is its only reveal, and no driver-facing route returns a rider record
+Quantification: example
+Residual: the e2e exercises one offer surface, while the type has an assembly-internal `Reveal()`
+escape hatch and therefore cannot establish proof
+Accepted: `DriverProjection.Offer` returns a model with no rider field and the agent checks the
+derived driver surface. Revisit when egress analysis can prove every driver-facing serializer.
 
 Composition, as with the rider side: the service can omit the field, the BFF can project a
 different model, and the leak lives between them. Every claim in `trips/rider-view` that mattered
 turned out to be one no single site established.
 
-*(evidence added 2026-08-07)* The e2e is tagged `example` because one offer through the assembled
-path is one. What holds the claim everywhere is the type: a contact that cannot be serialized cannot
-reach a driver who does not hold the trip, whatever a future route does.
-`design/trips/driver-view.md` carries the matching `Enforcement: type`, so this is not proof claimed
-out of thin air.
+*(revised 2026-08-08)* The e2e is tagged `example` because one offer through the assembled path is
+one. The earlier proof claim was false: `RiderContact.Reveal()` is internal rather than
+inaccessible. The design now records the projection guard at the form the code actually has.
 
 ## Claim: contact-withdrawn-after-terminal
 Scope: e2e

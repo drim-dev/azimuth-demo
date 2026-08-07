@@ -146,7 +146,12 @@ really is, and the comparison is what produces `wrong-form`.
 **Enumerator** — what produces the member set for a claim ranging over a set of sites. Must be
 derived from the same source the system is built from — the route table, the DI container, the
 type graph. A hand-listed surface is worse than no rule, because it reproduces the very bug the
-rule prevents and reports green (D13.1).
+rule prevents and reports green (D13.1). It enumerates domain members, not the semantic requirements
+each member realizes.
+
+**Design binding** — a machine-addressable compiler or schema artifact named by a current design
+mechanism. Resolution establishes existence. Only properties emitted independently—currently index
+uniqueness, columns and predicates—can establish more.
 
 **Exemption** — a deliberate, attributable, reviewable opt-out from an obligation. Fine anywhere;
 a silent absence from an obligation is not. An untagged test asserts no Azimuth evidence, so it has
@@ -183,13 +188,16 @@ obligations. Proposed facts do not become current facts until completion (D21).
 completed change updates the current facets before it is archived; a rejected or abandoned one
 updates none.
 
+**Finalization** — the derived model fingerprint and check summary for an accepted, applied change.
+It gates the mechanical archive move and contains no authored risk decision.
+
 **Machine tier** — the deterministic checks. Finds structural holes. Cannot be argued with, and
 cannot establish truth.
 
 **Agent tier** — the judgment pass: is a test toothy, is a tag honest, is a required behaviour
-missing from the spec. Its outputs are recorded as evidence items at demonstration strength, with
-freshness re-established when the subgraph they judged changes (D14). An agent judgment is never
-proof-strength.
+missing from the spec. A judgment is evidence about evidence, never evidence of the claim; its
+negative verdicts create holes and its fingerprint expires when the comparison it examined changes
+(D18).
 
 **Export** — the derived model, serialized. Checks, dashboards, PR annotations and the agent tier
 are all consumers of it; nothing re-parses specs.

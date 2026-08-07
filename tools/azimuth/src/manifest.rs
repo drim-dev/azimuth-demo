@@ -9,7 +9,7 @@
 
 use crate::diag::Diag;
 use crate::json::{self, Json};
-use crate::model::{ClassMember, Quantification, Scope, Site, UntracedTest};
+use crate::model::{Artifact, ClassMember, Enumeration, Quantification, Scope, Site};
 use std::fs;
 use std::path::Path;
 
@@ -17,8 +17,9 @@ use std::path::Path;
 pub struct Manifest {
     pub realizes: Vec<Site>,
     pub covers: Vec<Site>,
-    pub untraced: Vec<UntracedTest>,
     pub class_members: Vec<ClassMember>,
+    pub enumerations: Vec<Enumeration>,
+    pub artifacts: Vec<Artifact>,
 }
 
 pub fn load(path: &Path) -> Result<Manifest, Vec<Diag>> {
@@ -46,7 +47,12 @@ pub fn parse(path: &str, root: &Json) -> Result<Manifest, Vec<Diag>> {
     for (key, is_test) in [("realizes", false), ("covers", true)] {
         let Some(value) = root.get(key) else { continue };
         let Some(items) = value.as_array() else {
-            errors.push(Diag::expecting(path, 0, format!("`{key}` is not an array"), "an array"));
+            errors.push(Diag::expecting(
+                path,
+                0,
+                format!("`{key}` is not an array"),
+                "an array",
+            ));
             continue;
         };
         for (index, item) in items.iter().enumerate() {
@@ -59,22 +65,6 @@ pub fn parse(path: &str, root: &Json) -> Result<Manifest, Vec<Diag>> {
                     }
                 }
                 Err(mut d) => errors.append(&mut d),
-            }
-        }
-    }
-
-    if let Some(value) = root.get("untraced_tests") {
-        if let Some(items) = value.as_array() {
-            for (index, item) in items.iter().enumerate() {
-                let where_ = format!("untraced_tests[{index}]");
-                let site = string_field(path, &where_, item, "site", &mut errors);
-                let file = string_field(path, &where_, item, "file", &mut errors);
-                let lang = string_field(path, &where_, item, "lang", &mut errors);
-                out.untraced.push(UntracedTest {
-                    site: site.unwrap_or_default(),
-                    file: file.unwrap_or_default(),
-                    lang: lang.unwrap_or_default(),
-                });
             }
         }
     }
@@ -100,6 +90,98 @@ pub fn parse(path: &str, root: &Json) -> Result<Manifest, Vec<Diag>> {
                 site: site.unwrap_or_default(),
                 file: file.unwrap_or_default(),
                 lang: lang.unwrap_or_default(),
+            });
+        }
+    }
+
+    if let Some(value) = root.get("enumerations") {
+        let Some(items) = value.as_array() else {
+            errors.push(Diag::expecting(
+                path,
+                0,
+                "`enumerations` is not an array",
+                "an array",
+            ));
+            return Err(errors);
+        };
+        for (index, item) in items.iter().enumerate() {
+            let where_ = format!("enumerations[{index}]");
+            let class = string_field(path, &where_, item, "class", &mut errors);
+            let kind = string_field(path, &where_, item, "kind", &mut errors);
+            let source = string_field(path, &where_, item, "source", &mut errors);
+            let source_fingerprint =
+                string_field(path, &where_, item, "source_fingerprint", &mut errors);
+            out.enumerations.push(Enumeration {
+                class: class.unwrap_or_default(),
+                kind: kind.unwrap_or_default(),
+                source: source.unwrap_or_default(),
+                source_fingerprint: source_fingerprint.unwrap_or_default(),
+            });
+        }
+    }
+
+    if let Some(value) = root.get("artifacts") {
+        let Some(items) = value.as_array() else {
+            errors.push(Diag::expecting(
+                path,
+                0,
+                "`artifacts` is not an array",
+                "an array",
+            ));
+            return Err(errors);
+        };
+        for (index, item) in items.iter().enumerate() {
+            let where_ = format!("artifacts[{index}]");
+            let id = string_field(path, &where_, item, "id", &mut errors);
+            let kind = string_field(path, &where_, item, "kind", &mut errors);
+            let file = string_field(path, &where_, item, "file", &mut errors);
+            let unique = match item.get("unique") {
+                Some(value) => match value.as_bool() {
+                    Some(value) => Some(value),
+                    None => {
+                        errors.push(Diag::at(
+                            path,
+                            0,
+                            format!("{where_}.unique is not a boolean"),
+                        ));
+                        None
+                    }
+                },
+                None => None,
+            };
+            let mut columns = Vec::new();
+            if let Some(value) = item.get("columns") {
+                match value.as_array() {
+                    Some(values) => {
+                        for column in values {
+                            match column.as_str() {
+                                Some(column) => columns.push(column.to_string()),
+                                None => errors.push(Diag::at(
+                                    path,
+                                    0,
+                                    format!("{where_}.columns contains a non-string"),
+                                )),
+                            }
+                        }
+                    }
+                    None => errors.push(Diag::at(
+                        path,
+                        0,
+                        format!("{where_}.columns is not an array"),
+                    )),
+                }
+            }
+            let predicate = item
+                .get("predicate")
+                .and_then(Json::as_str)
+                .map(str::to_string);
+            out.artifacts.push(Artifact {
+                id: id.unwrap_or_default(),
+                kind: kind.unwrap_or_default(),
+                file: file.unwrap_or_default(),
+                unique,
+                columns,
+                predicate,
             });
         }
     }
@@ -167,7 +249,10 @@ fn site(
                 )),
             }
         }
-        oracle = item.get("oracle").and_then(|v| v.as_str()).map(|s| s.to_string());
+        oracle = item
+            .get("oracle")
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string());
     } else if item.get("scope").is_some() || item.get("quantification").is_some() {
         errors.push(Diag::at(
             path,

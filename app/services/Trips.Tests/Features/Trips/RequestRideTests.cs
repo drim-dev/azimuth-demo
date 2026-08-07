@@ -116,9 +116,8 @@ public sealed class RequestRideTests(TripTestFixture fixture) : IAsyncLifetime
     }
 
     /// <summary>
-    /// Ranges over the ways an identifier can fail to name a quote — well formed but absent, and
-    /// not decodable at all. Both have to reach the rider as the same refusal, because the rider
-    /// cannot tell the difference and the client branches on the code.
+    /// Ranges over malformed and cryptographically altered tokens. Both have to reach the rider as
+    /// the same refusal, because the rider cannot distinguish corruption from forgery.
     /// </summary>
     [Fact]
     [Covers("trips/request", "request-rejected-with-unknown-quote", Scope.Component, Quantification.Universal)]
@@ -126,9 +125,12 @@ public sealed class RequestRideTests(TripTestFixture fixture) : IAsyncLifetime
     {
         var client = fixture.HttpClient.CreateClient();
         var random = new Random(20260807);
+        var signed = (await client.Quote()).Id;
+        var altered = (signed[0] == 'A' ? 'B' : 'A') + signed[1..];
 
         string[] identifiers =
         [
+            altered,
             .. Enumerable.Range(0, 12).Select(_ => IdEncoding.Encode(random.NextInt64(1, long.MaxValue))),
             "not-an-id",
             "0",
@@ -268,7 +270,6 @@ public sealed class RequestRideTests(TripTestFixture fixture) : IAsyncLifetime
         private readonly RequestRide.RequestValidator _validator = new();
 
         [Fact]
-        [Untraced("shape only; the claims about admission are settled against real storage")]
         public void A_request_names_its_rider()
         {
             _validator.TestValidate(new RequestRide.Request(string.Empty, "0000000000000"))
@@ -276,15 +277,13 @@ public sealed class RequestRideTests(TripTestFixture fixture) : IAsyncLifetime
         }
 
         [Fact]
-        [Untraced("shape only; the claims about admission are settled against real storage")]
         public void A_request_names_its_quote()
         {
             _validator.TestValidate(new RequestRide.Request("rider-1", string.Empty))
-                .ShouldHaveValidationErrorFor(x => x.QuoteId);
+                .ShouldHaveValidationErrorFor(x => x.QuoteToken);
         }
 
         [Fact]
-        [Untraced("the accepting half of the rules above")]
         public void A_well_formed_request_passes()
         {
             _validator.TestValidate(new RequestRide.Request("rider-1", "0000000000000"))

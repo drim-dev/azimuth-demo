@@ -38,6 +38,13 @@ impl Json {
         }
     }
 
+    pub fn as_bool(&self) -> Option<bool> {
+        match self {
+            Json::Bool(value) => Some(*value),
+            _ => None,
+        }
+    }
+
     pub fn obj(pairs: Vec<(&str, Json)>) -> Json {
         Json::Obj(pairs.into_iter().map(|(k, v)| (k.to_string(), v)).collect())
     }
@@ -129,7 +136,10 @@ fn write_string(s: &str, out: &mut String) {
 }
 
 pub fn parse(input: &str) -> Result<Json, String> {
-    let mut p = Parser { bytes: input.as_bytes(), pos: 0 };
+    let mut p = Parser {
+        bytes: input.as_bytes(),
+        pos: 0,
+    };
     p.skip_ws();
     let value = p.value()?;
     p.skip_ws();
@@ -146,7 +156,10 @@ struct Parser<'a> {
 
 impl<'a> Parser<'a> {
     fn line(&self) -> usize {
-        1 + self.bytes[..self.pos.min(self.bytes.len())].iter().filter(|&&b| b == b'\n').count()
+        1 + self.bytes[..self.pos.min(self.bytes.len())]
+            .iter()
+            .filter(|&&b| b == b'\n')
+            .count()
     }
 
     fn err(&self, what: &str) -> String {

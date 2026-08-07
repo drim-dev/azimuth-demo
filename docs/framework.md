@@ -263,11 +263,12 @@ and TypeScript.
 The export is a first-class artifact (D10): checks, dashboards, PR annotations and the agent tier
 are all consumers of it, and nothing re-parses specs.
 
-**What the tool does not check yet.** Enforcement claimed versus enforcement found — design entries
-name artifacts precisely enough for it, but the check is not written. Non-test evidence is taken on
-trust at its declared strength; that is the agent tier's job. Crediting a choke point needs
-call-graph analysis in the extractor (D10.1), so `invariant-breach` currently verifies only the
-weakest rung of the ladder — a guard at every site.
+**Machine-checkable design boundary.** Design entries bind to compiler/schema artifacts. The tool
+confirms .NET symbol existence and compares migration-derived index uniqueness, ordered columns and
+predicates. It does not infer “only caller,” shared transaction or semantic correctness from a
+symbol. Non-test evidence remains trusted at its declared strength; that is the agent tier's job.
+Crediting a choke point still needs call-graph analysis in the extractor (D10.1), so
+`invariant-breach` verifies only the weakest rung of the ladder — a guard at every site.
 
 ---
 
@@ -277,9 +278,10 @@ weakest rung of the ladder — a guard at every site.
 than by argument. D20 makes routine claims intent-only and D21 restores changes and archives as the
 transition around the three current-state facets.
 
-**Proposed.** The manual change protocol is experimental. A typed realization graph, named planned
-responsibilities and bindings from them to actual sites remain proposals until the first feature
-shows which structure is necessary.
+**Experimental.** Additive changes are projected and accepted archives are automated after two
+manual lifecycle observations. Other delta operations and rejected/abandoned archive automation
+remain absent. A general typed realization graph remains a proposal: the route experiment showed
+that derived surface membership does not imply semantic requirement discovery.
 
 **Open.** Six of the seven questions recorded in `decisions.md` remain open — question 3 was closed
 by D15 — and they are open because they need evidence from the fixture, not more argument: id

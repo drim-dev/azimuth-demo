@@ -1,7 +1,7 @@
 /**
  * Static-scan emitter for TypeScript.
  *
- * Reads sources, finds `realizes(...)` / `covers(...)` / `untraced(...)` calls, resolves each
+ * Reads sources, finds `realizes(...)` / `covers(...)` calls, resolves each
  * call's enclosing named symbol as the site, and writes the language-neutral manifest the core
  * reads. Each ecosystem emits the manifest natively; the core only ever reads manifests, which is
  * why adding a language is a day's work rather than a fork of the core.
@@ -12,6 +12,7 @@
 
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import { createHash } from 'node:crypto';
 import * as ts from 'typescript';
 
 const LANG = 'typescript';
@@ -33,12 +34,6 @@ export interface Entry {
   oracle?: string;
 }
 
-export interface UntracedTest {
-  site: string;
-  file: string;
-  lang: string;
-}
-
 export interface ClassMember {
   class: string;
   site: string;
@@ -46,11 +41,18 @@ export interface ClassMember {
   lang: string;
 }
 
+export interface Enumeration {
+  class: string;
+  kind: string;
+  source: string;
+  source_fingerprint: string;
+}
+
 export interface Manifest {
   realizes: Entry[];
   covers: Entry[];
-  untraced_tests: UntracedTest[];
   class_members: ClassMember[];
+  enumerations: Enumeration[];
 }
 
 export interface Warning {
@@ -62,25 +64,12 @@ export interface Warning {
 export interface ScanResult {
   realizes: Entry[];
   covers: Entry[];
-  untraced_tests: UntracedTest[];
   warnings: Warning[];
 }
 
-/**
- * A file is *tracing* when it carries at least one `covers`. Only there does a bare test count as
- * a finding — holding every test in a repo to this would be noise, and partial adoption is what
- * makes the ratchet work.
- */
 export function scanText(text: string, file: string): ScanResult {
-  const result: ScanResult = { realizes: [], covers: [], untraced_tests: [], warnings: [] };
+  const result: ScanResult = { realizes: [], covers: [], warnings: [] };
   const source = ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true, scriptKind(file));
-
-  let tracing = false;
-  visit(source, (node) => {
-    if (isMarkerCall(node, 'covers')) {
-      tracing = true;
-    }
-  });
 
   visit(source, (node) => {
     if (isMarkerCall(node, 'realizes')) {
@@ -135,14 +124,6 @@ export function scanText(text: string, file: string): ScanResult {
     }
   });
 
-  if (tracing) {
-    visit(source, (node) => {
-      if (!isTestCall(node)) return;
-      if (subtreeHasMarker(node, ['covers', 'untraced'])) return;
-      result.untraced_tests.push({ site: testName(node), file, lang: LANG });
-    });
-  }
-
   return result;
 }
 
@@ -167,14 +148,6 @@ function isTestCall(node: ts.Node): node is ts.CallExpression {
     node.arguments.length > 0 &&
     ts.isStringLiteralLike(node.arguments[0])
   );
-}
-
-function subtreeHasMarker(node: ts.Node, names: readonly string[]): boolean {
-  let found = false;
-  visit(node, (child) => {
-    if (names.some((name) => isMarkerCall(child, name))) found = true;
-  });
-  return found;
 }
 
 function stringArgs(call: ts.CallExpression): string[] {
@@ -247,7 +220,7 @@ export function walk(dir: string, out: string[] = []): string[] {
 }
 
 export function emit(roots: string[], repoRoot: string): { manifest: Manifest; warnings: Warning[] } {
-  const manifest: Manifest = { realizes: [], covers: [], untraced_tests: [], class_members: [] };
+  const manifest: Manifest = { realizes: [], covers: [], class_members: [], enumerations: [] };
   const warnings: Warning[] = [];
 
   const files: string[] = [];
@@ -263,13 +236,11 @@ export function emit(roots: string[], repoRoot: string): { manifest: Manifest; w
     const result = scanText(fs.readFileSync(file, 'utf8'), relative);
     manifest.realizes.push(...result.realizes);
     manifest.covers.push(...result.covers);
-    manifest.untraced_tests.push(...result.untraced_tests);
     warnings.push(...result.warnings);
   }
 
   manifest.realizes.sort(compare);
   manifest.covers.sort(compare);
-  manifest.untraced_tests.sort((a, b) => a.site.localeCompare(b.site));
   return { manifest, warnings };
 }
 
@@ -296,7 +267,7 @@ export function nextRoutes(
   classId: string,
   appDir: string,
   repoRoot: string,
-): { members: ClassMember[]; warnings: Warning[] } {
+): { members: ClassMember[]; enumeration?: Enumeration; warnings: Warning[] } {
   const manifestPath = path.join(appDir, '.next', 'app-path-routes-manifest.json');
   const warnings: Warning[] = [];
 
@@ -336,5 +307,18 @@ export function nextRoutes(
   }
 
   members.sort((a, b) => a.class.localeCompare(b.class) || a.file.localeCompare(b.file));
-  return { members, warnings };
+  if (warnings.length > 0) {
+    return { members, warnings };
+  }
+
+  return {
+    members,
+    enumeration: {
+      class: classId,
+      kind: 'next-routes',
+      source: path.relative(repoRoot, manifestPath).split(path.sep).join('/'),
+      source_fingerprint: createHash('sha256').update(fs.readFileSync(manifestPath)).digest('hex'),
+    },
+    warnings,
+  };
 }

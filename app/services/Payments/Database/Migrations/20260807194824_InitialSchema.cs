@@ -27,20 +27,16 @@ namespace Payments.Database.Migrations
                     table.PrimaryKey("PK_capture_failures", x => x.id);
                 });
 
-            migrationBuilder.CreateTable(
-                name: "capture_intents",
-                columns: table => new
-                {
-                    trip_id = table.Column<long>(type: "bigint", nullable: false),
-                    amount_minor = table.Column<long>(type: "bigint", nullable: false),
-                    currency = table.Column<string>(type: "text", nullable: false),
-                    written_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
-                    dispatched_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_capture_intents", x => x.trip_id);
-                });
+            // Trips owns the transactional outbox in the shared deployment. Payments still creates
+            // it when hosted alone, as in its component harness.
+            migrationBuilder.Sql("""
+                CREATE TABLE IF NOT EXISTS capture_intents (
+                    trip_id bigint PRIMARY KEY,
+                    quote_token text NOT NULL,
+                    written_at timestamp with time zone NOT NULL,
+                    dispatched_at timestamp with time zone NULL
+                );
+                """);
 
             migrationBuilder.CreateTable(
                 name: "captures",
@@ -72,9 +68,6 @@ namespace Payments.Database.Migrations
         {
             migrationBuilder.DropTable(
                 name: "capture_failures");
-
-            migrationBuilder.DropTable(
-                name: "capture_intents");
 
             migrationBuilder.DropTable(
                 name: "captures");

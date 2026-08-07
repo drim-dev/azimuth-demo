@@ -8,6 +8,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Payments.Database;
 using Payments.Domain;
+using Pricing;
 
 // The payments service. Slice 1 (D16.2): shares the Postgres instance with trip, with its own
 // tables. Splitting the store is a slice-3 concern and changes no claim here.
@@ -28,6 +29,10 @@ builder.Services.AddValidatorsFromAssemblyContaining<PaymentsDbContext>();
 builder.Services.AddSingleton(
     new IdFactory(generatorId: 1, new DateTimeOffset(2024, 1, 1, 0, 0, 0, TimeSpan.Zero)));
 builder.Services.AddSingleton(Clock.System);
+builder.Services.AddSingleton(new QuoteTokenCodec(
+    builder.Configuration["QuoteSigningKey"]
+    ?? Environment.GetEnvironmentVariable("QUOTE_SIGNING_KEY")
+    ?? "azimuth-demo-signing-key"));
 builder.Services.AddSingleton<IPaymentProvider, AlwaysCaptures>();
 
 builder.Services.AddExceptionHandler<DomainExceptionHandler>();

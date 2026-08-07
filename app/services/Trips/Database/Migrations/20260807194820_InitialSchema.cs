@@ -12,6 +12,17 @@ namespace Trips.Database.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            // Payments can be the first process to migrate the shared deployment. The table is
+            // still Trips-owned: this migration drops it, while Payments' migration does not.
+            migrationBuilder.Sql("""
+                CREATE TABLE IF NOT EXISTS capture_intents (
+                    trip_id bigint PRIMARY KEY,
+                    quote_token text NOT NULL,
+                    written_at timestamp with time zone NOT NULL,
+                    dispatched_at timestamp with time zone NULL
+                );
+                """);
+
             migrationBuilder.CreateTable(
                 name: "drivers",
                 columns: table => new
@@ -29,24 +40,6 @@ namespace Trips.Database.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "quotes",
-                columns: table => new
-                {
-                    id = table.Column<long>(type: "bigint", nullable: false),
-                    pickup = table.Column<string>(type: "text", nullable: false),
-                    dropoff = table.Column<string>(type: "text", nullable: false),
-                    total_minor = table.Column<long>(type: "bigint", nullable: false),
-                    currency = table.Column<string>(type: "text", nullable: false),
-                    issued_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
-                    expires_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
-                    consumed_by_trip = table.Column<long>(type: "bigint", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_quotes", x => x.id);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "trips",
                 columns: table => new
                 {
@@ -57,17 +50,14 @@ namespace Trips.Database.Migrations
                     fare_minor = table.Column<long>(type: "bigint", nullable: false),
                     currency = table.Column<string>(type: "text", nullable: false),
                     quote_id = table.Column<long>(type: "bigint", nullable: false),
+                    quote_token = table.Column<string>(type: "text", nullable: false),
+                    pickup = table.Column<string>(type: "text", nullable: false),
+                    dropoff = table.Column<string>(type: "text", nullable: false),
                     created_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_trips", x => x.id);
-                    table.ForeignKey(
-                        name: "FK_trips_quotes_quote_id",
-                        column: x => x.quote_id,
-                        principalTable: "quotes",
-                        principalColumn: "id",
-                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -115,21 +105,15 @@ namespace Trips.Database.Migrations
                 });
 
             migrationBuilder.CreateIndex(
-                name: "ux_quote_consumer",
-                table: "quotes",
-                column: "consumed_by_trip",
-                unique: true,
-                filter: "consumed_by_trip IS NOT NULL");
-
-            migrationBuilder.CreateIndex(
                 name: "ix_trip_transitions_trip",
                 table: "trip_transitions",
                 columns: new[] { "trip_id", "id" });
 
             migrationBuilder.CreateIndex(
-                name: "IX_trips_quote_id",
+                name: "ux_trip_quote",
                 table: "trips",
-                column: "quote_id");
+                column: "quote_id",
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "ux_trip_rider_active",
@@ -143,6 +127,9 @@ namespace Trips.Database.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
+                name: "capture_intents");
+
+            migrationBuilder.DropTable(
                 name: "drivers");
 
             migrationBuilder.DropTable(
@@ -153,9 +140,6 @@ namespace Trips.Database.Migrations
 
             migrationBuilder.DropTable(
                 name: "trips");
-
-            migrationBuilder.DropTable(
-                name: "quotes");
         }
     }
 }

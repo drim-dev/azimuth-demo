@@ -25,6 +25,7 @@
   <ItemGroup>
     <ProjectReference Include="../../../packages/dotnet/Azimuth.Annotations/Azimuth.Annotations.csproj" />
     <ProjectReference Include="../Common/Common.csproj" />
+    <ProjectReference Include="../Pricing/Pricing.csproj" />
   </ItemGroup>
 
 </Project>

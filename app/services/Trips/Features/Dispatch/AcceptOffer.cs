@@ -52,6 +52,9 @@ public static class AcceptOffer
                 throw new NotFoundException("no such trip", "trip:dispatch:accept:not_found");
             }
 
+            var assignment = TripStateMachine.Next(TripState.Requested, TripEvent.Assign)
+                ?? throw new InvalidOperationException("the state machine has no assignment transition");
+
             await using var transaction = await db.Database.BeginTransactionAsync(ct);
 
             var claimed = await db.Trips
@@ -61,7 +64,7 @@ public static class AcceptOffer
                 .ExecuteUpdateAsync(
                     t => t
                         .SetProperty(x => x.AssignedDriverId, request.DriverId)
-                        .SetProperty(x => x.State, TripState.Assigned),
+                        .SetProperty(x => x.State, assignment.To),
                     ct);
 
             if (claimed != 1)
@@ -74,7 +77,7 @@ public static class AcceptOffer
             {
                 TripId = id,
                 FromState = TripState.Requested,
-                ToState = TripState.Assigned,
+                ToState = assignment.To,
                 Actor = request.DriverId,
                 OccurredAt = clock.Now,
             });

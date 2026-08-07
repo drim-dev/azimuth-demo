@@ -1,4 +1,4 @@
-import { covers, untraced } from '@azimuth/annotations';
+import { covers } from '@azimuth/annotations';
 
 declare function test(name: string, body: () => void): void;
 
@@ -11,7 +11,8 @@ test('the projection redacts', () => {
 });
 
 test('the harness boots', () => {
-  untraced('smoke check; maps to no claim by design');
+  const ready = true;
+  void ready;
 });
 
 test('a bare test declaring nothing', () => {

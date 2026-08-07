@@ -2,7 +2,7 @@
 
 use azimuth::check::{rtm, HoleKind};
 use azimuth::design::{parse_design, Enforcement, Target};
-use azimuth::model::Model;
+use azimuth::model::{Artifact, Model};
 use azimuth::plan::{parse_plan, parse_standards};
 use azimuth::spec::parse_spec;
 
@@ -50,16 +50,42 @@ THEN it works
 fn design_err(source: &str) -> String {
     match parse_design("d.md", source) {
         Ok(_) => panic!("expected a parse error"),
-        Err(d) => d.iter().map(|x| x.to_string()).collect::<Vec<_>>().join("\n"),
+        Err(d) => d
+            .iter()
+            .map(|x| x.to_string())
+            .collect::<Vec<_>>()
+            .join("\n"),
     }
 }
 
 fn model(design_source: &str, plan_source: &str) -> Model {
     let spec = parse_spec("alpha.md", SPEC).expect("spec parses");
     let standards = parse_standards("s.md", STANDARDS).expect("standards parse");
-    let mut m = Model { specs: vec![spec], standards: Some(standards), ..Default::default() };
+    let mut m = Model {
+        specs: vec![spec],
+        standards: Some(standards),
+        ..Default::default()
+    };
     if !design_source.is_empty() {
         m.designs = vec![parse_design("d.md", design_source).expect("design parses")];
+        m.artifacts = m.designs[0]
+            .entries
+            .iter()
+            .flat_map(|entry| &entry.mechanisms)
+            .map(|mechanism| Artifact {
+                id: mechanism.binding.clone(),
+                kind: match mechanism.kind {
+                    Enforcement::Type => "dotnet-type",
+                    Enforcement::Constraint => "database-index",
+                    _ => "dotnet-method",
+                }
+                .into(),
+                file: "subject.cs".into(),
+                unique: (mechanism.kind == Enforcement::Constraint).then_some(true),
+                columns: vec![],
+                predicate: None,
+            })
+            .collect();
     }
     if !plan_source.is_empty() {
         m.plans = vec![parse_plan("p.md", plan_source).expect("plan parses")];
@@ -68,7 +94,10 @@ fn model(design_source: &str, plan_source: &str) -> Model {
 }
 
 fn kinds(m: &Model) -> Vec<(HoleKind, String)> {
-    rtm(m).into_iter().map(|h| (h.kind, h.claim.unwrap_or_default())).collect()
+    rtm(m)
+        .into_iter()
+        .map(|h| (h.kind, h.claim.unwrap_or_default()))
+        .collect()
 }
 
 const DESIGN: &str = "\
@@ -76,7 +105,7 @@ const DESIGN: &str = "\
 
 ## Requirement: matters
 Enforcement: constraint
-Site: `ux_alpha_thing` — partial unique index on `things(alpha_id)`
+Binding: `ux_alpha_thing` — partial unique index on `things(alpha_id)`
 
 Compare-and-set at the storage layer, not a check-then-write in the handler.
 
@@ -94,8 +123,23 @@ fn parses_a_design() {
     assert_eq!(entry.target, Target::Requirement("matters".into()));
     assert_eq!(entry.mechanisms.len(), 1);
     assert_eq!(entry.mechanisms[0].kind, Enforcement::Constraint);
-    assert!(entry.mechanisms[0].site.contains("ux_alpha_thing"));
+    assert!(entry.mechanisms[0].binding.contains("ux_alpha_thing"));
     assert!(d.residue.contains("optimistically"));
+}
+
+#[test]
+fn parses_expected_schema_properties_separately_from_the_binding() {
+    let source = DESIGN.replace(
+        "Binding: `ux_alpha_thing` — partial unique index on `things(alpha_id)`",
+        "Binding: postgres-index:things.ux_alpha_thing\n\
+Expect: unique=true; columns=alpha_id; predicate=active",
+    );
+    let design = parse_design("d.md", &source).expect("parses");
+    let mechanism = &design.entries[0].mechanisms[0];
+    assert_eq!(mechanism.binding, "postgres-index:things.ux_alpha_thing");
+    assert_eq!(mechanism.expected_unique, Some(true));
+    assert_eq!(mechanism.expected_columns, ["alpha_id"]);
+    assert_eq!(mechanism.expected_predicate.as_deref(), Some("active"));
 }
 
 /// C2 in the concern catalog: one rule, a choke point *and* a representation constraint. A single
@@ -107,9 +151,9 @@ fn a_requirement_may_carry_several_mechanisms() {
 
 ## Requirement: matters
 Enforcement: choke-point
-Site: `Alpha.Transition` is the only writer
+Binding: `Alpha.Transition` is the only writer
 Enforcement: constraint
-Site: conditional update predicated on current state
+Binding: conditional update predicated on current state
 
 The choke point alone does not survive concurrency.
 ";
@@ -121,17 +165,42 @@ The choke point alone does not survive concurrency.
 }
 
 #[test]
-fn every_enforcement_needs_a_site() {
-    let source = DESIGN.replace("Site: `ux_alpha_thing` — partial unique index on `things(alpha_id)`\n", "");
+fn every_enforcement_needs_a_binding() {
+    let source = DESIGN.replace(
+        "Binding: `ux_alpha_thing` — partial unique index on `things(alpha_id)`\n",
+        "",
+    );
     let text = design_err(&source);
-    assert!(text.contains("names no site"), "{text}");
+    assert!(text.contains("names no binding"), "{text}");
 }
 
 #[test]
-fn a_site_needs_an_enforcement() {
+fn a_binding_needs_an_enforcement() {
     let source = DESIGN.replace("Enforcement: constraint\n", "");
     let text = design_err(&source);
     assert!(text.contains("with no enforcement"), "{text}");
+}
+
+#[test]
+fn a_binding_that_no_extractor_emitted_is_a_hole() {
+    let mut m = model(DESIGN, "");
+    m.artifacts.clear();
+    let holes = kinds(&m);
+    assert!(
+        holes.contains(&(HoleKind::UnresolvedDesignBinding, "alpha#matters".into())),
+        "{holes:?}"
+    );
+}
+
+#[test]
+fn a_non_unique_index_cannot_back_constraint_enforcement() {
+    let mut m = model(DESIGN, "");
+    m.artifacts[0].unique = Some(false);
+    let holes = kinds(&m);
+    assert!(
+        holes.contains(&(HoleKind::EnforcementMismatch, "alpha#matters".into())),
+        "{holes:?}"
+    );
 }
 
 #[test]
@@ -149,7 +218,7 @@ fn an_entry_needs_a_reason() {
 
 ## Requirement: matters
 Enforcement: constraint
-Site: an index
+Binding: an index
 ";
     assert!(design_err(source).contains("gives no reason"));
 }
@@ -158,7 +227,10 @@ Site: an index
 /// fact. The label is not in the closed set, so it fails loudly rather than being ignored.
 #[test]
 fn strength_is_never_written_in_a_design_entry() {
-    let source = DESIGN.replace("Enforcement: constraint", "Strength: proof\nEnforcement: constraint");
+    let source = DESIGN.replace(
+        "Enforcement: constraint",
+        "Strength: proof\nEnforcement: constraint",
+    );
     let text = design_err(&source);
     assert!(text.contains("unrecognized line"), "{text}");
 }
@@ -172,14 +244,14 @@ fn the_residue_is_never_parsed() {
 
 ## Requirement: matters
 Enforcement: guard
-Site: every handler checks
+Binding: every handler checks
 
 A reason.
 
 ## Residue
 
 Enforcement: this line looks like a label and is prose.
-Site: so is this one.
+Binding: so is this one.
 ";
     let d = parse_design("d.md", source).expect("parses");
     assert_eq!(d.entries.len(), 1);
@@ -192,7 +264,8 @@ Site: so is this one.
 /// of its own.
 #[test]
 fn a_critical_requirement_without_a_design_entry_is_a_hole() {
-    let elsewhere = "# Design: beta\n\n## Requirement: other\nEnforcement: guard\nSite: x\n\nA reason.\n";
+    let elsewhere =
+        "# Design: beta\n\n## Requirement: other\nEnforcement: guard\nBinding: x\n\nA reason.\n";
     let mut m = model("", "");
     m.designs = vec![azimuth::design::parse_design("beta.md", elsewhere).unwrap()];
     let holes = kinds(&m);
@@ -206,7 +279,9 @@ fn a_critical_requirement_without_a_design_entry_is_a_hole() {
 #[test]
 fn a_design_entry_closes_it() {
     let m = model(DESIGN, "");
-    assert!(!kinds(&m).iter().any(|(k, _)| *k == HoleKind::UndeclaredMechanism));
+    assert!(!kinds(&m)
+        .iter()
+        .any(|(k, _)| *k == HoleKind::UndeclaredMechanism));
 }
 
 /// A facet attaches at the coarsest level where its statement is true, but an entry may key on a
@@ -218,12 +293,14 @@ fn a_scenario_keyed_entry_also_satisfies_the_requirement() {
 
 ## Claim: concurrent-thing
 Enforcement: constraint
-Site: an index
+Binding: an index
 
 A reason.
 ";
     let m = model(source, "");
-    assert!(!kinds(&m).iter().any(|(k, _)| *k == HoleKind::UndeclaredMechanism));
+    assert!(!kinds(&m)
+        .iter()
+        .any(|(k, _)| *k == HoleKind::UndeclaredMechanism));
 }
 
 #[test]
@@ -233,7 +310,7 @@ fn a_design_entry_for_no_requirement_is_dangling() {
 
 ## Requirement: ghost
 Enforcement: constraint
-Site: an index
+Binding: an index
 
 A reason.
 ";
@@ -260,7 +337,7 @@ Asserted without a mechanism.
 
 ## Requirement: matters
 Enforcement: guard
-Site: every handler checks
+Binding: every handler checks
 
 Guards everywhere, because a choke point was not feasible.
 ";
@@ -296,5 +373,7 @@ fn the_ladder_ranks_enforcement() {
 fn without_any_design_artifact_the_mechanism_check_is_silent() {
     let m = model("", "");
     assert!(m.designs.is_empty());
-    assert!(!kinds(&m).iter().any(|(k, _)| *k == HoleKind::UndeclaredMechanism));
+    assert!(!kinds(&m)
+        .iter()
+        .any(|(k, _)| *k == HoleKind::UndeclaredMechanism));
 }

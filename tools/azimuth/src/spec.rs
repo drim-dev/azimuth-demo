@@ -28,7 +28,10 @@ pub struct Loaded {
 pub fn load_specs(root: &Path) -> Result<Loaded, Vec<Diag>> {
     let mut files = Vec::new();
     collect_markdown(root, &mut files).map_err(|e| {
-        vec![Diag::file(&root.display().to_string(), format!("cannot read specs: {e}"))]
+        vec![Diag::file(
+            &root.display().to_string(),
+            format!("cannot read specs: {e}"),
+        )]
     })?;
     files.sort();
 
@@ -185,7 +188,11 @@ impl<'a> SpecParser<'a> {
         };
         let id = id.trim();
         if self.id.is_some() {
-            self.errors.push(Diag::at(self.path, line_no, "a file declares exactly one spec"));
+            self.errors.push(Diag::at(
+                self.path,
+                line_no,
+                "a file declares exactly one spec",
+            ));
             return;
         }
         if let Err(why) = validate_id(id, true) {
@@ -209,10 +216,18 @@ impl<'a> SpecParser<'a> {
     fn invariant(&mut self, rest: &str, line_no: usize, lines: &[&str], start: usize) -> usize {
         let id = rest.trim().to_string();
         if let Err(why) = validate_id(&id, false) {
-            self.errors.push(Diag::at(self.path, line_no, format!("invalid invariant id: {why}")));
+            self.errors.push(Diag::at(
+                self.path,
+                line_no,
+                format!("invalid invariant id: {why}"),
+            ));
         }
         if self.requirements.iter().any(|r| r.id == id) {
-            self.errors.push(Diag::at(self.path, line_no, format!("`{id}` is declared twice")));
+            self.errors.push(Diag::at(
+                self.path,
+                line_no,
+                format!("`{id}` is declared twice"),
+            ));
         }
 
         let mut i = start + 1;
@@ -238,7 +253,11 @@ impl<'a> SpecParser<'a> {
             } else if let Some(value) = trimmed.strip_prefix("Over:") {
                 let value = value.trim();
                 if let Err(why) = validate_id(value, true) {
-                    self.errors.push(Diag::at(self.path, ln, format!("invalid `Over:` id: {why}")));
+                    self.errors.push(Diag::at(
+                        self.path,
+                        ln,
+                        format!("invalid `Over:` id: {why}"),
+                    ));
                 } else {
                     over = Some(value.to_string());
                 }
@@ -273,7 +292,10 @@ impl<'a> SpecParser<'a> {
         let mut statement = String::new();
         while i < lines.len() {
             let trimmed = lines[i].trim();
-            if trimmed.starts_with("## ") || trimmed.starts_with("# ") || trimmed.starts_with("### ") {
+            if trimmed.starts_with("## ")
+                || trimmed.starts_with("# ")
+                || trimmed.starts_with("### ")
+            {
                 break;
             }
             if !trimmed.is_empty() && !trimmed.starts_with('>') {
@@ -297,7 +319,11 @@ impl<'a> SpecParser<'a> {
             id: id.clone(),
             criticality,
             statement,
-            scenarios: vec![Scenario { id, steps: Vec::new(), line: line_no }],
+            scenarios: vec![Scenario {
+                id,
+                steps: Vec::new(),
+                line: line_no,
+            }],
             line: line_no,
             domain: Domain::Sites,
             over,
@@ -348,7 +374,8 @@ impl<'a> SpecParser<'a> {
             if let Some(value) = trimmed.strip_prefix("Criticality:") {
                 let value = value.trim();
                 if saw_criticality {
-                    self.errors.push(Diag::at(self.path, ln, "`Criticality:` is declared twice"));
+                    self.errors
+                        .push(Diag::at(self.path, ln, "`Criticality:` is declared twice"));
                 }
                 saw_criticality = true;
                 match Criticality::parse(value) {
@@ -508,7 +535,9 @@ impl<'a> SpecParser<'a> {
                         ));
                     }
                     if kind == StepKind::Given
-                        && steps.iter().any(|s| s.kind == StepKind::When || s.kind == StepKind::Then)
+                        && steps
+                            .iter()
+                            .any(|s| s.kind == StepKind::When || s.kind == StepKind::Then)
                     {
                         self.errors.push(Diag::expecting(
                             self.path,
@@ -525,7 +554,10 @@ impl<'a> SpecParser<'a> {
                             "every WHEN before the first THEN",
                         ));
                     }
-                    steps.push(Step { kind, text: text.to_string() });
+                    steps.push(Step {
+                        kind,
+                        text: text.to_string(),
+                    });
                     i += 1;
                 }
                 None => {
@@ -557,7 +589,14 @@ impl<'a> SpecParser<'a> {
             ));
         }
 
-        (Some(Scenario { id, steps, line: line_no }), i)
+        (
+            Some(Scenario {
+                id,
+                steps,
+                line: line_no,
+            }),
+            i,
+        )
     }
 
     fn finish(self) -> Result<Spec, Vec<Diag>> {
@@ -592,7 +631,11 @@ impl<'a> SpecParser<'a> {
         };
 
         if errors.is_empty() {
-            Ok(Spec { id, path: self.path.to_string(), requirements: self.requirements })
+            Ok(Spec {
+                id,
+                path: self.path.to_string(),
+                requirements: self.requirements,
+            })
         } else {
             Err(errors)
         }

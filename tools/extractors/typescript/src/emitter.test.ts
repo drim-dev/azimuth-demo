@@ -113,43 +113,13 @@ test('warnings carry a line number', () => {
   assert.equal(result.warnings[0].file, 'a.test.ts');
 });
 
-// The dual of an uncovered claim, and only inside an opt-in area: a file already carrying a covers.
-test('a bare test in a tracing file is untraced', () => {
+test('an untagged test is outside the evidence model', () => {
   const result = scanText(
     `test('covered', () => { covers('a', 's', 'unit', 'example'); });
      test('bare', () => { const x = 1; });`,
     'a.test.ts',
   );
-  assert.deepEqual(
-    result.untraced_tests.map((u) => u.site),
-    ['bare'],
-  );
-});
-
-test('a bare test in a non-tracing file is not a finding', () => {
-  const result = scanText(`test('bare', () => {});`, 'a.test.ts');
-  assert.deepEqual(result.untraced_tests, []);
-});
-
-test('untraced exempts a test', () => {
-  const result = scanText(
-    `test('covered', () => { covers('a', 's', 'unit', 'example'); });
-     test('smoke', () => { untraced('maps to no claim by design'); });`,
-    'a.test.ts',
-  );
-  assert.deepEqual(result.untraced_tests, []);
-});
-
-test('it is treated as a test call', () => {
-  const result = scanText(
-    `it('covered', () => { covers('a', 's', 'unit', 'example'); });
-     it('bare', () => {});`,
-    'a.test.ts',
-  );
-  assert.deepEqual(
-    result.untraced_tests.map((u) => u.site),
-    ['bare'],
-  );
+  assert.deepEqual(Object.keys(result).sort(), ['covers', 'realizes', 'warnings']);
 });
 
 test('tsx parses', () => {

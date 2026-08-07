@@ -12,8 +12,7 @@ public sealed class CaptureIntentConfiguration : IEntityTypeConfiguration<Captur
         builder.HasKey(i => i.TripId);
 
         builder.Property(i => i.TripId).HasColumnName("trip_id").ValueGeneratedNever();
-        builder.Property(i => i.AmountMinor).HasColumnName("amount_minor").IsRequired();
-        builder.Property(i => i.Currency).HasColumnName("currency").IsRequired();
+        builder.Property(i => i.QuoteToken).HasColumnName("quote_token").IsRequired();
         builder.Property(i => i.WrittenAt).HasColumnName("written_at").IsRequired();
         builder.Property(i => i.DispatchedAt).HasColumnName("dispatched_at");
     }

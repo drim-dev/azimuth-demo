@@ -1,8 +1,8 @@
 # Design: trips/driver-view
 
 ## Requirement: offer-shows-pickup-not-rider
-Enforcement: type
-Site: `RiderContact` has no serializer; `DriverProjection.For(held)` is its only reveal
+Enforcement: guard
+Binding: dotnet-symbol:Trips.Domain.DriverProjection.Offer
 
 The mirror of `RiderProjection`, and deliberately a second type rather than a shared one. The two
 sides have opposite rules — the rider sees the driver only *after* assignment, the driver sees the
@@ -10,8 +10,8 @@ rider's contact only *while holding* — and a shared projection with a directio
 conditional away from returning the wrong side's data.
 
 ## Requirement: rider-contact-confined-to-held-trips
-Enforcement: type
-Site: the same `DriverProjection.For(held)`; no driver-facing route returns a rider record
+Enforcement: guard
+Binding: dotnet-symbol:Trips.Domain.DriverProjection.For
 
 Written as an invariant from the start rather than after a leak, because the rider side already
 paid for that lesson.

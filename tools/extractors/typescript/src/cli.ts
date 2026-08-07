@@ -60,6 +60,7 @@ function main(argv: string[]): number {
   for (const app of apps) {
     const routes = nextRoutes(app.classId, app.dir, root);
     manifest.class_members.push(...routes.members);
+    if (routes.enumeration) manifest.enumerations.push(routes.enumeration);
     warnings.push(...routes.warnings);
   }
 
@@ -67,11 +68,15 @@ function main(argv: string[]): number {
     console.error(`warning: ${warning.file}:${warning.line}: ${warning.message}`);
   }
 
+  if (warnings.some((warning) => warning.message.includes('left out of the class') ||
+      warning.message.includes('class will be narrower'))) {
+    return 2;
+  }
+
   fs.mkdirSync(path.dirname(path.resolve(output)), { recursive: true });
   fs.writeFileSync(output, `${JSON.stringify(manifest, null, 2)}\n`);
   console.error(
-    `${manifest.realizes.length} realizes, ${manifest.covers.length} covers, ` +
-      `${manifest.untraced_tests.length} untraced → ${output}`,
+    `${manifest.realizes.length} realizes, ${manifest.covers.length} covers → ${output}`,
   );
   return 0;
 }

@@ -10,10 +10,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Npgsql" Version="10.0.0" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="../../../packages/dotnet/Azimuth.Annotations/Azimuth.Annotations.csproj" />
   </ItemGroup>
 

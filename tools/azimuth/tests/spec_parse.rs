@@ -9,7 +9,11 @@ use azimuth::spec::parse_spec;
 fn err(source: &str) -> String {
     match parse_spec("t.md", source) {
         Ok(_) => panic!("expected a parse error, got a spec"),
-        Err(diags) => diags.iter().map(|d| d.to_string()).collect::<Vec<_>>().join("\n"),
+        Err(diags) => diags
+            .iter()
+            .map(|d| d.to_string())
+            .collect::<Vec<_>>()
+            .join("\n"),
     }
 }
 
@@ -71,7 +75,10 @@ fn unknown_criticality_is_a_parse_error() {
     let source = MINIMAL.replace("standard", "quite-important");
     let message = err(&source);
     assert!(message.contains("unknown criticality"), "{message}");
-    assert!(message.contains("critical, standard or routine"), "{message}");
+    assert!(
+        message.contains("critical, standard or routine"),
+        "{message}"
+    );
 }
 
 #[test]
@@ -106,7 +113,10 @@ fn a_scenario_needs_a_when_and_a_then() {
 fn steps_must_be_ordered() {
     let source = MINIMAL.replace("AND nothing else changed", "GIVEN a late precondition");
     let message = err(&source);
-    assert!(message.contains("`GIVEN` after a WHEN or THEN"), "{message}");
+    assert!(
+        message.contains("`GIVEN` after a WHEN or THEN"),
+        "{message}"
+    );
 }
 
 #[test]
@@ -170,7 +180,10 @@ fn unknown_headings_fail_loudly() {
 
 #[test]
 fn unknown_labels_fail_loudly() {
-    let source = MINIMAL.replace("Criticality: standard", "Criticality: standard\nScope: unit");
+    let source = MINIMAL.replace(
+        "Criticality: standard",
+        "Criticality: standard\nScope: unit",
+    );
     let message = err(&source);
     assert!(message.contains("unknown label `Scope:`"), "{message}");
 }

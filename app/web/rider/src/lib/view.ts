@@ -73,6 +73,7 @@ export function riderTrip(trip: ServiceTrip): RiderTrip {
 
 export interface ServiceQuote {
   id: string;
+  token: string;
   totalMinor: number;
   currency: string;
   expiresAt: string;
@@ -81,6 +82,7 @@ export interface ServiceQuote {
 
 export interface RiderQuote {
   id: string;
+  token: string;
   fare: { minor: number; currency: string };
   expiresAt: string;
   breakdown: { label: string; amountMinor: number }[];
@@ -88,9 +90,9 @@ export interface RiderQuote {
 
 export function riderQuote(quote: ServiceQuote): RiderQuote {
   realizes('pricing/quote', 'quote-returned');
-  realizes('pricing/quote', 'breakdown-accompanies-quote');
   return {
     id: quote.id,
+    token: quote.token,
     fare: { minor: quote.totalMinor, currency: quote.currency },
     expiresAt: quote.expiresAt,
     breakdown: quote.breakdown,

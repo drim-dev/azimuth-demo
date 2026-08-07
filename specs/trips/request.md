@@ -9,27 +9,28 @@ subsequent states (`trips/lifecycle`).
 ## Requirement: valid-quote-required
 Criticality: critical
 
-A ride request SHALL be admitted only if it references a quote that exists and has not expired.
+A ride request SHALL be admitted only if it presents an authentic signed quote that has not
+expired.
 
 ### Scenario: request-admitted-with-valid-quote
 GIVEN a quote that has not expired
-WHEN a rider submits a ride request referencing that quote
+WHEN a rider submits a ride request presenting that quote
 THEN the request is admitted
 
 ### Scenario: request-rejected-with-expired-quote
 GIVEN a quote that has expired
-WHEN a rider submits a ride request referencing that quote
+WHEN a rider submits a ride request presenting that quote
 THEN the request is rejected
 AND no trip is created
 
 ### Scenario: request-rejected-with-unknown-quote
-WHEN a rider submits a ride request referencing a quote identifier the system does not recognise
+WHEN a rider submits a malformed or altered quote token
 THEN the request is rejected
 AND no trip is created
 
 ### Scenario: quote-consumed-once
 GIVEN a quote that has already been consumed by an admitted ride request
-WHEN a rider submits any further ride request referencing that quote
+WHEN a rider submits any further ride request presenting that quote
 THEN the request is rejected
 AND no second trip is created
 

@@ -26,11 +26,16 @@ public static class DispatchCaptures
         /// call can exercise is one no client can use, and the claim asserts the product has it.
         /// </summary>
         public void MapEndpoint(WebApplication app) =>
-            app.MapPost("/dispatch", async (string? adjustmentReason, ISender sender, CancellationToken ct) =>
-                Results.Ok(await sender.Send(new Request(adjustmentReason), ct)));
+            app.MapPost("/dispatch", async (
+                string? adjustmentReason,
+                long? adjustmentMinor,
+                ISender sender,
+                CancellationToken ct) =>
+                Results.Ok(await sender.Send(new Request(adjustmentReason, adjustmentMinor ?? 0), ct)));
     }
 
-    public sealed record Request(string? AdjustmentReason = null) : IRequest<Response>;
+    public sealed record Request(string? AdjustmentReason = null, long AdjustmentMinor = 0)
+        : IRequest<Response>;
 
     public sealed record Response(int Captured);
 
@@ -49,7 +54,7 @@ public static class DispatchCaptures
             var pending = await db.CaptureIntents
                 .AsNoTracking()
                 .Where(i => i.DispatchedAt == null)
-                .Select(i => new { i.TripId, i.AmountMinor, i.Currency })
+                .Select(i => new { i.TripId, i.QuoteToken })
                 .ToListAsync(ct);
 
             var captured = 0;
@@ -58,9 +63,9 @@ public static class DispatchCaptures
                 var result = await sender.Send(
                     new CaptureTrip.Request(
                         intent.TripId,
-                        intent.AmountMinor,
-                        intent.Currency,
-                        request.AdjustmentReason),
+                        intent.QuoteToken,
+                        request.AdjustmentReason,
+                        request.AdjustmentMinor),
                     ct);
 
                 if (result.Captured)

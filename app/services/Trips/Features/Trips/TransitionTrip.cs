@@ -70,6 +70,9 @@ public static class TransitionTrip
         [Realizes("trips/lifecycle", "rider-cancels-before-start")]
         [Realizes("trips/lifecycle", "driver-cancels-after-assignment")]
         [Realizes("trips/lifecycle", "cancellation-after-completion-rejected")]
+        [Realizes("payments/capture", "capture-created-on-completion")]
+        [Realizes("payments/capture", "no-capture-before-completion")]
+        [Realizes("payments/capture", "no-capture-on-cancellation-without-fee")]
         public async Task<Response> Handle(Request request, CancellationToken ct)
         {
             if (!IdEncoding.TryDecode(request.Id, out var id))
@@ -120,6 +123,18 @@ public static class TransitionTrip
                 Actor = request.Actor,
                 OccurredAt = clock.Now,
             });
+
+            if (to == TripState.Completed)
+            {
+                // The intent commits with the state change. A direct payment call here could
+                // charge before a transaction that later rolls back.
+                db.CaptureIntents.Add(new CaptureIntent
+                {
+                    TripId = id,
+                    QuoteToken = current.QuoteToken,
+                    WrittenAt = clock.Now,
+                });
+            }
 
             await db.SaveChangesAsync(ct);
             await transaction.CommitAsync(ct);

@@ -69,9 +69,10 @@ What you examined, the wrong implementation you tried it against, and why the ve
 without that is an opinion the next reader cannot check.
 ```
 
-The fingerprint covers the claim's text and the content of every evidence file. Copy it exactly:
-it is what makes the verdict expire when what it judged changes, and a judgment that cannot expire
-is worse than none.
+The fingerprint covers the claim's text, effective verification requirements, covering evidence,
+the applicable design file and the source files of its machine bindings. Copy it exactly: it is
+what makes the verdict expire when what the judge examined changes, and a judgment that cannot
+expire is worse than none.
 
 `sound` is not a pass mark to be handed out. If you find yourself writing `sound` for everything,
 you are reading names rather than bodies.

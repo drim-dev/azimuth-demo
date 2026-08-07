@@ -189,3 +189,26 @@ untagged tests are outside the evidence model, and changes/archive form the tran
 three current-state facets. None is implemented in the tool, and none changes the measurements in
 this document. The first feature will run the provisional protocol in `changes/README.md` manually
 before notation or automation is added.
+
+## Update after two validating changes *(2026-08-08; supersedes the stale implementation notes)*
+
+D20 is implemented. The accepted model now contains 62 claims in seven specs; two routine claims
+owe intent only, and the other 60 carry current judgments. `azimuth check` reports zero holes after
+the re-judgment described below.
+
+D13.2 is implemented fail-closed. A new untagged `/trips/[id]/summary` page joined the rider class
+from Next's built route manifest and produced one `invariant-breach`. The routine scenario for that
+page carried zero linkage of its own; five declarations belong to existing critical privacy claims.
+The experiment validated derived surface membership and falsified the stronger reading that an
+enumerator discovers semantic realizations.
+
+Current design entries now bind to compiled symbols or migration-derived indexes. The first
+binding-aware re-read found two false proof claims—both privacy wrapper types expose an internal
+`Reveal()`—and one duplicated state decision in dispatch. The plans now record honest example
+evidence and residuals, the design records guards, and dispatch obtains assignment from the state
+machine. This is a framework finding that changed code and assurance, not merely notation.
+
+Judgment freshness now includes verification requirements, design and bound source. All 60 verdicts
+expired once and were re-read; the file-level over-invalidation cost remains. Additive change
+projection, finalization and accepted archive are implemented after the second lifecycle. Other
+delta operations and non-accepted dispositions remain unsupported rather than guessed.

@@ -2,25 +2,52 @@
 
 ## Claim: total-in-minor-units
 Strength: proof
-Evidence: money is a distinct integer-backed type with no floating-point constructor or
-conversion, in every language that carries an amount
+Evidence: `Money` is integer-backed with no floating-point constructor or conversion, and quote
+components and totals use `long` on every .NET boundary
 
-Violation is unrepresentable rather than untested. This is the strongest available result and is
-recorded so that the absence of a runtime test for it reads as a design outcome rather than an
-oversight.
+Violation is unrepresentable within the services. This does not claim proof over JavaScript number
+precision; that limit remains in the design residue.
 
 ## Claim: total-equals-components
+Scope: component
 Quantification: universal
 Oracle: metamorphic
 
-Already `universal` by criticality; recorded for the oracle. The useful check generates component
-sets and asserts the sum relation, rather than asserting one arithmetic result that a
-reimplementation of the same bug would also produce.
+Generate distances, currencies and both pressure branches through HTTP; assert the serialized sum
+and decode the signed token. Real serialization is part of the claim.
+
+## Claim: current-pressure-selects-surge
+Scope: component
+Quantification: universal
+Oracle: model-based
+
+Compare boundary relations (`open = available`, one above, large values and zero supply) against an
+independent integer policy expression rather than calling production policy code for the expected
+answer.
+
+## Claim: stale-pressure-does-not-select-surge
+Scope: component
+Quantification: universal
+
+Move the injected clock to one tick before and exactly at the five-minute boundary against a stored
+observation. A sample far beyond the boundary would pass against an unintended grace period.
+
+## Claim: surge-is-a-quote-component
+Scope: component
+Quantification: universal
+Oracle: contract
+
+Across pressure branches and currencies, assert the exact ordered component labels and decode the
+wire token independently. The real-process e2e adds one composition example through capture.
+
+## Residual: trusted-pressure-reporter
+Accepted: until a second behavior consumes market pressure, which is the first evidence that a
+reusable authenticated observation pipeline is warranted
+
+No evidence establishes that reported demand and supply match production reality.
 
 ## Residual: cross-language-money-boundary
-Accepted: until a second language carries an amount — the mobile client is where this first becomes
-real, and the evidence then is a contract test at each boundary, not a stronger type
+Accepted: while fixture amounts remain within JavaScript's exact integer range; revisit before a
+mobile client or materially larger monetary domain ships
 
-The proof above holds within each language. It does not cover the serialization boundary between
-them, where an amount can be parsed into a wider or lossier type before being sent back. Concern
-C10.
+The .NET proof does not cross into JavaScript's number representation.

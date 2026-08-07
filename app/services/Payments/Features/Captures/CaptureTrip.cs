@@ -1,4 +1,5 @@
 using Azimuth.Annotations;
+using Common.Exceptions;
 using Common.Identity;
 using Common.Time;
 using MediatR;
@@ -6,18 +7,28 @@ using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using Payments.Database;
 using Payments.Domain;
+using Pricing;
 
 namespace Payments.Features.Captures;
 
 /// <summary>Turns one completed trip into exactly one charge. Safe to send concurrently and repeatedly.</summary>
 public static class CaptureTrip
 {
-    public sealed record Request(long TripId, long AmountMinor, string Currency, string? AdjustmentReason = null)
+    public sealed record Request(
+        long TripId,
+        string QuoteToken,
+        string? AdjustmentReason = null,
+        long AdjustmentMinor = 0)
         : IRequest<Response>;
 
     public sealed record Response(bool Captured);
 
-    public sealed class RequestHandler(PaymentsDbContext db, IPaymentProvider provider, IdFactory ids, Clock clock)
+    public sealed class RequestHandler(
+        PaymentsDbContext db,
+        IPaymentProvider provider,
+        IdFactory ids,
+        Clock clock,
+        QuoteTokenCodec tokens)
         : IRequestHandler<Request, Response>
     {
         /// <summary>
@@ -36,6 +47,18 @@ public static class CaptureTrip
         [Realizes("payments/capture", "declined-capture-is-retryable")]
         public async Task<Response> Handle(Request request, CancellationToken ct)
         {
+            QuotePayload quote;
+            try
+            {
+                quote = tokens.Decode(request.QuoteToken);
+            }
+            catch (InvalidQuoteTokenException exception)
+            {
+                throw new BusinessRuleException(
+                    exception.Message,
+                    "payment:capture:create:invalid_quote");
+            }
+
             var alreadyCaptured = await db.Captures
                 .AsNoTracking()
                 .AnyAsync(c => c.TripId == request.TripId && !c.Voided, ct);
@@ -45,7 +68,27 @@ public static class CaptureTrip
                 return new Response(Captured: false);
             }
 
-            var outcome = await provider.CaptureAsync(request.TripId, request.AmountMinor, request.Currency);
+            long captureAmount;
+            try
+            {
+                captureAmount = checked(quote.TotalMinor + request.AdjustmentMinor);
+            }
+            catch (OverflowException)
+            {
+                throw new BusinessRuleException(
+                    "the adjusted capture amount exceeds minor-unit bounds",
+                    "payment:capture:create:invalid_adjustment");
+            }
+
+            if (captureAmount < 0
+                || (request.AdjustmentMinor != 0 && request.AdjustmentReason is null))
+            {
+                throw new BusinessRuleException(
+                    "an adjustment requires a reason and cannot make the capture negative",
+                    "payment:capture:create:invalid_adjustment");
+            }
+
+            var outcome = await provider.CaptureAsync(request.TripId, captureAmount, quote.Currency);
 
             // An outcome the caller never observed may or may not have succeeded, so it is treated
             // as possibly-captured and the index settles it. Assuming failure here double-charges.
@@ -66,8 +109,8 @@ public static class CaptureTrip
             {
                 Id = ids.Create(),
                 TripId = request.TripId,
-                AmountMinor = request.AmountMinor,
-                Currency = request.Currency,
+                AmountMinor = captureAmount,
+                Currency = quote.Currency,
                 AdjustmentReason = request.AdjustmentReason,
                 CapturedAt = clock.Now,
             });

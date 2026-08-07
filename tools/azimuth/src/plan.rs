@@ -91,6 +91,7 @@ pub struct LevelStandard {
 
 #[derive(Debug, Clone)]
 pub struct Standards {
+    pub path: String,
     /// D15: scope is not derived from criticality. Default `unit`, raised per claim where truth
     /// depends on something real.
     pub default_scope: Scope,
@@ -169,7 +170,11 @@ pub fn parse_standards(path: &str, source: &str) -> Result<Standards, Vec<Diag>>
                 continue;
             };
             if levels.iter().any(|l| l.criticality == criticality) {
-                errors.push(Diag::at(path, ln, format!("level `{name}` is declared twice")));
+                errors.push(Diag::at(
+                    path,
+                    ln,
+                    format!("level `{name}` is declared twice"),
+                ));
                 continue;
             }
 
@@ -236,7 +241,12 @@ pub fn parse_standards(path: &str, source: &str) -> Result<Standards, Vec<Diag>>
                 }
             };
 
-            levels.push(LevelStandard { criticality, strength, quantification, residual_required });
+            levels.push(LevelStandard {
+                criticality,
+                strength,
+                quantification,
+                residual_required,
+            });
             continue;
         }
 
@@ -244,9 +254,18 @@ pub fn parse_standards(path: &str, source: &str) -> Result<Standards, Vec<Diag>>
     }
 
     if !saw_heading {
-        errors.push(Diag::expecting(path, 0, "not a standards file", "`# Verification standards`"));
+        errors.push(Diag::expecting(
+            path,
+            0,
+            "not a standards file",
+            "`# Verification standards`",
+        ));
     }
-    for c in [Criticality::Critical, Criticality::Standard, Criticality::Routine] {
+    for c in [
+        Criticality::Critical,
+        Criticality::Standard,
+        Criticality::Routine,
+    ] {
         if !levels.iter().any(|l| l.criticality == c) {
             errors.push(Diag::expecting(
                 path,
@@ -258,7 +277,11 @@ pub fn parse_standards(path: &str, source: &str) -> Result<Standards, Vec<Diag>>
     }
 
     if errors.is_empty() {
-        Ok(Standards { default_scope: default_scope.unwrap(), levels })
+        Ok(Standards {
+            path: path.to_string(),
+            default_scope: default_scope.unwrap(),
+            levels,
+        })
     } else {
         Err(errors)
     }
@@ -270,7 +293,10 @@ pub fn load_plans(root: &Path) -> Result<Vec<Plan>, Vec<Diag>> {
     }
     let mut files = Vec::new();
     collect(root, &mut files).map_err(|e| {
-        vec![Diag::file(&root.display().to_string(), format!("cannot read plans: {e}"))]
+        vec![Diag::file(
+            &root.display().to_string(),
+            format!("cannot read plans: {e}"),
+        )]
     })?;
     files.sort();
 
@@ -291,7 +317,10 @@ pub fn load_plans(root: &Path) -> Result<Vec<Plan>, Vec<Diag>> {
                     errors.push(Diag::at(
                         &display,
                         1,
-                        format!("a plan for `{}` is already declared by {}", plan.spec, prev.path),
+                        format!(
+                            "a plan for `{}` is already declared by {}",
+                            plan.spec, prev.path
+                        ),
                     ));
                     continue;
                 }
@@ -312,7 +341,11 @@ fn collect(dir: &Path, out: &mut Vec<PathBuf>) -> std::io::Result<()> {
     for entry in fs::read_dir(dir)? {
         let entry = entry?;
         let path = entry.path();
-        let name = path.file_name().and_then(|n| n.to_str()).unwrap_or_default().to_string();
+        let name = path
+            .file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or_default()
+            .to_string();
         // The agent tier's output lives under verification/ but is not a plan.
         if path.is_dir() {
             if name != "judgments" {
@@ -429,7 +462,12 @@ pub fn parse_plan(path: &str, source: &str) -> Result<Plan, Vec<Diag>> {
                     "prose saying what is not covered",
                 ));
             }
-            residuals.push(Residual { id, description: block.prose, accepted, line: ln });
+            residuals.push(Residual {
+                id,
+                description: block.prose,
+                accepted,
+                line: ln,
+            });
             continue;
         }
 
@@ -455,7 +493,12 @@ pub fn parse_plan(path: &str, source: &str) -> Result<Plan, Vec<Diag>> {
     };
 
     if errors.is_empty() {
-        Ok(Plan { spec, path: path.to_string(), entries, residuals })
+        Ok(Plan {
+            spec,
+            path: path.to_string(),
+            entries,
+            residuals,
+        })
     } else {
         Err(errors)
     }
@@ -477,7 +520,11 @@ fn claim_entry(
         ));
     }
     for dup in block.duplicates() {
-        errors.push(Diag::at(path, dup.line, format!("`{}:` is declared twice", dup.key)));
+        errors.push(Diag::at(
+            path,
+            dup.line,
+            format!("`{}:` is declared twice", dup.key),
+        ));
     }
 
     let mut scope = None;

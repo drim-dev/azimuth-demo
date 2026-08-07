@@ -24,8 +24,7 @@ Proof satisfies a demonstration requirement, and `universal` satisfies an `examp
 required form is a floor, not a target.
 
 `Strength: none` on `routine` is D6.5 and D20: the level requires a spec entry and change history,
-and nothing in the mechanism or evidence facets. Neither `unrealized` nor `uncovered` applies. The
-tooling has not implemented the linkage half of that decision yet.
+and nothing in the mechanism or evidence facets. Neither `unrealized` nor `uncovered` applies.
 
 ## Scope is not derived from criticality
 

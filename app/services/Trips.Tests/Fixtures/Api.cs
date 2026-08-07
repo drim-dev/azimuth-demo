@@ -2,8 +2,8 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
 using FluentAssertions;
+using Pricing;
 using Trips.Domain;
-using Trips.Features.Quotes;
 using Trips.Features.Trips;
 
 namespace Trips.Tests.Fixtures;
@@ -25,52 +25,48 @@ public sealed record Problem(
 /// </remarks>
 public static class Api
 {
-    public static Task<HttpResponseMessage> IssueQuote(
-        this HttpClient client,
-        string pickup = "a",
-        string dropoff = "b",
-        long baseMinor = 1000,
-        long distanceMinor = 500,
-        string currency = "EUR") =>
-        client.PostAsJsonAsync(
-            "/quotes",
-            new IssueQuote.Request(pickup, dropoff, baseMinor, distanceMinor, currency));
+    private static long _quoteId = 10_000;
+    private static readonly QuoteTokenCodec Tokens = new("azimuth-demo-signing-key");
+
+    public sealed record TestQuote(string Id, long TotalMinor, string Currency, DateTimeOffset ExpiresAt);
 
     /// <summary>Issues a quote and hands back its id, for the many tests that only need one.</summary>
-    public static async Task<string> QuoteId(this HttpClient client)
-    {
-        var response = await client.IssueQuote();
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
-        return (await response.Read<IssueQuote.Response>()).Id;
-    }
+    public static async Task<string> QuoteId(this HttpClient client) => (await client.Quote()).Id;
 
     /// <summary>
     /// Issues a quote and hands back the whole response, for tests that vary its terms and need the
     /// total and expiry the service actually decided rather than the ones they asked for.
     /// </summary>
-    public static async Task<IssueQuote.Response> Quote(
+    public static Task<TestQuote> Quote(
         this HttpClient client,
         long baseMinor = 1000,
         long distanceMinor = 500,
         string currency = "EUR")
     {
-        var response = await client.IssueQuote(
-            baseMinor: baseMinor,
-            distanceMinor: distanceMinor,
-            currency: currency);
-
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
-        return await response.Read<IssueQuote.Response>();
+        _ = client;
+        var id = Interlocked.Increment(ref _quoteId);
+        var expiresAt = TripTestFixture.Start + TimeSpan.FromMinutes(2);
+        QuoteComponent[] components = [new("base", baseMinor), new("distance", distanceMinor), new("surge", 0)];
+        var total = checked(baseMinor + distanceMinor);
+        var token = Tokens.Encode(new QuotePayload(
+            id,
+            "downtown",
+            "airport",
+            TripTestFixture.Start,
+            expiresAt,
+            "surge-v1",
+            null,
+            currency,
+            components,
+            total));
+        return Task.FromResult(new TestQuote(token, total, currency.ToUpperInvariant(), expiresAt));
     }
-
-    public static Task<HttpResponseMessage> GetQuote(this HttpClient client, string id) =>
-        client.GetAsync($"/quotes/{id}");
 
     public static Task<HttpResponseMessage> RequestRide(
         this HttpClient client,
         string riderId,
-        string quoteId) =>
-        client.PostAsJsonAsync("/trips", new RequestRide.Request(riderId, quoteId));
+        string quoteToken) =>
+        client.PostAsJsonAsync("/trips", new RequestRide.Request(riderId, quoteToken));
 
     /// <summary>Requests a ride and hands back the trip id.</summary>
     public static async Task<string> RideId(this HttpClient client, string? riderId = null)

@@ -44,12 +44,3 @@ export function covers(
   void quantification;
   void oracle;
 }
-
-/**
- * Opts a test out of tracing: it legitimately covers no claim — setup, infrastructure, a smoke
- * check. A deliberate, attributable, reviewable exemption is fine anywhere; a silent absence is
- * not, and the reason is what makes it the former.
- */
-export function untraced(reason: string): void {
-  void reason;
-}

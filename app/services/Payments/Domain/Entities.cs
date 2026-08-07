@@ -11,9 +11,7 @@ public sealed class CaptureIntent
 {
     public long TripId { get; set; }
 
-    public long AmountMinor { get; set; }
-
-    public required string Currency { get; set; }
+    public required string QuoteToken { get; set; }
 
     public DateTimeOffset WrittenAt { get; set; }
 

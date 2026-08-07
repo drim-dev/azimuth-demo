@@ -1,8 +1,9 @@
 # A behavioural test cannot be universal evidence for a site-class claim
 
-**Status: one finding and one proposal. The proposal is not decided.** From the agent-tier pass over
-`specs/trips/rider-view.md` on 2026-08-07, recorded in
-[`verification/judgments/trips/rider-view.md`](../verification/judgments/trips/rider-view.md).
+**Status: finding confirmed and proposal applied.** The e2e remains an `example`; Next route
+membership is derived from the build and fails closed without an enumeration witness. On
+2026-08-08 an untagged compact-summary route produced `invariant-breach` before its discharge was
+added. The historical argument follows because it states the prediction the experiment confirmed.
 
 ## The finding
 

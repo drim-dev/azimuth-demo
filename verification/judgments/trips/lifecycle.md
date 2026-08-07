@@ -1,5 +1,13 @@
 # Judgments: trips/lifecycle
 
+Re-judged 2026-08-08 after the design binding and bound sources entered the freshness fingerprint.
+The source audit found dispatch hard-coding `Assigned`; it now obtains `(Requested, Assign)` from
+`TripStateMachine.Next`. The finite-state evidence remains discriminating for the reasons below.
+
+Fingerprints refreshed 2026-08-08 after the replay test added an assertion on the transactional
+capture intent. Every body was re-read; the only behavioral strengthening belongs to
+`replayed-transition-is-inert`, and the other verdicts remain sound for the reasons recorded below.
+
 First pass, 2026-08-07. Three component tags were corrected before judging: they declared
 `universal` over one scripted trip, and every claim they carry is also covered by a unit test that
 genuinely enumerates the machine, so the honest tag costs nothing and no floor is breached.
@@ -14,9 +22,9 @@ system; the expected answer comes from a model that can disagree with it. That i
 
 ## Claim: assigned-to-in-progress
 Verdict: sound
-Fingerprint: 73361cc907865cb2
-Judged: 2026-08-07
-Judge: claude-opus-5
+Fingerprint: dcec392a06a9bf44
+Judged: 2026-08-08
+Judge: codex
 
 Covered by `Exactly_the_permitted_pairs_are_accepted`, which walks every state–event pair and
 asserts acceptance exactly where the model permits it. `(Assigned, Start)` is one cell of that
@@ -28,9 +36,9 @@ started trip moves to in-progress cannot notice that the same event is wrongly a
 
 ## Claim: in-progress-to-completed
 Verdict: sound
-Fingerprint: d713fe820b651ee1
-Judged: 2026-08-07
-Judge: claude-opus-5
+Fingerprint: bf938b00908430f5
+Judged: 2026-08-08
+Judge: codex
 
 The same table, the cell `(InProgress, Complete)`. Same reasoning, and the component tests exercise
 the same transition against a real store on the way to every terminal case they set up, so the
@@ -38,9 +46,9 @@ transition is not only modelled but executed.
 
 ## Claim: unpermitted-transition-rejected
 Verdict: sound
-Fingerprint: d6f2673f8d17f7b7
-Judged: 2026-08-07
-Judge: claude-opus-5
+Fingerprint: 75e66a49a284ff9b
+Judged: 2026-08-08
+Judge: codex
 
 The claim quantifies over "a trip in any state" and "a transition not permitted from that state",
 and the evidence quantifies over exactly that: all twenty state–event pairs, asserting the
@@ -56,9 +64,9 @@ derived, which is the part D13.1 constrains.
 
 ## Claim: no-transition-out-of-terminal
 Verdict: sound
-Fingerprint: 1732fff79d355d7b
-Judged: 2026-08-07
-Judge: claude-opus-5
+Fingerprint: 4fabee10b0c8d70a
+Judged: 2026-08-08
+Judge: codex
 
 Two tests, at two scopes, and both are needed.
 
@@ -75,9 +83,9 @@ the component test is what excludes that.
 
 ## Claim: replayed-transition-is-inert
 Verdict: sound
-Fingerprint: cd2d4035f5ca9777
-Judged: 2026-08-07
-Judge: claude-opus-5
+Fingerprint: d673f57be0a91802
+Judged: 2026-08-08
+Judge: codex
 
 `A_replayed_transition_changes_nothing_however_many_times_it_arrives` completes a trip, then fires
 six further completions concurrently, five trials, asserting every one is refused with a conflict,
@@ -94,9 +102,9 @@ is honest: the axis is arrival multiplicity and the test ranges over it.
 
 ## Claim: transition-records-actor-and-instant
 Verdict: sound
-Fingerprint: 6cabd01f3797485b
-Judged: 2026-08-07
-Judge: claude-opus-5
+Fingerprint: 5d2c2c565a609819
+Judged: 2026-08-08
+Judge: codex
 
 `History_only_grows_and_records_who_caused_each_move` asserts every recorded transition carries a
 non-blank actor, that the last one is exactly `(in-progress, completed, driver-0)`, and that every
@@ -109,9 +117,9 @@ Retagged `Example`: one trip, one actor pair. `standard`'s floor is `example`.
 
 ## Claim: history-is-append-only
 Verdict: sound
-Fingerprint: a1d867ef83b39ed9
-Judged: 2026-08-07
-Judge: claude-opus-5
+Fingerprint: c7fd434ab5f001c7
+Judged: 2026-08-08
+Judge: codex
 
 The same test, and the append-only half is checked structurally rather than by counting: the history
 after two further transitions is asserted to *start with* the earlier history, element for element,
@@ -123,9 +131,9 @@ claim.
 
 ## Claim: rider-cancels-before-start
 Verdict: sound
-Fingerprint: da2a764ee8c3fdba
-Judged: 2026-08-07
-Judge: claude-opus-5
+Fingerprint: dea26520c080e624
+Judged: 2026-08-08
+Judge: codex
 
 Two tests again. `Cancellation_is_permitted_from_every_non_terminal_state` derives the non-terminal
 set and asserts cancellation is permitted from each and lands in `cancelled` — universal over the
@@ -137,9 +145,9 @@ handler that recorded a constant actor, the driver case in the same test fails.
 
 ## Claim: driver-cancels-after-assignment
 Verdict: sound
-Fingerprint: 9dac8d8486ad4df3
-Judged: 2026-08-07
-Judge: claude-opus-5
+Fingerprint: a0441b949b3062dd
+Judged: 2026-08-08
+Judge: codex
 
 The mirror of the above, and the reason the attribution assertion is not vacuous: the same test
 cancels one trip as `rider` and another as `driver-0`, asserting each is recorded as itself. One
@@ -147,9 +155,9 @@ case alone would pass against a hard-coded actor; the pair does not.
 
 ## Claim: cancellation-after-completion-rejected
 Verdict: sound
-Fingerprint: e9b0e838e4ab2365
-Judged: 2026-08-07
-Judge: claude-opus-5
+Fingerprint: f62242bbb163d7f3
+Judged: 2026-08-08
+Judge: codex
 
 Covered twice. `A_terminal_state_admits_no_event_at_all` includes `(Completed, Cancel)` in its
 derived sweep. The component test drives a trip to completion over HTTP and asserts the cancellation

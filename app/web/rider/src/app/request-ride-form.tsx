@@ -6,7 +6,7 @@ import type { RiderQuote } from '@/lib/view';
 
 /**
  * Quote, then confirm. The two steps are the domain's, not the form's: a quote is a thing the
- * rider is shown and may decline, and the trip is admitted against that quote's id.
+ * rider is shown and may decline, and the trip is admitted against that signed quote.
  */
 export function RequestRideForm() {
   const router = useRouter();
@@ -25,8 +25,7 @@ export function RequestRideForm() {
         body: JSON.stringify({
           pickup: String(form.get('pickup') ?? ''),
           dropoff: String(form.get('dropoff') ?? ''),
-          baseMinor: Number(form.get('baseMinor')),
-          distanceMinor: Number(form.get('distanceMinor')),
+          distanceMeters: Number(form.get('distanceMeters')),
           currency: String(form.get('currency') ?? 'EUR'),
         }),
       });
@@ -55,7 +54,7 @@ export function RequestRideForm() {
       const response = await fetch('/api/rider/trips', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ riderId: rider, quoteId: quote.id }),
+        body: JSON.stringify({ riderId: rider, quoteToken: quote.token }),
       });
 
       const body = await response.json();
@@ -79,21 +78,17 @@ export function RequestRideForm() {
         <div className="row">
           <div className="field">
             <label htmlFor="pickup">Pickup</label>
-            <input id="pickup" name="pickup" defaultValue="a" required />
+            <input id="pickup" name="pickup" defaultValue="downtown" required />
           </div>
           <div className="field">
             <label htmlFor="dropoff">Dropoff</label>
-            <input id="dropoff" name="dropoff" defaultValue="b" required />
+            <input id="dropoff" name="dropoff" defaultValue="airport" required />
           </div>
         </div>
         <div className="row">
           <div className="field">
-            <label htmlFor="baseMinor">Base fare (minor units)</label>
-            <input id="baseMinor" name="baseMinor" type="number" defaultValue={500} required />
-          </div>
-          <div className="field">
-            <label htmlFor="distanceMinor">Distance fare (minor units)</label>
-            <input id="distanceMinor" name="distanceMinor" type="number" defaultValue={1000} required />
+            <label htmlFor="distanceMeters">Estimated distance (metres)</label>
+            <input id="distanceMeters" name="distanceMeters" type="number" defaultValue={10000} required />
           </div>
         </div>
         <div className="field">

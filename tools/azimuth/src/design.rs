@@ -12,7 +12,7 @@ use crate::labels::read_block;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-const ENTRY_LABELS: &[&str] = &["Enforcement", "Site"];
+const ENTRY_LABELS: &[&str] = &["Enforcement", "Binding", "Expect"];
 
 /// D7's ladder, strongest first. Strength is never written in an entry: it is derived from the
 /// kind, and writing it would duplicate a derivable fact.
@@ -76,7 +76,10 @@ impl Enforcement {
 #[derive(Debug, Clone)]
 pub struct Mechanism {
     pub kind: Enforcement,
-    pub site: String,
+    pub binding: String,
+    pub expected_unique: Option<bool>,
+    pub expected_columns: Vec<String>,
+    pub expected_predicate: Option<String>,
     pub line: usize,
 }
 
@@ -115,11 +118,15 @@ pub struct Design {
 
 impl Design {
     pub fn for_requirement(&self, id: &str) -> Option<&DesignEntry> {
-        self.entries.iter().find(|e| e.target == Target::Requirement(id.to_string()))
+        self.entries
+            .iter()
+            .find(|e| e.target == Target::Requirement(id.to_string()))
     }
 
     pub fn for_scenario(&self, id: &str) -> Option<&DesignEntry> {
-        self.entries.iter().find(|e| e.target == Target::Scenario(id.to_string()))
+        self.entries
+            .iter()
+            .find(|e| e.target == Target::Scenario(id.to_string()))
     }
 }
 
@@ -129,7 +136,10 @@ pub fn load_designs(root: &Path) -> Result<Vec<Design>, Vec<Diag>> {
     }
     let mut files = Vec::new();
     collect(root, &mut files).map_err(|e| {
-        vec![Diag::file(&root.display().to_string(), format!("cannot read designs: {e}"))]
+        vec![Diag::file(
+            &root.display().to_string(),
+            format!("cannot read designs: {e}"),
+        )]
     })?;
     files.sort();
 
@@ -150,7 +160,10 @@ pub fn load_designs(root: &Path) -> Result<Vec<Design>, Vec<Diag>> {
                     errors.push(Diag::at(
                         &display,
                         1,
-                        format!("a design for `{}` is already declared by {}", design.spec, prev.path),
+                        format!(
+                            "a design for `{}` is already declared by {}",
+                            design.spec, prev.path
+                        ),
                     ));
                     continue;
                 }
@@ -237,7 +250,12 @@ pub fn parse_design(path: &str, source: &str) -> Result<Design, Vec<Diag>> {
 
         let target = trimmed
             .strip_prefix("## Requirement:")
-            .map(|r| (Target::Requirement(r.trim().to_string()), r.trim().to_string()))
+            .map(|r| {
+                (
+                    Target::Requirement(r.trim().to_string()),
+                    r.trim().to_string(),
+                )
+            })
             .or_else(|| {
                 trimmed
                     .strip_prefix("## Claim:")
@@ -260,11 +278,11 @@ pub fn parse_design(path: &str, source: &str) -> Result<Design, Vec<Diag>> {
                     path,
                     *sl,
                     format!("unrecognized line `{text}` under `{id}`"),
-                    "`Enforcement:` and `Site:`, in pairs",
+                    "`Enforcement:` and `Binding:`, in pairs",
                 ));
             }
 
-            // Pairs, in order: each `Enforcement` opens a mechanism and the `Site` after it closes
+            // Pairs, in order: each `Enforcement` opens a mechanism and the `Binding` after it closes
             // one. C2 in the concern catalog is the worked example — a choke point *and* a
             // representation constraint, for one rule.
             let mut mechanisms: Vec<Mechanism> = Vec::new();
@@ -276,8 +294,8 @@ pub fn parse_design(path: &str, source: &str) -> Result<Design, Vec<Diag>> {
                             errors.push(Diag::expecting(
                                 path,
                                 line,
-                                format!("`{}` names no site", kind.name()),
-                                "a `Site:` line after every `Enforcement:`",
+                                format!("`{}` names no binding", kind.name()),
+                                "a `Binding:` line after every `Enforcement:`",
                             ));
                         }
                         match Enforcement::parse(&label.value) {
@@ -290,24 +308,89 @@ pub fn parse_design(path: &str, source: &str) -> Result<Design, Vec<Diag>> {
                             )),
                         }
                     }
-                    "Site" => match pending.take() {
+                    "Binding" => match pending.take() {
                         Some((kind, _)) => {
                             if label.value.is_empty() {
-                                errors.push(Diag::at(path, label.line, "`Site:` is empty"));
+                                errors.push(Diag::at(path, label.line, "`Binding:` is empty"));
                             }
                             mechanisms.push(Mechanism {
                                 kind,
-                                site: label.value.clone(),
+                                binding: label.value.clone(),
+                                expected_unique: None,
+                                expected_columns: Vec::new(),
+                                expected_predicate: None,
                                 line: label.line,
                             });
                         }
                         None => errors.push(Diag::expecting(
                             path,
                             label.line,
-                            "`Site:` with no enforcement",
+                            "`Binding:` with no enforcement",
                             "an `Enforcement:` line before it",
                         )),
                     },
+                    "Expect" => {
+                        if pending.is_some() {
+                            errors.push(Diag::expecting(
+                                path,
+                                label.line,
+                                "`Expect:` before its binding",
+                                "a `Binding:` line before it",
+                            ));
+                            continue;
+                        }
+                        let Some(mechanism) = mechanisms.last_mut() else {
+                            errors.push(Diag::expecting(
+                                path,
+                                label.line,
+                                "`Expect:` with no binding",
+                                "a `Binding:` line before it",
+                            ));
+                            continue;
+                        };
+                        for part in label
+                            .value
+                            .split(';')
+                            .map(str::trim)
+                            .filter(|p| !p.is_empty())
+                        {
+                            let Some((key, value)) = part.split_once('=') else {
+                                errors.push(Diag::at(
+                                    path,
+                                    label.line,
+                                    format!("invalid expected property `{part}`"),
+                                ));
+                                continue;
+                            };
+                            match key.trim() {
+                                "unique" => match value.trim() {
+                                    "true" => mechanism.expected_unique = Some(true),
+                                    "false" => mechanism.expected_unique = Some(false),
+                                    other => errors.push(Diag::at(
+                                        path,
+                                        label.line,
+                                        format!("expected unique is not a boolean: `{other}`"),
+                                    )),
+                                },
+                                "columns" => {
+                                    mechanism.expected_columns = value
+                                        .split(',')
+                                        .map(str::trim)
+                                        .filter(|column| !column.is_empty())
+                                        .map(str::to_string)
+                                        .collect();
+                                }
+                                "predicate" => {
+                                    mechanism.expected_predicate = Some(value.trim().to_string())
+                                }
+                                other => errors.push(Diag::at(
+                                    path,
+                                    label.line,
+                                    format!("unknown expected property `{other}`"),
+                                )),
+                            }
+                        }
+                    }
                     _ => unreachable!("labels are restricted at read time"),
                 }
             }
@@ -315,8 +398,8 @@ pub fn parse_design(path: &str, source: &str) -> Result<Design, Vec<Diag>> {
                 errors.push(Diag::expecting(
                     path,
                     line,
-                    format!("`{}` names no site", kind.name()),
-                    "a `Site:` line after every `Enforcement:`",
+                    format!("`{}` names no binding", kind.name()),
+                    "a `Binding:` line after every `Enforcement:`",
                 ));
             }
 
@@ -325,7 +408,7 @@ pub fn parse_design(path: &str, source: &str) -> Result<Design, Vec<Diag>> {
                     path,
                     ln,
                     format!("`{id}` declares no mechanism"),
-                    "an `Enforcement:` and `Site:` pair",
+                    "an `Enforcement:` and `Binding:` pair",
                 ));
             }
             // Without a reason, an entry records a fact the code already knows.
@@ -338,7 +421,11 @@ pub fn parse_design(path: &str, source: &str) -> Result<Design, Vec<Diag>> {
                 ));
             }
 
-            entries.push(DesignEntry { target, mechanisms, line: ln });
+            entries.push(DesignEntry {
+                target,
+                mechanisms,
+                line: ln,
+            });
             continue;
         }
 
@@ -364,7 +451,12 @@ pub fn parse_design(path: &str, source: &str) -> Result<Design, Vec<Diag>> {
     };
 
     if errors.is_empty() {
-        Ok(Design { spec, path: path.to_string(), entries, residue })
+        Ok(Design {
+            spec,
+            path: path.to_string(),
+            entries,
+            residue,
+        })
     } else {
         Err(errors)
     }

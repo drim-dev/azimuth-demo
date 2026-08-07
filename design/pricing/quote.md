@@ -1,40 +1,55 @@
 # Design: pricing/quote
 
-## Requirement: quote-amount-integrity
+Pricing is a process with its own tables. `POST /market-pressure` records observations;
+`POST /quotes` selects the newest observation for the pickup market within five minutes, computes
+base, distance and surge, persists an immutable quote and returns both a display projection and an
+opaque signed token. `GET /quotes/{id}` reads the immutable record.
+
+Policy `surge-v1` adds 20% of base plus distance when open requests exceed available drivers,
+otherwise zero. All arithmetic is integer minor units and division rounds down. The fixed policy is
+deliberate: no second pricing concern yet justifies policy-configuration machinery.
+
+The token signs quote identity, route, lifetime, policy and pressure identities, currency, ordered
+components and total with HMAC-SHA256. Trips and Payments share the codec and value contract, but
+neither calls Pricing while consuming a quote. Each validates the token and its component sum.
+
+## Requirement: money-representation
 Enforcement: type
-Site: `Money` — integer minor units plus a currency, with no floating-point constructor,
-conversion, or implicit numeric operator
+Binding: dotnet-symbol:Pricing.Money
 
-Violation is unrepresentable rather than untested, which is why
-`verification/pricing/quote.md` records proof strength and no runtime test for
-`total-in-minor-units`.
+Violation is unrepresentable within .NET. Currency agreement remains a runtime check.
 
-*Corrected against the code.* An earlier version of this entry claimed that `Money.Sum` refuses a
-mix of currencies **at the type level**. It does not, and cannot without phantom types — the check
-is a runtime throw. The claim was falsifiable, writing the code falsified it, and the correction is
-the mechanism working rather than a lapse. What is genuinely type-level is the absence of any
-floating-point constructor, conversion, or arithmetic operator; that alone is what
-`total-in-minor-units` rests on.
+## Requirement: quote-components-sum-to-total
+Enforcement: choke-point
+Binding: dotnet-symbol:Pricing.QuoteTokenCodec.Encode
+Enforcement: guard
+Binding: dotnet-symbol:Pricing.QuoteTokenCodec.Decode
 
-The rounding decision lives here too: splits allocate the remainder to the first component in a
-deterministic order rather than distributing it, so that the sum relation holds exactly. This is
-arbitrary but must stay stable — changing it changes historical totals recomputed for disputes.
+`Money.Sum` also constructs the total in Pricing. Rechecking the token means a correctly signed but
+internally inconsistent payload is still unusable, rather than treating possession of the key as
+permission to violate quote structure.
+
+## Requirement: surge-policy-applied
+Enforcement: choke-point
+Binding: dotnet-symbol:Pricing.Service.Features.Quotes.IssueQuote.RequestHandler.Handle
+
+The latest observation qualifies only when `observed_at` is on the near side of the freshness
+boundary. Missing and stale pressure select zero surge rather than preventing quotation.
 
 ## Residue
 
-**Currency agreement is a runtime check, and the compiler will not stop a mixed-currency sum from
-being written.** The throw is covered by a test, but the test is the only thing between a
-mixed-currency total and production. A `Money<TCurrency>` shape would fix it and was rejected as
-disproportionate for a fixture; if a second currency ever ships, this is the first thing to revisit.
+**The pressure reporter is trusted to describe the market honestly.** Authentication and
+derivation from trip and driver events are absent. Tests establish freshness and policy mapping,
+not that the observation represents production reality. Revisit when a second behavior consumes
+market pressure.
 
-**The type protects each language separately, and nothing protects the seam between them.** A
-mobile client parsing an amount into a double for display and sending it back would satisfy every
-mechanism above. C10 is the concern; the residual in `verification/pricing/quote.md` is where the
-missing evidence is recorded. This note exists so that whoever adds the second language knows the
-guarantee stops at the boundary rather than assuming the type travels.
+**The signing key is shared by three services in configuration.** Distribution, rotation and
+compromise recovery are not exercised by this fixture.
 
-**Quotes are never reissued under the same identifier**, which makes them safe to cache anywhere
-and safe to log. That property is relied upon by the trip service's admission path and by
-support tooling. It is not enforced by anything except the absence of an update path, and an
-`UPDATE quotes SET` written in a migration or a fix-up script would break it without touching any
-code that a check looks at.
+**The type protects each language separately.** The rider app carries minor units as JavaScript
+numbers. A mobile or high-value boundary could lose integer precision; contract evidence must be
+revisited before amounts can approach that limit.
+
+**Quotes are immutable by absence of an update path, not by a storage rule.** A repair script could
+change `pricing_quotes` without touching code or invalidating an already issued token. The token
+would preserve what consumers accepted, while lookup and storage would disagree.

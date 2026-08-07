@@ -1,144 +1,118 @@
 # Judgments: pricing/quote
 
-First pass, 2026-08-07. Six tags were corrected before judging: each declared `universal` over one
-scripted case, and every claim's floor permits `example`, so the honest tag costs nothing. Judging
-them as they stood would have produced six `dishonest-tag` verdicts for a fault that is a word.
+Re-judged 2026-08-08 after design bindings and bound source entered the freshness fingerprint.
+`Money`, both token codec directions and the sole quote-construction handler were read directly;
+the existing verdict rationales remain applicable.
 
-**Conflict of interest:** the judge did not write these tests, but did write the retagging and has
-written most of what surrounds them.
-
-**Fingerprints refreshed 2026-08-07.** Every verdict below was re-affirmed rather than re-derived:
-the evidence files changed for reasons belonging to other specs — tag corrections in shared test
-files — and no test body carrying these claims was touched. The fingerprint expired because it
-hashes whole files, which D19.1 records.
+Re-judged for `market-aware-surge-quotes`. The routine breakdown claim is intentionally absent:
+D20 gives routine claims no agent-tier obligation, and retaining its old judgment would make a
+stale optional artifact look like a framework finding.
 
 ## Claim: quote-returned
 Verdict: sound
-Fingerprint: feab0d3db94af130
-Judged: 2026-08-07
-Judge: claude-opus-5
+Fingerprint: ee48bf6313ae6010
+Judged: 2026-08-08
+Judge: codex
 
-`An_issued_quote_carries_a_total_a_currency_and_an_expiry` asserts the identifier is non-empty, the
-total and currency are present and correct for the input, the expiry is the issuance instant plus
-the validity window, and a row exists in the store carrying the same currency.
-
-The claim is about what a quote *carries*, not about how the total is computed — that is
-`total-equals-components`, judged separately — so a literal expectation is adequate here. Against an
-issuer that returned no identifier, the assertion fails and every downstream test that references a
-quote fails with it. Against one that omitted the expiry, the instant assertion fails.
-
-Tagged `Example`, which is what one pickup-and-dropoff pair is, and `standard`'s floor is `example`.
+`Every_serialized_quote_total_is_the_sum_of_its_three_components` also asserts a non-empty public id
+and token, an expiry after issuance, and the requested currency on the HTTP response. Its tag is
+`example`, not `universal`; the loop supplies useful variation but does not overstate the claim.
+Removing any required response field makes the test fail during assertion or deserialization.
 
 ## Claim: unserviceable-area
 Verdict: sound
-Fingerprint: ce47098746217f06
-Judged: 2026-08-07
-Judge: claude-opus-5
+Fingerprint: cbf16aa279411543
+Judged: 2026-08-08
+Judge: codex
 
-`e2e.test.ts:206` posts a quote request with an empty pickup through the rider app and asserts a 400
-carrying `pricing:quote:issue:unserviceable_area`. The plan puts this at `e2e` because the refusal
-is a thing a rider observes, and the evidence is at that scope.
-
-Against a validator that accepted the request, the status assertion fails; against one that refused
-with a different code, the second assertion fails — and the code, not the message, is what a client
-branches on.
-
-Recorded: an empty pickup *stands in for* an unserviceable area. `IssueQuote`'s own comment says so.
-The claim says "outside every serviced market" and the fixture has no notion of markets, so what is
-verified is the refusal mechanism rather than the rule. That is a fixture limitation and not a
-defect in this evidence, but a reader should not take this claim as covering real serviceability.
+The e2e submits pickup `outside` through the rider BFF and asserts both 400 and the stable
+`unserviceable_area` code. `IssueQuote.RequestValidator` was checked against the source: it admits
+only the fixture's `downtown` market. Accepting every non-empty pickup or changing the refusal code
+fails this evidence.
 
 ## Claim: quote-valid-before-expiry
 Verdict: sound
-Fingerprint: ef93f1225f470225
-Judged: 2026-08-07
-Judge: claude-opus-5
+Fingerprint: d44ba1d05c856200
+Judged: 2026-08-08
+Judge: codex
 
-`A_quote_is_valid_until_its_expiry_and_not_after` reads a fresh quote and asserts it is not expired,
-then advances the clock past the validity window and asserts it is. Both halves are in one test,
-which is right: an implementation that reported everything valid passes the first assertion and
-fails the second.
+The component test reads a fresh quote and again one tick before expiry against real storage and an
+injected clock. Expiring immediately or one tick early fails; the sibling assertion at the exact
+instant prevents a permanently-valid implementation from passing the near side alone.
 
 ## Claim: quote-invalid-after-expiry
 Verdict: sound
-Fingerprint: fdd071794e24bd11
-Judged: 2026-08-07
-Judge: claude-opus-5
+Fingerprint: 456e7fdce7add6ec
+Judged: 2026-08-08
+Judge: codex
 
-Same test, and it carries the scenario's second half explicitly: after expiry the total is asserted
-*unchanged*. That matters more than it looks — an implementation that zeroed or recomputed the total
-on expiry would satisfy "reported expired" and violate the claim as written.
-
-The offset is one second past the boundary, one point. Tagged `Example` and it is one; the near side
-is covered by the sibling above, so the boundary itself is bracketed even though neither test ranges
-over the offset.
+At exactly the expiry instant the same stored quote is reported expired and its total is asserted
+unchanged. A grace period, strict-`<` boundary or zeroing/recalculation on expiry fails.
 
 ## Claim: expired-quote-is-never-revalidated
 Verdict: sound
-Fingerprint: f854f05f9906d6c7
-Judged: 2026-08-07
-Judge: claude-opus-5
+Fingerprint: 0c5fe4bcae680702
+Judged: 2026-08-08
+Judge: codex
 
-`An_expired_quote_stays_expired_and_a_new_one_gets_a_new_identity` expires a quote, issues a fresh
-one, asserts the identifiers differ and the new one is valid, then advances another hour and asserts
-the old one is *still* expired.
-
-The last step is what gives it teeth. Against an implementation that derived validity from the most
-recent issuance, or that reset expiry on read, the final assertion fails. The test's own comment
-names the mechanism — expiry is derived on read rather than written by a sweeper, so there is no
-path that moves it back — and the assertion checks the consequence rather than restating the
-comment.
+After expiry the test issues a second quote, proves its identity differs and that it is live, then
+reads the original again and proves it remains expired. Reusing an id or deriving old validity from
+the latest issuance fails.
 
 ## Claim: total-in-minor-units
 Verdict: sound
-Fingerprint: 8c9eb42cbabd9afb
-Judged: 2026-08-07
-Judge: claude-opus-5
+Fingerprint: f1516e6299e55c21
+Judged: 2026-08-08
+Judge: codex
 
-The plan records proof strength here with a stated mechanism: money is an integer-backed type with
-no floating-point constructor, conversion, or arithmetic operator, so a non-integral amount is
-unrepresentable rather than untested. `design/pricing/quote.md` carries the matching `Enforcement:
-type`, so this is not an unbacked proof.
-
-`An_amount_states_its_currency_and_counts_minor_units` is supplementary and tagged `Example`, which
-it is. It asserts the currency is normalized and that a blank currency throws.
-
-Worth recording because it is the corpus's clearest case of a claim that needs no test: what makes
-it sound is that `Money` has no constructor that could violate it, and a runtime test could only
-sample what the compiler already forbids. The design entry is also the one place in the repo where a
-type-level claim was checked against the code and *corrected* — an earlier version claimed
-`Money.Sum` refused mixed currencies at the type level, which it cannot without phantom types.
+The design site exists: `Money` exposes only `long MinorUnits`, has no floating-point constructor or
+conversion, and normalizes an explicit currency. The plan correctly limits proof to the .NET
+boundary and records JavaScript precision as residue. The example test is supplementary rather than
+being presented as the proof.
 
 ## Claim: total-equals-components
 Verdict: sound
-Fingerprint: 1b59751eab9281d6
-Judged: 2026-08-07
-Judge: claude-opus-5
+Fingerprint: acacf230958068d4
+Judged: 2026-08-08
+Judge: codex
 
-The strongest evidence in the corpus, and the only claim carrying a metamorphic oracle.
+One test generates 500 variable-length component sets and checks both an independent sum and a
+split/recombine metamorphic relation. The Pricing component test adds real HTTP serialization,
+three currencies and both surge branches, then decodes the token. Dropping a component, returning a
+constant, or serializing a different total fails at least one independent relation. The
+`QuoteTokenCodec` design site also exists and rejects mismatched totals on both encode and decode.
 
-`A_total_equals_the_sum_of_its_components` generates 500 component sets of varying size, including
-empty ones and negative amounts, and asserts two things: that summing the whole equals summing two
-halves and adding them, and that the total equals the independent sum. The first is metamorphic — it
-compares the implementation against itself under a transformation, so it does not depend on anyone
-recomputing the arithmetic correctly in the test.
-
-Against an implementation that dropped the last component, the split assertion fails for odd counts
-and the direct assertion fails for all. Against one that saturated or wrapped on overflow, the
-negative amounts and the split disagree. `Universal` is honest: the axis is the component set and
-the test ranges over it.
-
-## Claim: breakdown-accompanies-quote
+## Claim: current-pressure-selects-surge
 Verdict: sound
-Fingerprint: 1d1ee4d4934513fd
-Judged: 2026-08-07
-Judge: claude-opus-5
+Fingerprint: f3e67b1e5b38a248
+Judged: 2026-08-08
+Judge: codex
 
-`An_issued_quote_carries_the_components_that_make_up_its_total` asserts the labels are exactly
-`base` and `distance` and that the component amounts sum to the quote's total.
+The component evidence covers the policy's complete relation partition: below, equal to and above
+available supply, including zero and large counts. Its expected amount is an independent integer
+expression. Changing `>` to `>=`, always applying surge, returning a constant positive value or
+removing surge fails. The e2e additionally proves a fresh observation reaches the process that
+issues the quote.
 
-The second assertion is the one with teeth: a breakdown that omitted a component, or listed one
-twice, fails it. Against a breakdown returned as an empty list, both fail.
+## Claim: stale-pressure-does-not-select-surge
+Verdict: sound
+Fingerprint: fe8b97d103d98906
+Judged: 2026-08-08
+Judge: codex
 
-`routine` requires no evidence at all (`Strength: none`), so this claim owed nothing and has a
-discriminating test anyway. Tagged `Example`, which it is.
+Against a real stored high-pressure observation, the test proves positive surge one tick before the
+five-minute boundary and zero surge exactly at it. A hidden grace period, inclusive stale boundary
+or policy that ignores observation age fails. The source confirms `IssueQuote` selects only rows
+strictly newer than the boundary.
+
+## Claim: surge-is-a-quote-component
+Verdict: sound
+Fingerprint: 8f8367b32fbb0ad5
+Judged: 2026-08-08
+Judge: codex
+
+The component evidence asserts the exact ordered labels `base`, `distance`, `surge` over currencies,
+distances and both pressure branches, checks their serialized sum, and decodes the signed token. The
+e2e requires a positive surge and carries that same token through Trips to the captured amount.
+Omitting, relabelling or excluding surge from either signed total or capture makes one of those
+relations fail.

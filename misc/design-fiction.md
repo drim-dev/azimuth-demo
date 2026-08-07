@@ -1,7 +1,13 @@
 # The mechanism facet can describe code nobody wrote
 
-**Status: finding, measured. One rubric change already applied.** From judging the whole corpus on
-2026-08-07.
+**Status: resolved at the structural boundary on 2026-08-08.** The finding below is preserved as
+the evidence that caused typed design bindings. `Binding:` now resolves against artifacts emitted
+from compiled .NET assemblies and EF migration metadata. `unresolved-design-binding` catches a
+phantom symbol/index; `enforcement-mismatch` compares index uniqueness, columns and predicates.
+
+The semantic half remains deliberately unresolved: a symbol's existence does not establish “only
+caller,” transaction sharing or correct authentication. The agent tier still opens the source for
+those propositions. The historical analysis follows.
 
 ## What was found
 

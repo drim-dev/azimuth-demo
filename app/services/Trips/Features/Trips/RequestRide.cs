@@ -8,6 +8,7 @@ using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
+using Pricing;
 using Trips.Database;
 using Trips.Domain;
 using Trips.Features.Dispatch;
@@ -29,7 +30,7 @@ public static class RequestRide
                 Results.Ok(await sender.Send(request, ct)));
     }
 
-    public sealed record Request(string RiderId, string QuoteId) : IRequest<Response>;
+    public sealed record Request(string RiderId, string QuoteToken) : IRequest<Response>;
 
     public sealed record Response(
         string TripId,
@@ -44,11 +45,16 @@ public static class RequestRide
         public RequestValidator()
         {
             RuleFor(x => x.RiderId).NotEmpty();
-            RuleFor(x => x.QuoteId).NotEmpty();
+            RuleFor(x => x.QuoteToken).NotEmpty();
         }
     }
 
-    public sealed class RequestHandler(TripDbContext db, ISender sender, IdFactory ids, Clock clock)
+    public sealed class RequestHandler(
+        TripDbContext db,
+        ISender sender,
+        IdFactory ids,
+        Clock clock,
+        QuoteTokenCodec tokens)
         : IRequestHandler<Request, Response>
     {
         /// <summary>
@@ -83,33 +89,22 @@ public static class RequestRide
 
         private async Task<Trip> AdmitAsync(Request request, CancellationToken ct)
         {
-            if (!IdEncoding.TryDecode(request.QuoteId, out var quoteId))
+            QuotePayload quote;
+            try
             {
-                throw Refused("no such quote", "unknown_quote");
+                quote = tokens.Decode(request.QuoteToken);
+            }
+            catch (InvalidQuoteTokenException)
+            {
+                throw Refused("that quote is unknown or has been altered", "unknown_quote");
             }
 
             var now = clock.Now;
             await using var transaction = await db.Database.BeginTransactionAsync(ct);
 
-            var quote = await db.Quotes
-                .AsNoTracking()
-                .Where(q => q.Id == quoteId)
-                .Select(q => new { q.TotalMinor, q.Currency, q.ExpiresAt, q.ConsumedByTripId })
-                .FirstOrDefaultAsync(ct);
-
-            if (quote is null)
-            {
-                throw Refused("no such quote", "unknown_quote");
-            }
-
             if (quote.ExpiresAt <= now)
             {
                 throw Refused("that quote has expired", "expired_quote");
-            }
-
-            if (quote.ConsumedByTripId is not null)
-            {
-                throw Refused("that quote has already been spent", "quote_already_consumed");
             }
 
             var trip = new Trip
@@ -119,7 +114,10 @@ public static class RequestRide
                 State = TripState.Requested,
                 FareMinor = quote.TotalMinor,
                 Currency = quote.Currency,
-                QuoteId = quoteId,
+                QuoteId = quote.QuoteId,
+                QuoteToken = request.QuoteToken,
+                Pickup = quote.Pickup,
+                Dropoff = quote.Dropoff,
                 CreatedAt = now,
             };
 
@@ -127,28 +125,18 @@ public static class RequestRide
             {
                 db.Trips.Add(trip);
                 await db.SaveChangesAsync(ct);
-
-                // Conditional, so a quote spent between the read above and here is refused rather
-                // than double-spent. The affected-row count is the answer; re-reading would race.
-                var consumed = await db.Quotes
-                    .Where(q => q.Id == quoteId && q.ConsumedByTripId == null)
-                    .ExecuteUpdateAsync(q => q.SetProperty(x => x.ConsumedByTripId, trip.Id), ct);
-
-                if (consumed != 1)
-                {
-                    await transaction.RollbackAsync(ct);
-                    throw Refused("that quote has already been spent", "quote_already_consumed");
-                }
-
                 await transaction.CommitAsync(ct);
                 return trip;
             }
             catch (DbUpdateException e) when (e.InnerException is PostgresException { SqlState: "23505" } violation)
             {
                 await transaction.RollbackAsync(ct);
-                throw violation.ConstraintName == "ux_trip_rider_active"
-                    ? Refused("that rider already holds an active trip", "rider_has_active_trip")
-                    : Refused("that quote has already been spent", "quote_already_consumed");
+                throw violation.ConstraintName switch
+                {
+                    "ux_trip_rider_active" =>
+                        Refused("that rider already holds an active trip", "rider_has_active_trip"),
+                    _ => Refused("that quote has already been spent", "quote_already_consumed"),
+                };
             }
         }
 

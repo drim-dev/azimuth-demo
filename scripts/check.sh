@@ -16,6 +16,7 @@ dotnet test -v q --nologo tools/extractors/dotnet/Azimuth.Emit.Tests
 (cd tools/extractors/typescript && npx tsc -p tsconfig.json && node --test dist/emitter.test.js)
 
 echo "== app =="
+dotnet test -v q --nologo app/services/Pricing.Tests
 dotnet test -v q --nologo app/services/Trips.Tests
 dotnet test -v q --nologo app/services/Payments.Tests
 
@@ -27,8 +28,10 @@ dotnet test -v q --nologo app/services/Payments.Tests
 
 echo "== emit =="
 EMIT="$ROOT/tools/extractors/dotnet/Azimuth.Emit/bin/Debug/net10.0/azimuth-emit-dotnet"
-"$EMIT" --output "$OUT/dotnet.json" --root "$ROOT" --traced-root Trips.Tests --traced-root Payments.Tests \
+"$EMIT" --output "$OUT/dotnet.json" --root "$ROOT" \
   app/services/Pricing/bin/Debug/net10.0/Pricing.dll \
+  app/services/Pricing.Service/bin/Debug/net10.0/Pricing.Service.dll \
+  app/services/Pricing.Tests/bin/Debug/net10.0/Pricing.Tests.dll \
   app/services/Trips/bin/Debug/net10.0/Trips.dll \
   app/services/Trips.Tests/bin/Debug/net10.0/Trips.Tests.dll \
   app/services/Payments/bin/Debug/net10.0/Payments.dll \

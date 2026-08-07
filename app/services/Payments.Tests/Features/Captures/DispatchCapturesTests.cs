@@ -27,7 +27,6 @@ public sealed class DispatchCapturesTests(PaymentsTestFixture fixture) : IAsyncL
     /// dishonest: it declared `Invariant` and exercised one amount. The tag now describes the test.
     /// </summary>
     [Fact]
-    [Covers("payments/capture", "capture-created-on-completion", Scope.Component, Quantification.Universal)]
     [Covers("payments/capture", "capture-equals-trip-fare", Scope.Component, Quantification.Universal)]
     public async Task A_completed_trip_is_captured_for_whatever_its_fare_is()
     {
@@ -52,13 +51,31 @@ public sealed class DispatchCapturesTests(PaymentsTestFixture fixture) : IAsyncL
         }
     }
 
+    [Fact]
+    [Covers("payments/capture", "capture-equals-trip-fare", Scope.Component, Quantification.Universal,
+        Oracle.Contract)]
+    public async Task An_altered_quote_reaches_neither_the_provider_nor_the_capture_table()
+    {
+        var client = fixture.HttpClient.CreateClient();
+        var trip = TripId();
+        var intent = Api.CompletedTrip(trip, 1800);
+        intent.QuoteToken = (intent.QuoteToken[0] == 'A' ? 'B' : 'A') + intent.QuoteToken[1..];
+        await fixture.Database.Save(intent);
+
+        var response = await client.Dispatch();
+
+        response.StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
+        (await response.Read<Problem>()).ErrorCode.Should().Be("payment:capture:create:invalid_quote");
+        fixture.Provider.Calls.Should().Be(0);
+        (await CaptureCount(trip)).Should().Be(0);
+    }
+
     /// <summary>
     /// Rewritten after the agent tier judged the first version toothless: it asked whether a
     /// freshly generated id was in an empty set, and passed against a dispatcher that captured
     /// everything. A trip has to exist and be mid-flight for the claim to mean anything.
     /// </summary>
     [Fact]
-    [Covers("payments/capture", "no-capture-before-completion", Scope.Component, Quantification.Universal)]
     public async Task A_trip_that_has_not_completed_has_no_capture()
     {
         var client = fixture.HttpClient.CreateClient();
@@ -84,7 +101,6 @@ public sealed class DispatchCapturesTests(PaymentsTestFixture fixture) : IAsyncL
     /// fail it.
     /// </summary>
     [Fact]
-    [Covers("payments/capture", "no-capture-on-cancellation-without-fee", Scope.Component, Quantification.Universal)]
     public async Task A_cancelled_trip_with_no_fee_gets_no_capture_while_a_completed_one_does()
     {
         var client = fixture.HttpClient.CreateClient();
@@ -117,7 +133,6 @@ public sealed class DispatchCapturesTests(PaymentsTestFixture fixture) : IAsyncL
     /// with no index at all, which is the whole reason the plan raises the scope.
     /// </summary>
     [Fact]
-    [Covers("payments/capture", "duplicate-completion-event", Scope.Component, Quantification.Universal)]
     public async Task A_completion_delivered_any_number_of_times_captures_once()
     {
         var client = fixture.HttpClient.CreateClient();
@@ -199,14 +214,17 @@ public sealed class DispatchCapturesTests(PaymentsTestFixture fixture) : IAsyncL
             for (var trial = 0; trial < 6; trial++)
             {
                 var trip = TripId();
-                var adjusted = random.NextInt64(0, 5_000_000);
-                await fixture.Database.Save(Api.CompletedTrip(trip, adjusted));
+                var quoted = random.NextInt64(1_000_000, 5_000_000);
+                var adjustment = random.NextInt64(-500_000, 500_000);
+                if (adjustment == 0) adjustment = 1;
+                await fixture.Database.Save(Api.CompletedTrip(trip, quoted));
 
-                await client.Dispatch(adjustmentReason: reason);
+                await client.Dispatch(adjustmentReason: reason, adjustmentMinor: adjustment);
 
                 var capture = await client.Capture(trip);
                 capture.Should().NotBeNull();
-                capture!.AmountMinor.Should().Be(adjusted);
+                capture!.AmountMinor.Should().Be(quoted + adjustment);
+                capture.AmountMinor.Should().NotBe(quoted);
                 capture.AdjustmentReason.Should().Be(reason);
             }
         }
@@ -249,7 +267,6 @@ public sealed class DispatchCapturesTests(PaymentsTestFixture fixture) : IAsyncL
     }
 
     [Fact]
-    [Untraced("absence of a resource; no claim asserts the shape of a miss")]
     public async Task A_trip_with_no_capture_reports_absence()
     {
         var client = fixture.HttpClient.CreateClient();

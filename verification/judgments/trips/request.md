@@ -1,6 +1,10 @@
 # Judgments: trips/request
 
-**Re-judged 2026-08-07 after the evidence was rewritten to answer the first pass.** The superseded
+Re-judged 2026-08-08 after design bindings, migration metadata and bound source entered the
+freshness fingerprint. Quote decoding, both unique-index shapes and the admission constructor were
+read directly; the existing verdict rationales remain applicable.
+
+**Re-judged 2026-08-08 for signed quote admission.** The superseded
 verdicts were four `dishonest-tag` and two `toothless`; they are quoted in each entry rather than
 deleted, because the point of the first pass is lost if the record only shows the state after the
 fix.
@@ -10,23 +14,22 @@ these verdicts. Reading a test one wrote is worth little. What carries the three
 previously failed is **mutation**: the implementation was broken in a specific way, the test was
 run, and the failure observed. Where a verdict rests on reading rather than mutation, it says so.
 
-**Fingerprints refreshed 2026-08-07.** Every verdict below was re-affirmed rather than re-derived:
-the evidence files changed for reasons belonging to other specs — tag corrections in shared test
-files — and no test body carrying these claims was touched. The fingerprint expired because it
-hashes whole files, which D19.1 records.
+The new pass checked the token codec, handler and `ux_trip_quote` source in addition to every test
+body. Pricing is now a real process, so the earlier finding that no contract boundary existed no
+longer describes the system.
 
 ## Claim: request-admitted-with-valid-quote
 Verdict: sound
-Fingerprint: b34565e1c1a39bf8
-Judged: 2026-08-07
-Judge: claude-opus-5
+Fingerprint: de9b4f5c37063576
+Judged: 2026-08-08
+Judge: codex
 
 *(supersedes `dishonest-tag` — "two covering tests, both declaring `invariant`, both scripting a
 single case")*
 
 `A_valid_quote_admits_a_request_and_creates_one_trip_carrying_its_total` now runs 24 cases — three
-currencies × eight seeded amounts — each with a fresh rider, and reads the expected total back from
-the quote rather than writing it into the test. The e2e at `e2e.test.ts:198` is retagged `example`,
+currencies × eight signed amounts — each with a fresh rider, and reads the expected total from the
+token fixture rather than writing it into the test. The e2e is tagged `example`,
 which is what one scripted path through the assembled system is; the `critical` floor is met by the
 component test, so nothing is weakened.
 
@@ -43,9 +46,9 @@ quote that has not expired", and the near side of that boundary is exercised by
 
 ## Claim: request-rejected-with-expired-quote
 Verdict: sound
-Fingerprint: 6878eadb29534256
-Judged: 2026-08-07
-Judge: claude-opus-5
+Fingerprint: 5c25d11bb9892979
+Judged: 2026-08-08
+Judge: codex
 
 *(supersedes `dishonest-tag` — "probes exactly one point: one minute past expiry")*
 
@@ -61,48 +64,41 @@ window still passes.
 
 ## Claim: request-rejected-with-unknown-quote
 Verdict: sound
-Fingerprint: dae597dc05d0d713
-Judged: 2026-08-07
-Judge: claude-opus-5
+Fingerprint: ec0f1cced0589419
+Judged: 2026-08-08
+Judge: codex
 
 *(supersedes `dishonest-tag` — "declares an oracle the test does not use, about a boundary that does
 not exist in the fixture")*
 
 Two things moved, and only one was the test.
 
-`An_unrecognised_quote_is_refused_whatever_identifier_is_offered` now ranges over sixteen
-identifiers across both ways of failing to name a quote: twelve well-formed but absent ids, and four
-that do not decode at all. Both must reach the rider as the same refusal code, which is the part a
-client branches on.
-
-`Oracle.Contract` is gone from the tag, and the plan entry that demanded it is rewritten with the
-supersession marked. It had required a contract oracle because "the failure mode is a disagreement
-between two services", and there are no two services — quotes are issued by the trip service's own
-`/quotes` slice, and `Pricing` is `Money.cs`. Verified by reading, not by mutation.
-
-The general finding is worth more than this claim: **a plan can require a form for a reason that
-never existed, the tag can copy the requirement, and both look correct to `azimuth check`** —
-`Oracle` is descriptive and never gated, so nothing compares it to anything.
+`An_unrecognised_quote_is_refused_whatever_identifier_is_offered` includes a byte alteration of an
+otherwise valid signed token plus malformed encodings. Every case must return the same stable
+refusal and create no trip. `Oracle.Contract` is now accurate: Pricing and Trips compile against the
+same opaque token codec but run as different processes. Removing signature verification admits the
+altered case; treating malformed input as a server error fails the response assertion.
 
 ## Claim: quote-consumed-once
 Verdict: sound
-Fingerprint: 8647fda4ade88fea
-Judged: 2026-08-07
-Judge: claude-opus-5
+Fingerprint: cec092e7b2e6613b
+Judged: 2026-08-08
+Judge: codex
 
 Re-judged unchanged after the file was rewritten; the test itself was not modified. Eight concurrent
 requests at one quote, five trials, real Postgres, exactly one success and the right refusal code on
 every other. Eight distinct riders, so the per-rider index cannot pass it on the quote rule's
 behalf.
 
-Against the conditional update made unconditional, every request sees one affected row, all eight
-are admitted and the count assertion fails. Verified by reading in the first pass; not re-mutated.
+The mechanism changed with the process split: `ux_trip_quote` is a unique index on the quote id
+stored with each trip. Dropping it lets concurrent consumers insert more than one trip and fails the
+success and row counts; no write to Pricing is required.
 
 ## Claim: trip-created-in-requested-state
 Verdict: sound
-Fingerprint: a1641921fcfc9635
-Judged: 2026-08-07
-Judge: claude-opus-5
+Fingerprint: 0a0f6703596cb33f
+Judged: 2026-08-08
+Judge: codex
 
 *(supersedes `toothless` — "exactly one trip is created — never counted; carries the total from the
 referenced quote — asserted as `1500`, a literal")*
@@ -117,9 +113,9 @@ where before it was above the floor and false.
 
 ## Claim: rider-informed-of-trip
 Verdict: sound
-Fingerprint: 31045810d0df5c52
-Judged: 2026-08-07
-Judge: claude-opus-5
+Fingerprint: 0de2890ff2ea9dca
+Judged: 2026-08-08
+Judge: codex
 
 *(supersedes `dishonest-tag` — "declared `invariant` on one scripted path… a tag written on
 autopilot")*
@@ -137,9 +133,9 @@ and the verdict stands.
 
 ## Claim: second-request-rejected-while-active
 Verdict: sound
-Fingerprint: 6ee2d22e5affecd5
-Judged: 2026-08-07
-Judge: claude-opus-5
+Fingerprint: 466cf22d34282b02
+Judged: 2026-08-08
+Judge: codex
 
 Re-judged after a strengthening the first pass asked for. Eight concurrent requests for one rider
 against eight distinct quotes, five trials; exactly one success and exactly one stored trip. The
@@ -151,9 +147,9 @@ entire mechanism; without it all eight insert and the count fails. Verified by r
 
 ## Claim: request-admitted-after-terminal
 Verdict: sound
-Fingerprint: 42dfddab6442d5f1
-Judged: 2026-08-07
-Judge: claude-opus-5
+Fingerprint: c24a6c3698e522be
+Judged: 2026-08-08
+Judge: codex
 
 *(supersedes `toothless` — "there are two terminal states and the test exercises one… drop
 `'completed'` from that filter and this test passes unchanged")*

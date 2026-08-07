@@ -43,13 +43,14 @@ true.** An entry may key on a scenario where the mechanism genuinely differs per
 ```markdown
 ## Requirement: <requirement-id>
 Enforcement: <kind>
-Site: <the specific artifact, named precisely enough to check>
+Binding: <machine-addressable artifact id emitted by a compiler or schema extractor>
+Expect: <optional derived properties that must match, such as uniqueness, columns or predicate>
 
 Prose: why this mechanism, what was rejected and why, and what breaks if it changes. Required.
 An entry that states a mechanism without a reason records a fact the code already knows.
 ```
 
-A requirement may carry several `Enforcement`/`Site` pairs, in order, where more than one
+A requirement may carry several `Enforcement`/`Binding` pairs, in order, where more than one
 mechanism holds it up. C2 in the concern catalog is the worked example: a choke point *and* a
 representation constraint, for one rule.
 
@@ -70,22 +71,35 @@ The closed set, ordered by D7's ladder:
 proof-strength evidence, which is why a claim enforced at rung 1 or 2 can carry a weaker evidence
 requirement without that being a bargain. Writing it would duplicate a derivable fact.
 
-### What `Site` must be
+### What `Binding` must be
+
+`Binding:` is structural and exact; the paragraph below it carries the human explanation. A
+symbol binding establishes that the symbol exists, not that words such as “only” or “every” are
+true. A schema binding may additionally carry an `Expect:` line because uniqueness, columns and a
+predicate are derivable from migration metadata and can therefore be compared exactly.
+
+```markdown
+Enforcement: constraint
+Binding: postgres-index:trips.ux_trip_quote
+Expect: unique=true; columns=quote_id
+```
 
 Precise enough for the check to be mechanical:
 
-| Kind | `Site` names | The check asks |
+| Kind | `Binding` names | The check asks |
 |---|---|---|
-| `type` | the type and the property it makes impossible | does the type exist, and does it lack the escape hatch |
-| `schema` | the schema element | is the field absent, or the shape enforced |
+| `type` | the type claimed to make a value impossible | does the compiled type exist and is the binding a type rather than a method |
+| `schema` | the schema element | was that exact schema artifact emitted |
 | `constraint` | the constraint by name and table | does it exist in the migrations, with that uniqueness or predicate |
-| `choke-point` | the single function or module | is it the only caller of the mutation |
-| `middleware` | the registration and what it covers | is every member of the covered set actually registered |
-| `guard` | the sites | do all of them discharge it |
+| `choke-point` | the function or module claimed to be singular | does the compiled operation exist and is the binding an operation rather than a type |
+| `middleware` | the registration claimed to cover a surface | does the named artifact exist |
+| `guard` | the operation claimed to check a rule | does the named artifact exist |
 
-The last two rows are where the machine tier gets weakest and the enumerator problem (D13.1)
-appears: checking `middleware` or `guard` means enumerating a set, and a hand-listed set is worse
-than no check.
+Only migration-derived index properties are checked semantically in the current machine tier.
+Symbol existence prevents fiction and some category errors; it does not establish “only caller,”
+absence of an escape hatch, complete middleware coverage or correct guard logic. Those assertions
+remain part of the agent judgment until a purpose-built analyzer can derive them. Middleware and
+guard coverage also need a sound enumerator (D13.1); a hand-listed set is worse than no check.
 
 ## Residue
 

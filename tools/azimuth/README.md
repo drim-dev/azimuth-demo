@@ -12,6 +12,9 @@ azimuth check                          # all checks, specs/ by default
 azimuth check rtm --only 'billing/**'  # one check, scoped by id
 azimuth export --out model.json
 azimuth judge                          # claims with the fingerprint a judgment must carry
+azimuth change check changes/<id>      # additive target projection and applied-state report
+azimuth change finalize changes/<id>   # gate completion and write finalization.json
+azimuth change archive changes/<id> --date YYYY-MM-DD
 ```
 
 Exit codes: `0` clean, `1` errors found, `2` the model could not be derived.
@@ -34,19 +37,23 @@ rather than from the check (D9.2).
   requirement without `Criticality:` parses and becomes an `unclassified` hole (D6.2 vs D11).
 - **`manifest.rs`** reads linkage manifests, keyed on the pair `(spec, scenario)` (D2.2). The
   alpha's triple is rejected with an explanation rather than silently accepted, so a stale emitter
-  cannot produce tags that look fine and are not.
+  cannot produce tags that look fine and are not. Manifests also carry derived enumeration
+  witnesses and compiler/schema artifacts.
 - **`plan.rs`** parses `verification/standards.md` and the plans. Entries are deviations only — a
   claim with no entry is not unplanned, the standard applies. `Scope`/`Quantification`/`Oracle`
   state the *required* form; `Evidence` and its `Strength` declare a *provided* item, and
   `Strength` alone is an error because it reads as either.
 - **`design.rs`** parses the mechanism facet. Entries key on the requirement — one index makes all
   three `captured-once` scenarios true, and recording it three times would be duplication. A
-  requirement may carry several `Enforcement`/`Site` pairs. Strength is never written: it derives
-  from the enforcement kind (D7). The `## Residue` section is read and never parsed.
+  requirement may carry several `Enforcement`/`Binding` pairs. A binding must resolve against an
+  emitted artifact; `Expect:` can compare derived index properties. Strength is never written: it
+  derives from the enforcement kind (D7). The `## Residue` section is read and never parsed.
 - **`judgment.rs`** reads the agent tier's verdicts — `sound`, `toothless`, `dishonest-tag`,
   `spec-gap` — each carrying a fingerprint over everything the judgment looked at.
 - **`check.rs`** runs `rtm`.
 - **`model.rs`** holds the derived model and writes the export (D10).
+- **`change.rs`** projects additive intent deltas, preflights accepted completion, fingerprints the
+  derived model and gates deterministic archiving (D21.4).
 
 Four behaviours worth knowing:
 
@@ -64,12 +71,12 @@ Four behaviours worth knowing:
 
 ### Hole kinds
 
-Nineteen, in five groups.
+Twenty-one, in six groups.
 
 **Missing-facet** (D3's central structural claim — the facet is simply absent):
 
-`unrealized`, `uncovered`, `dangling-tag`, `dangling-realization`, `untraced-test`,
-`dangling-plan-entry`, `dangling-design-entry`, `wrong-form`.
+`unrealized`, `uncovered`, `dangling-tag`, `dangling-realization`, `dangling-plan-entry`,
+`dangling-design-entry`, `wrong-form`.
 
 **Incomplete-facet** — the facet is present but a required part of it is missing:
 
@@ -83,16 +90,19 @@ Whether only these four count against the falsifier is unsettled — `unbacked-p
 kinds and the two site-class kinds are not missing-facet combinations either. See
 `docs/framework.md`, which states the question without deciding it.
 
-**Cross-facet consistency:** `unbacked-proof`.
+**Cross-facet consistency:** `unbacked-proof`, `unresolved-design-binding`,
+`enforcement-mismatch`.
 
 **Agent tier** — findings the machine tier structurally cannot reach, because a tag is only as
 honest as whoever wrote it: `toothless-evidence`, `dishonest-tag-judged`, `spec-gap`,
 `stale-judgment`.
 
 **Site class** — for claims ranging over a set of sites rather than over executions:
-`invariant-breach`, `dangling-class`. `invariant-breach` is the one hole kind a per-scenario matrix
-structurally cannot find, because a claim quantified over a set of sites is not established by
-evidence about one site however good that evidence is.
+`invariant-breach`, `dangling-class`, `enumerator-unsound-or-underived`. An enumerator witness is
+required before member findings are authoritative; tags never count as a complete enumeration.
+`invariant-breach` is the one hole kind a per-scenario matrix structurally cannot find, because a
+claim quantified over a set of sites is not established by evidence about one site however good
+that evidence is.
 
 `undeclared-mechanism` is gated on the design artifact being in use at all. D8.1 requires each
 mechanism to be usable alone, so a project running `rtm` without designs is not told that every
@@ -100,18 +110,11 @@ critical requirement is a hole. Partial adoption still reports.
 
 ## What it does not do yet
 
-- **D20's intent-only routine level is not implemented.** The checker still reports `unrealized`
-  on a routine claim at warning severity, and still consumes `untraced_tests`. The decided result
-  is that routine claims owe no linkage and untagged tests are outside the evidence model, so
-  neither finding survives the implementation.
-- **Changes and archives are not implemented.** D21 decides the lifecycle, but the first feature
-  follows `changes/README.md` manually. The core reads only accepted current facets and has no
-  target-state projection or archive command.
-- **Enforcement claimed versus enforcement found is not checked.** Design entries name artifacts
-  precisely enough for it — a constraint by name and table, a type and the property it makes
-  impossible — and the code and manifests to check against now exist. The check is simply not
-  written. This is the largest remaining gap between what the mechanism facet asserts and what any
-  machine confirms.
+- **Change projection supports additions only.** Replacement, removal, scenario movement and
+  criticality transitions fail as unsupported rather than being approximated.
+- **Symbol bindings establish existence only.** Database index bindings additionally compare
+  uniqueness, columns and predicates. “Only caller,” transaction sharing and semantic properties
+  still require a purpose-built analyzer, evidence or agent judgment.
 - **`invariant-breach` verifies only the weakest rung of the enforcement ladder** — a guard at every
   site. A choke point every member routes through would report N−1 breaches, which is exactly the
   defect D7 names in the alpha. Crediting one needs call-graph analysis in the extractor (D10.1).

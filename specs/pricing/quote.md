@@ -15,7 +15,7 @@ currency, and an expiry instant.
 ### Scenario: quote-returned
 WHEN a rider requests a fare for a pickup and a dropoff
 THEN a quote is returned carrying a total amount, a currency and an expiry instant
-AND the quote carries an identifier that a later ride request can reference
+AND the quote carries a signed representation that a later ride request can present
 
 ### Scenario: unserviceable-area
 GIVEN a pickup location outside every serviced market
@@ -46,20 +46,46 @@ WHEN a fare is requested again for the same pickup and dropoff
 THEN a new quote with a new identifier is issued
 AND the expired quote remains expired
 
-## Requirement: quote-amount-integrity
+## Requirement: money-representation
 Criticality: critical
 
-A quote's total SHALL be expressed in integer minor units of its currency, and SHALL equal the
-sum of its components.
+A quote's total and every component SHALL be expressed as integer minor units in one stated
+currency.
 
 ### Scenario: total-in-minor-units
 WHEN a quote is issued
 THEN its total is an integer count of minor units
 AND its currency is stated explicitly
 
+## Requirement: quote-components-sum-to-total
+Criticality: critical
+
+A quote's total SHALL equal the sum of its components.
+
 ### Scenario: total-equals-components
 WHEN a quote is issued with any set of fare components
 THEN the total equals the sum of the component amounts
+
+## Requirement: surge-policy-applied
+Criticality: critical
+
+Pricing SHALL apply the versioned surge policy from the latest non-stale pressure observation for
+the pickup market, and SHALL carry the result as a signed quote component.
+
+### Scenario: current-pressure-selects-surge
+GIVEN a current pressure observation whose open requests exceed available drivers
+WHEN a quote is issued for that market
+THEN the versioned surge policy contributes a positive surge amount
+
+### Scenario: stale-pressure-does-not-select-surge
+GIVEN no current pressure observation for the pickup market
+WHEN a quote is issued
+THEN the surge amount is zero
+
+### Scenario: surge-is-a-quote-component
+WHEN a quote is issued
+THEN surge is one of the signed components
+AND the signed total equals base plus distance plus surge
 
 ## Requirement: quote-breakdown-shown
 Criticality: routine

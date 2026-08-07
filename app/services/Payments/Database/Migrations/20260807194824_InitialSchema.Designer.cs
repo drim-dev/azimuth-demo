@@ -12,7 +12,7 @@ using Payments.Database;
 namespace Payments.Database.Migrations
 {
     [DbContext(typeof(PaymentsDbContext))]
-    [Migration("20260805123946_InitialSchema")]
+    [Migration("20260807194824_InitialSchema")]
     partial class InitialSchema
     {
         /// <inheritdoc />
@@ -101,18 +101,14 @@ namespace Payments.Database.Migrations
                         .HasColumnType("bigint")
                         .HasColumnName("trip_id");
 
-                    b.Property<long>("AmountMinor")
-                        .HasColumnType("bigint")
-                        .HasColumnName("amount_minor");
-
-                    b.Property<string>("Currency")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("currency");
-
                     b.Property<DateTimeOffset?>("DispatchedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("dispatched_at");
+
+                    b.Property<string>("QuoteToken")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("quote_token");
 
                     b.Property<DateTimeOffset>("WrittenAt")
                         .HasColumnType("timestamp with time zone")

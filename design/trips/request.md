@@ -2,17 +2,24 @@
 
 ## Requirement: valid-quote-required
 Enforcement: choke-point
-Site: `AdmitRideRequest` is the only constructor of a trip; it resolves the quote and rejects on
-absence or expiry before any write
+Binding: dotnet-symbol:Trips.Features.Trips.RequestRide.RequestHandler.Handle
+Enforcement: guard
+Binding: dotnet-symbol:Pricing.QuoteTokenCodec.Decode
+Enforcement: constraint
+Binding: postgres-index:trips.ux_trip_quote
+Expect: unique=true; columns=quote_id
 
-One admission path rather than validation spread across the BFF and the service. The BFF checks
-expiry too, for a fast rejection and a better message, but that check is presentation — if it
-were the only one, a direct call to the service would create a trip on an expired fare.
+One admission path rather than validation spread across the BFF and the service. Pricing is not
+called at admission: token authenticity and internal consistency are local, so a Pricing outage
+cannot turn a live quote into an unknown one.
+
+The token supplies quote identity across the process boundary. The index records consumption on the
+trip and settles concurrent requests without writing Pricing's store.
 
 ## Requirement: one-active-trip-per-rider
 Enforcement: constraint
-Site: `ux_trip_rider_active` — partial unique index on `trips(rider_id)` where state is not
-terminal
+Binding: postgres-index:trips.ux_trip_rider_active
+Expect: unique=true; columns=rider_id; predicate=state NOT IN ('completed', 'cancelled')
 
 The same shape as `captured-once` and for the same reason: two requests arriving together both
 read "no active trip". A check in `AdmitRideRequest` handles the ordinary case and produces the
@@ -24,9 +31,5 @@ currently catches that.
 
 ## Residue
 
-**Quote consumption is recorded on the quote, not on the trip.** A quote carries a
-`consumed_by_trip` reference, so `quote-consumed-once` is enforced in `pricing`'s table by a
-service that does not own trips. This is a deliberate inversion — the alternative is a
-distributed check across two services on the request path — and it means `pricing` has a column
-whose only writer is `trip`. If those services are ever split across a real boundary, this is the
-first thing that breaks.
+Trips and Pricing share a signing key. A compromised consumer can therefore mint quotes; asymmetric
+signing would narrow that authority but adds key lifecycle work this fixture does not exercise.

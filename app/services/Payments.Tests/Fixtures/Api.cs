@@ -5,6 +5,7 @@ using Common.Identity;
 using FluentAssertions;
 using Payments.Domain;
 using Payments.Features.Captures;
+using Pricing;
 
 namespace Payments.Tests.Fixtures;
 
@@ -23,9 +24,16 @@ public sealed record Problem(
 /// </remarks>
 public static class Api
 {
-    public static Task<HttpResponseMessage> Dispatch(this HttpClient client, string? adjustmentReason = null) =>
+    private static long _quoteId = 50_000;
+    private static readonly QuoteTokenCodec Tokens = new("azimuth-demo-signing-key");
+    public static Task<HttpResponseMessage> Dispatch(
+        this HttpClient client,
+        string? adjustmentReason = null,
+        long adjustmentMinor = 0) =>
         client.PostAsync(
-            adjustmentReason is null ? "/dispatch" : $"/dispatch?adjustmentReason={adjustmentReason}",
+            adjustmentReason is null
+                ? "/dispatch"
+                : $"/dispatch?adjustmentReason={adjustmentReason}&adjustmentMinor={adjustmentMinor}",
             null);
 
     public static Task<HttpResponseMessage> GetCapture(this HttpClient client, long tripId) =>
@@ -58,8 +66,30 @@ public static class Api
         new()
         {
             TripId = tripId,
-            AmountMinor = amountMinor,
-            Currency = currency,
+            QuoteToken = Quote(amountMinor, currency),
             WrittenAt = PaymentsTestFixture.Start,
         };
+
+    public static string Quote(long amountMinor, string currency = "EUR")
+    {
+        var id = Interlocked.Increment(ref _quoteId);
+        var baseMinor = amountMinor / 3;
+        QuoteComponent[] components =
+        [
+            new("base", baseMinor),
+            new("distance", amountMinor - baseMinor),
+            new("surge", 0),
+        ];
+        return Tokens.Encode(new QuotePayload(
+            id,
+            "downtown",
+            "airport",
+            PaymentsTestFixture.Start,
+            PaymentsTestFixture.Start + TimeSpan.FromMinutes(2),
+            "surge-v1",
+            null,
+            currency,
+            components,
+            amountMinor));
+    }
 }

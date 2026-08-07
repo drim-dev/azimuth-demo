@@ -71,9 +71,11 @@ pub fn read_block(lines: &[&str], start: usize, known: &[&str]) -> (Block, usize
                 .and_then(|rest| rest.strip_prefix(':'))
                 .map(|rest| (*k, rest.trim()))
         }) {
-            Some((key, value)) => {
-                block.labels.push(Label { key: key.to_string(), value: value.to_string(), line: ln })
-            }
+            Some((key, value)) => block.labels.push(Label {
+                key: key.to_string(),
+                value: value.to_string(),
+                line: ln,
+            }),
             None => match block.labels.last_mut() {
                 Some(last) => {
                     last.value.push(' ');

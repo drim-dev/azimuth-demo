@@ -10,13 +10,10 @@ namespace Azimuth.Emit.Tests;
 /// </summary>
 public sealed class CollectorTests
 {
-    private const string TracedRoot = "Azimuth.Fixture.Traced";
-
-    private static Collector.Result Collect(params string[] tracedRoots) =>
+    private static Collector.Result Collect() =>
         Collector.Collect(
             [typeof(Azimuth.Fixture.Production).Assembly],
-            Directory.GetCurrentDirectory(),
-            tracedRoots);
+            Directory.GetCurrentDirectory());
 
     [Fact]
     public void A_type_level_tag_names_its_site_by_the_type()
@@ -67,6 +64,16 @@ public sealed class CollectorTests
             r => r.Site.EndsWith(".Untagged", StringComparison.Ordinal));
     }
 
+    [Fact]
+    public void Symbols_are_emitted_independently_of_linkage_tags()
+    {
+        var artifact = Assert.Single(
+            Collect().Artifacts,
+            artifact => artifact.Id == "dotnet-symbol:Azimuth.Fixture.Production.Untagged");
+        Assert.Equal("dotnet-method", artifact.Kind);
+        Assert.EndsWith("Fixture.cs", artifact.File);
+    }
+
     /// <summary>Form is how a test checks, not a property of code.</summary>
     [Fact]
     public void Realizes_carries_no_form()
@@ -110,40 +117,6 @@ public sealed class CollectorTests
         Assert.Equal("direct", entry.Oracle);
     }
 
-    /// <summary>The dual of an uncovered claim.</summary>
-    [Fact]
-    public void A_bare_test_in_a_traced_root_is_untraced()
-    {
-        var sites = Collect(TracedRoot).UntracedTests.Select(u => u.Site).ToList();
-        Assert.Equal(["Azimuth.Fixture.Traced.Tests.Bare"], sites);
-    }
-
-    /// <summary>
-    /// Holding every test in a repo to this would be noise, and partial adoption is what makes the
-    /// ratchet work (D8).
-    /// </summary>
-    [Fact]
-    public void A_bare_test_outside_every_traced_root_is_not_a_finding()
-    {
-        Assert.DoesNotContain(
-            Collect(TracedRoot).UntracedTests,
-            u => u.Site.Contains(".Untraced.", StringComparison.Ordinal));
-    }
-
-    [Fact]
-    public void With_no_traced_root_nothing_is_untraced()
-    {
-        Assert.Empty(Collect().UntracedTests);
-    }
-
-    [Fact]
-    public void An_exemption_is_honoured()
-    {
-        Assert.DoesNotContain(
-            Collect(TracedRoot).UntracedTests,
-            u => u.Site.EndsWith(".Exempt", StringComparison.Ordinal));
-    }
-
     /// <summary>
     /// A finding reported against "some assembly" is a finding nobody acts on.
     /// </summary>
@@ -176,7 +149,7 @@ public sealed class CollectorTests
     [Fact]
     public void The_manifest_is_keyed_on_the_pair()
     {
-        using var document = JsonDocument.Parse(Collector.ToJson(Collect(TracedRoot)));
+        using var document = JsonDocument.Parse(Collector.ToJson(Collect()));
         var root = document.RootElement;
 
         var realizes = root.GetProperty("realizes")[0];
@@ -187,6 +160,7 @@ public sealed class CollectorTests
         Assert.False(realizes.TryGetProperty("scope", out _));
 
         Assert.NotEmpty(root.GetProperty("covers").EnumerateArray());
-        Assert.NotEmpty(root.GetProperty("untraced_tests").EnumerateArray());
+        Assert.NotEmpty(root.GetProperty("artifacts").EnumerateArray());
+        Assert.False(root.TryGetProperty("untraced_tests", out _));
     }
 }

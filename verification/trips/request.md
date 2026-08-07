@@ -31,16 +31,9 @@ the claim's truth depends on one. Scope is a human judgment in this framework; t
 time something in the corpus argued for a particular answer.
 
 ## Claim: request-rejected-with-unknown-quote
+Scope: component
+Quantification: universal
+Oracle: contract
 
-*(revised 2026-08-07 — supersedes `Oracle: contract`)* No deviation; the standard applies.
-
-The superseded entry read: "the rejection depends on how `pricing/quote` answers a lookup for an
-identifier it does not recognise… the failure mode is a disagreement between two services about what
-'unknown' looks like". There are no two services. Quotes are issued by the trip service's own
-`/quotes` slice into `TripDbContext.Quotes`, and `Pricing` is a library — `Money.cs`. The lookup is
-a local read.
-
-Kept as prose rather than deleted, because the entry was wrong in a way worth seeing. A plan can
-require a form for a reason that never existed, the tag copies the requirement, and both look
-correct to `azimuth check` — `Oracle` is descriptive and never gated, so nothing compares it to
-anything. Found by the agent tier, not the machine tier.
+Exercise malformed encodings and byte alterations of an otherwise valid token. Pricing is
+substituted; the compiled token contract, HTTP serialization and real trip store are not.

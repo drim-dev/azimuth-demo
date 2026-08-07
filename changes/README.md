@@ -1,8 +1,7 @@
 # Changes
 
-Status: **experimental contract, not parsed**. D21 decides the lifecycle; this file is the manual
-protocol for the first feature that tests it. Syntax that survives that feature may later become a
-parser contract. Nothing here is current product truth.
+Status: **experimental parsed contract for additive intent changes**. Two completed changes supplied
+the evidence for D21.4. Unsupported delta operations fail; they are not interpreted as prose.
 
 ## Authority
 
@@ -16,10 +15,11 @@ The target projection is:
 current model + change deltas = proposed target model
 ```
 
-Until change-aware tooling exists, reviewers perform that projection explicitly. Current checks
-must not read active changes as current facets.
+`azimuth check` still reads accepted state only. `azimuth change check <dir>` projects supported
+additions, reports planned versus applied state and derives their criticality obligations without
+treating planned mechanisms as current facts.
 
-## Provisional shape
+## Shape
 
 ```
 changes/<change-id>/
@@ -27,7 +27,9 @@ changes/<change-id>/
 ├── specs/               # intent deltas, only where behaviour changes
 ├── design.md            # optional solution design
 ├── verification.md      # deviations and obligations introduced by the design
-└── plan.md              # transient implementation order and work
+├── plan.md              # transient implementation order and work
+├── outcome.md           # authored departures, residual decisions and measurements
+└── finalization.json    # derived; written by `azimuth change finalize`
 ```
 
 `proposal.md` states the problem, scope, affected claim ids, criticality changes and completion
@@ -35,15 +37,38 @@ conditions. `design.md` is required only when alternatives, boundaries or failur
 reviewable solution decision necessary. A routine claim does not acquire assurance artifacts merely
 because its change contains a solution design.
 
-This is a working shape, not a required five-file ceremony. Omit a file that carries no
+This is not a required seven-file ceremony. Omit a file that carries no
 non-derivable information and record whether its absence caused a problem.
+
+## Parsed additive delta
+
+An additive intent file uses the ordinary requirement content with operation-shaped headings:
+
+```markdown
+# Intent delta: trips/rider-view
+
+## Add requirement: compact-trip-summary
+Criticality: routine
+
+The statement.
+
+### Add scenario: summary-shows-state-and-fare
+GIVEN ...
+WHEN ...
+THEN ...
+```
+
+The machine derives target claim count and criticality. It marks an addition applied only when its
+requirement statement and every scenario step—not merely their ids—are already present in current
+specs. Replacement, removal, scenario movement and criticality transitions are not parsed yet.
+Their appearance is an error, not an invitation to guess.
 
 ## Criticality
 
 Changing criticality preserves requirement and scenario identity. Record the old and new value,
 why consequence changed, and—when lowering—the condition that would raise it again.
 
-The manual target review derives the new obligations:
+The target projection derives the new obligations:
 
 | Level | Linkage | Current mechanism design | Evidence | Agent judgment |
 |---|---|---|---|---|
@@ -56,19 +81,31 @@ An untagged test is outside Azimuth's evidence model. Do not add `Untraced` to a
 
 ## Completion and archive
 
-The first archive is manual. Before archiving:
+Before accepting a change:
 
 1. Apply accepted intent deltas to `specs/`.
 2. Distil mechanisms that actually exist into `design/`; do not copy planned mechanisms that were
    dropped.
 3. Apply lasting evidence deviations and residuals to `verification/`.
 4. Record departures from the proposal and why they occurred.
-5. Record the final commit and model fingerprint when available.
-6. Move the whole directory to `changes/archive/YYYY-MM-DD-<change-id>/` without rewriting its
-   history.
+5. Set the proposal status to `accepted and complete` and complete every plan item.
+6. Write `outcome.md` with `Status: accepted` plus `## Departures`, `## Residual decisions` and
+   `## Measurements`. Empty-but-explicit sections are preferable to invented content.
+
+Then run:
+
+```text
+azimuth change finalize changes/<id> [model options]
+azimuth change archive changes/<id> --date YYYY-MM-DD [model options]
+```
+
+Finalization requires an applied delta and a hole-free accepted model, and writes the SHA-256 model
+fingerprint and summary. Archive verifies that this file is fresh before moving the directory to
+`changes/archive/YYYY-MM-DD-<change-id>/`. The commands derive no explanations and accept no risk.
 
 Rejected and abandoned changes are archived too, with their outcome and reason, but update no
-current facet.
+current facet. The command currently automates accepted changes only; other dispositions remain a
+manual move until one is observed.
 
 ## What the experiment measures
 
@@ -82,5 +119,6 @@ Record separately for routine, standard and critical claims:
 - unused fields and missing concepts;
 - manual archive steps that are derivable.
 
-The routine path is falsified if it costs materially more than an equivalent OpenSpec change. Do
-not automate the format until this record exists.
+The routine path remains falsified if it costs materially more than an equivalent OpenSpec change.
+The compact-summary run added one routine scenario with zero linkage of its own; its five tags
+belonged to pre-existing critical privacy claims over the new surface.

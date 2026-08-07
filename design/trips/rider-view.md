@@ -1,21 +1,20 @@
 # Design: trips/rider-view
 
 ## Requirement: driver-hidden-before-assignment
-Enforcement: type
-Site: `DriverPosition` has no serializer; it is convertible to a wire model only through
-`RiderProjection.For(tripPhase)`, which returns coarse density before assignment
+Enforcement: guard
+Binding: dotnet-symbol:Trips.Domain.RiderProjection.For
 
-Redaction by construction rather than by remembering. The guard-at-every-site version — each handler
-checking the phase before including a position — is the design that leaks, and C1 is in the catalog
-precisely because that surface never stops growing.
+One projection guard rather than a phase check repeated in each page. The route enumerator does not
+prove the guard is used; it makes every new surface declare how the rule is discharged, which is the
+part a hand-maintained route list cannot do.
 
 What this does *not* do is constrain a new endpoint that reaches for the raw position from the
-driver service directly. The type protects one path, not the class of all rider-reachable paths.
-That gap is the point of the residual in `verification/trips/rider-view.md`.
+driver service directly. The projection protects one path, not the class of all rider-reachable
+paths. That gap is the point of the residual in `verification/trips/rider-view.md`.
 
 ## Requirement: driver-hidden-after-terminal
-Enforcement: type
-Site: the same `RiderProjection.For(tripPhase)`, which returns no position for terminal phases
+Enforcement: choke-point
+Binding: dotnet-symbol:Trips.Domain.RiderProjection.For
 
 Every rider-facing read of a trip goes through the projection, and after a terminal transition it
 returns no position. There is one observation mode and the projection covers it.
@@ -29,16 +28,15 @@ cannot have, and the agent tier cited it as evidence for two `spec-gap` verdicts
 checked the code against it.)*
 
 ## Requirement: position-confined-to-live-phases
-Enforcement: type
-Site: `DriverPosition` has no serializer; `RiderProjection.For(tripPhase)` is its only reveal
+Enforcement: guard
+Binding: dotnet-symbol:Trips.Domain.RiderProjection.For
 Enforcement: choke-point
-Site: no rider-facing route returns a driver record carrying a position — `GetTripDriver` returns
-display and vehicle only
+Binding: dotnet-symbol:Trips.Features.Trips.GetTripDriver.RequestHandler.Handle
 
-Two mechanisms, because the type alone did not hold. A receipt endpoint reached past the projection
+Two mechanisms, because the projection alone did not hold. A receipt endpoint reached past it
 for the stored record, satisfied every behavioural claim in the spec, and leaked a completed trip's
-position. The type protected one path; the class of rider-reachable paths was unprotected, and kept
-growing.
+position. One guarded path existed while the class of rider-reachable paths was unprotected and
+kept growing.
 
 The second mechanism is the negative one: no rider-facing route hands out a position at all, so
 there is nothing for a new surface to reach for. That is weaker than it sounds — it is a property of

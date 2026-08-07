@@ -12,7 +12,7 @@ using Trips.Database;
 namespace Trips.Database.Migrations
 {
     [DbContext(typeof(TripDbContext))]
-    [Migration("20260805123732_InitialSchema")]
+    [Migration("20260807194820_InitialSchema")]
     partial class InitialSchema
     {
         /// <inheritdoc />
@@ -24,6 +24,30 @@ namespace Trips.Database.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
+
+            modelBuilder.Entity("Trips.Domain.CaptureIntent", b =>
+                {
+                    b.Property<long>("TripId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("trip_id");
+
+                    b.Property<DateTimeOffset?>("DispatchedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("dispatched_at");
+
+                    b.Property<string>("QuoteToken")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("quote_token");
+
+                    b.Property<DateTimeOffset>("WrittenAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("written_at");
+
+                    b.HasKey("TripId");
+
+                    b.ToTable("capture_intents", (string)null);
+                });
 
             modelBuilder.Entity("Trips.Domain.Driver", b =>
                 {
@@ -87,53 +111,6 @@ namespace Trips.Database.Migrations
                     b.ToTable("offers", (string)null);
                 });
 
-            modelBuilder.Entity("Trips.Domain.Quote", b =>
-                {
-                    b.Property<long>("Id")
-                        .HasColumnType("bigint")
-                        .HasColumnName("id");
-
-                    b.Property<long?>("ConsumedByTripId")
-                        .HasColumnType("bigint")
-                        .HasColumnName("consumed_by_trip");
-
-                    b.Property<string>("Currency")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("currency");
-
-                    b.Property<string>("Dropoff")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("dropoff");
-
-                    b.Property<DateTimeOffset>("ExpiresAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("expires_at");
-
-                    b.Property<DateTimeOffset>("IssuedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("issued_at");
-
-                    b.Property<string>("Pickup")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("pickup");
-
-                    b.Property<long>("TotalMinor")
-                        .HasColumnType("bigint")
-                        .HasColumnName("total_minor");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ConsumedByTripId")
-                        .IsUnique()
-                        .HasDatabaseName("ux_quote_consumer")
-                        .HasFilter("consumed_by_trip IS NOT NULL");
-
-                    b.ToTable("quotes", (string)null);
-                });
-
             modelBuilder.Entity("Trips.Domain.Trip", b =>
                 {
                     b.Property<long>("Id")
@@ -153,13 +130,28 @@ namespace Trips.Database.Migrations
                         .HasColumnType("text")
                         .HasColumnName("currency");
 
+                    b.Property<string>("Dropoff")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("dropoff");
+
                     b.Property<long>("FareMinor")
                         .HasColumnType("bigint")
                         .HasColumnName("fare_minor");
 
+                    b.Property<string>("Pickup")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("pickup");
+
                     b.Property<long>("QuoteId")
                         .HasColumnType("bigint")
                         .HasColumnName("quote_id");
+
+                    b.Property<string>("QuoteToken")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("quote_token");
 
                     b.Property<string>("RiderId")
                         .IsRequired()
@@ -173,7 +165,9 @@ namespace Trips.Database.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("QuoteId");
+                    b.HasIndex("QuoteId")
+                        .IsUnique()
+                        .HasDatabaseName("ux_trip_quote");
 
                     b.HasIndex("RiderId")
                         .IsUnique()
@@ -228,15 +222,6 @@ namespace Trips.Database.Migrations
                     b.HasOne("Trips.Domain.Trip", null)
                         .WithMany("Offers")
                         .HasForeignKey("TripId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("Trips.Domain.Trip", b =>
-                {
-                    b.HasOne("Trips.Domain.Quote", null)
-                        .WithMany()
-                        .HasForeignKey("QuoteId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });

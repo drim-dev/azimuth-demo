@@ -212,11 +212,26 @@ pub struct ClassMember {
     pub lang: String,
 }
 
+/// Evidence that a class was enumerated from a system-produced source rather than reconstructed
+/// from the declarations whose omissions the enumeration exists to find.
 #[derive(Debug, Clone)]
-pub struct UntracedTest {
-    pub site: String,
+pub struct Enumeration {
+    pub class: String,
+    pub kind: String,
+    pub source: String,
+    pub source_fingerprint: String,
+}
+
+/// A machine-addressable artifact emitted from a compiler or schema model. Optional properties
+/// carry only facts the extractor can derive; semantic claims remain in the design prose.
+#[derive(Debug, Clone)]
+pub struct Artifact {
+    pub id: String,
+    pub kind: String,
     pub file: String,
-    pub lang: String,
+    pub unique: Option<bool>,
+    pub columns: Vec<String>,
+    pub predicate: Option<String>,
 }
 
 #[derive(Debug, Default)]
@@ -224,10 +239,11 @@ pub struct Model {
     pub specs: Vec<Spec>,
     pub realizes: Vec<Site>,
     pub covers: Vec<Site>,
-    pub untraced: Vec<UntracedTest>,
     /// Class members enumerated by an extractor. Empty when no project emits them, in which case
     /// a class is only as wide as its tags.
     pub class_members: Vec<ClassMember>,
+    pub enumerations: Vec<Enumeration>,
+    pub artifacts: Vec<Artifact>,
     /// Absent until a standards file is read. Without it no evidence standard is known, so
     /// `wrong-form` cannot fire and `uncovered` falls back to "has any evidence at all".
     pub standards: Option<crate::plan::Standards>,
@@ -285,7 +301,8 @@ impl Model {
     }
 
     pub fn find_claim(&self, spec: &str, scenario: &str) -> Option<ClaimView<'_>> {
-        self.claims().find(|c| c.spec.id == spec && c.scenario.id == scenario)
+        self.claims()
+            .find(|c| c.spec.id == spec && c.scenario.id == scenario)
     }
 
     pub fn judgments_for(&self, spec: &str) -> Option<&crate::judgment::Judgments> {
@@ -301,6 +318,48 @@ impl Model {
             .collect()
     }
 
+    /// Every file the agent-tier rubric requires for a verdict: covering evidence, the applicable
+    /// design entry and the compiler/schema artifacts to which that design binds.
+    pub fn judgment_files(&self, spec: &str, scenario: &str) -> Vec<String> {
+        let mut files = self.evidence_files(spec, scenario);
+        let Some(claim) = self.find_claim(spec, scenario) else {
+            return files;
+        };
+        if let Some(standards) = &self.standards {
+            files.push(standards.path.clone());
+        }
+        if let Some(plan) = self.plan_for(spec) {
+            files.push(plan.path.clone());
+        }
+        if let Some(design) = self.design_for(spec) {
+            let entries = design
+                .for_scenario(scenario)
+                .into_iter()
+                .chain(design.for_requirement(&claim.requirement.id));
+            let mut has_entry = false;
+            for entry in entries {
+                has_entry = true;
+                for mechanism in &entry.mechanisms {
+                    if let Some(artifact) = self
+                        .artifacts
+                        .iter()
+                        .find(|artifact| artifact.id == mechanism.binding)
+                    {
+                        if !artifact.file.is_empty() {
+                            files.push(artifact.file.clone());
+                        }
+                    }
+                }
+            }
+            if has_entry {
+                files.push(design.path.clone());
+            }
+        }
+        files.sort();
+        files.dedup();
+        files
+    }
+
     pub fn claim_text(&self, claim: &ClaimView<'_>) -> String {
         let steps: Vec<String> = claim
             .scenario
@@ -308,7 +367,12 @@ impl Model {
             .iter()
             .map(|s| format!("{} {}", s.kind.name(), s.text))
             .collect();
-        format!("{}|{}|{}", claim.requirement.statement, claim.scenario.id, steps.join("|"))
+        format!(
+            "{}|{}|{}",
+            claim.requirement.statement,
+            claim.scenario.id,
+            steps.join("|")
+        )
     }
 
     pub fn design_for(&self, spec: &str) -> Option<&crate::design::Design> {
@@ -324,7 +388,9 @@ impl Model {
     pub fn required_for(&self, claim: &ClaimView<'_>) -> Option<Required> {
         let standards = self.standards.as_ref()?;
         let level = standards.for_level(claim.requirement.criticality?)?;
-        let entry = self.plan_for(&claim.spec.id).and_then(|p| p.entry(&claim.scenario.id));
+        let entry = self
+            .plan_for(&claim.spec.id)
+            .and_then(|p| p.entry(&claim.scenario.id));
         Some(Required {
             strength: level.strength,
             quantification: entry
@@ -332,7 +398,9 @@ impl Model {
                 .or(level.quantification),
             // D15: scope is not derived from criticality. Default, raised per claim where truth
             // depends on something real.
-            scope: entry.and_then(|e| e.scope).unwrap_or(standards.default_scope),
+            scope: entry
+                .and_then(|e| e.scope)
+                .unwrap_or(standards.default_scope),
         })
     }
 
@@ -394,25 +462,63 @@ impl Model {
         Json::obj(vec![
             ("version", Json::Num(1.0)),
             ("specs", Json::Arr(specs)),
-            ("realizes", Json::Arr(self.realizes.iter().map(site_json).collect())),
-            ("covers", Json::Arr(self.covers.iter().map(site_json).collect())),
             (
-                "untraced_tests",
+                "realizes",
+                Json::Arr(self.realizes.iter().map(site_json).collect()),
+            ),
+            (
+                "covers",
+                Json::Arr(self.covers.iter().map(site_json).collect()),
+            ),
+            (
+                "enumerations",
                 Json::Arr(
-                    self.untraced
+                    self.enumerations
                         .iter()
-                        .map(|u| {
+                        .map(|e| {
                             Json::obj(vec![
-                                ("site", Json::str(&u.site)),
-                                ("file", Json::str(&u.file)),
-                                ("lang", Json::str(&u.lang)),
+                                ("class", Json::str(&e.class)),
+                                ("kind", Json::str(&e.kind)),
+                                ("source", Json::str(&e.source)),
+                                ("source_fingerprint", Json::str(&e.source_fingerprint)),
                             ])
                         })
                         .collect(),
                 ),
             ),
+            (
+                "artifacts",
+                Json::Arr(
+                    self.artifacts
+                        .iter()
+                        .map(|artifact| {
+                            let mut fields = vec![
+                                ("id", Json::str(&artifact.id)),
+                                ("kind", Json::str(&artifact.kind)),
+                                ("file", Json::str(&artifact.file)),
+                            ];
+                            if let Some(unique) = artifact.unique {
+                                fields.push(("unique", Json::Bool(unique)));
+                            }
+                            if !artifact.columns.is_empty() {
+                                fields.push((
+                                    "columns",
+                                    Json::Arr(artifact.columns.iter().map(Json::str).collect()),
+                                ));
+                            }
+                            if let Some(predicate) = &artifact.predicate {
+                                fields.push(("predicate", Json::str(predicate)));
+                            }
+                            Json::obj(fields)
+                        })
+                        .collect(),
+                ),
+            ),
             ("mechanisms", Json::Arr(self.mechanism_json())),
-            ("holes", Json::Arr(holes.iter().map(|h| h.to_json()).collect())),
+            (
+                "holes",
+                Json::Arr(holes.iter().map(|h| h.to_json()).collect()),
+            ),
         ])
     }
 }
@@ -435,7 +541,22 @@ impl Model {
                         ("target", Json::str(entry.target.id())),
                         ("enforcement", Json::str(m.kind.name())),
                         ("rung", Json::Num(m.kind.rung() as f64)),
-                        ("site", Json::str(&m.site)),
+                        ("binding", Json::str(&m.binding)),
+                        (
+                            "expected_unique",
+                            m.expected_unique.map(Json::Bool).unwrap_or(Json::Null),
+                        ),
+                        (
+                            "expected_columns",
+                            Json::Arr(m.expected_columns.iter().map(Json::str).collect()),
+                        ),
+                        (
+                            "expected_predicate",
+                            m.expected_predicate
+                                .as_ref()
+                                .map(Json::str)
+                                .unwrap_or(Json::Null),
+                        ),
                     ]));
                 }
             }

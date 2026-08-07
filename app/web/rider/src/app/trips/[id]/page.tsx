@@ -97,6 +97,9 @@ export default async function TripPage({ params }: { params: Promise<{ id: strin
           <Link href={`/trips/${trip.id}/receipt`}>View your receipt</Link>
         </p>
       ) : null}
+      <p>
+        <Link href={`/trips/${trip.id}/summary`}>Open compact summary</Link>
+      </p>
     </>
   );
 }

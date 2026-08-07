@@ -2,9 +2,11 @@
 
 ## Requirement: transitions-follow-state-machine
 Enforcement: choke-point
-Site: `TripStateMachine.Transition` — the only function that writes `trips.state`
+Binding: dotnet-symbol:Trips.Domain.TripStateMachine.Next
 
-A total function from (state, event) to an outcome that is either a new state or a rejection.
+A total function from (state, event) to an outcome that is either a new state or a rejection. Both
+the transition endpoint and dispatch obtain their target state from this function; they remain the
+two persistence writers.
 Encoding the machine in the type system so that illegal pairs are unrepresentable was considered
 and rejected: it is expressible in C# but not in TypeScript or the mobile client, and a rule that
 holds in one language of three gives false confidence at the boundaries where trips actually
@@ -16,10 +18,9 @@ vacuous.
 
 ## Requirement: terminal-states-are-final
 Enforcement: choke-point
-Site: `TripStateMachine.Transition` rejects every transition out of a terminal state
+Binding: dotnet-symbol:Trips.Domain.TripStateMachine.Next
 Enforcement: constraint
-Site: `trips` conditional update predicated on the current state, so a stale writer cannot
-overwrite a terminal one
+Binding: dotnet-symbol:Trips.Features.Trips.TransitionTrip.RequestHandler.Handle
 
 Two mechanisms for one rule, because the choke point alone does not survive concurrency: two
 in-flight handlers can both read `in-progress`, both pass the machine, and the later write wins.

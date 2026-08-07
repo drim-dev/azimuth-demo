@@ -56,7 +56,6 @@ public sealed class MoneyTests
     /// design/pricing/quote.md, which this test is the evidence for.
     /// </summary>
     [Fact]
-    [Untraced("guards the runtime half of a mechanism whose claim is covered above")]
     public void Summing_a_mix_of_currencies_is_refused()
     {
         Assert.Throws<InvalidOperationException>(
@@ -123,7 +122,6 @@ public sealed class StateMachineTests
     }
 
     [Fact]
-    [Untraced("round-trip of the wire names; no claim asserts them")]
     public void State_names_round_trip()
     {
         foreach (var state in TripStateMachine.States)
@@ -200,7 +198,6 @@ public sealed class RiderProjectionTests
     /// projection. If this ever compiles differently, the type-level enforcement has been lost.
     /// </summary>
     [Fact]
-    [Untraced("asserts the enforcement mechanism itself; the claims it protects are covered above")]
     public void A_position_does_not_serialise_itself()
     {
         Assert.Equal("<redacted>", DriverPosition.Of("52.37,4.89").ToString());

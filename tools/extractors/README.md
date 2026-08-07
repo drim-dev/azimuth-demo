@@ -20,13 +20,20 @@ what makes splitting or merging a requirement free, since no tag moves.
                  "scope": "unit|component|e2e",
                  "quantification": "example|universal",
                  "oracle": "direct|golden|metamorphic|model-based|contract" }],
-  "untraced_tests": [{ "site": "", "file": "", "lang": "" }]
+  "enumerations": [{ "class": "", "kind": "", "source": "",
+                     "source_fingerprint": "" }],
+  "class_members": [{ "class": "", "site": "", "file": "", "lang": "" }],
+  "artifacts": [{ "id": "", "kind": "", "file": "" }]
 }
 ```
 
 `realizes` carries no form: form is how a test checks, not a property of code. The core rejects a
 `realizes` that carries one, and rejects any entry carrying `req`, rather than ignoring it — a
 stale emitter must not be able to produce tags that look fine and are not.
+
+An enumeration witness says where a class came from independently of linkage tags. Its members are
+authoritative only when the source was read completely; a missing build output or unresolved member
+fails emission. Artifacts are exact binding targets for current design entries.
 
 ## dotnet
 
@@ -35,8 +42,12 @@ reflection resolves inheritance and generics that a text scan gets wrong, and a 
 rejected is not a tag. Source paths come from the portable PDB, best-effort — an assembly without
 one emits no paths and says so, rather than inventing them.
 
+The .NET extractor also emits type/method symbols and executes compiled EF migration metadata to
+derive database indexes, including uniqueness, ordered columns and predicates. It does not infer
+that a method is an exclusive choke point.
+
 ```
-azimuth-emit-dotnet --output m.json --root . --traced-root My.Tests path/to/Assembly.dll
+azimuth-emit-dotnet --output m.json --root . path/to/Assembly.dll
 ```
 
 ## typescript
@@ -49,17 +60,14 @@ symbol as the site, which makes a `covers` inside `test('…')` name the test.
 azimuth-emit-ts --output m.json --root . src
 ```
 
-## Traced areas
+`--next-app <class>=<dir>` derives route members from Next's built route manifest. The option fails
+closed when the build manifest is absent or a route cannot be resolved to project source.
 
-`untraced_tests` — a test that declares no claim and is not exempt — is reported only inside an
-opt-in area: a namespace prefix in .NET, a file already carrying at least one `covers` in
-TypeScript. Holding every test in a repo to it would be noise, and partial adoption is what makes
-the ratchet work (D8).
+## Evidence opt-in
 
-**Decided, not implemented:** D20.1 removes `untraced_tests` from the claim-assurance model.
-`covers` opts a test into evidence; an untagged test is ordinary project evidence outside Azimuth,
-not evidence without intent. Both extractors retain the old field until the first manual change has
-validated the process and the tool is updated across one change.
+`covers` opts a test into the evidence model. An untagged test emits nothing: it may exercise
+routine behavior, infrastructure or a project rule that no Azimuth claim names. `uncovered` is
+derived in the other direction, from a standard or critical claim with no sufficient evidence.
 
 ## Tests
 

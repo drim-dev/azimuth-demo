@@ -17,6 +17,9 @@ public sealed class TripConfiguration : IEntityTypeConfiguration<Trip>
         builder.Property(t => t.FareMinor).HasColumnName("fare_minor").IsRequired();
         builder.Property(t => t.Currency).HasColumnName("currency").IsRequired();
         builder.Property(t => t.QuoteId).HasColumnName("quote_id").IsRequired();
+        builder.Property(t => t.QuoteToken).HasColumnName("quote_token").IsRequired();
+        builder.Property(t => t.Pickup).HasColumnName("pickup").IsRequired();
+        builder.Property(t => t.Dropoff).HasColumnName("dropoff").IsRequired();
         builder.Property(t => t.CreatedAt).HasColumnName("created_at").IsRequired();
 
         // Stored as the spec's own names rather than as an ordinal: the partial index below reads
@@ -27,11 +30,6 @@ public sealed class TripConfiguration : IEntityTypeConfiguration<Trip>
             .HasConversion(state => TripStateMachine.Name(state), name => TripStateMachine.Parse(name));
 
         builder.Ignore(t => t.Fare);
-
-        builder.HasOne<Quote>()
-            .WithMany()
-            .HasForeignKey(t => t.QuoteId)
-            .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasMany(t => t.Transitions)
             .WithOne()
@@ -53,5 +51,11 @@ public sealed class TripConfiguration : IEntityTypeConfiguration<Trip>
             .IsUnique()
             .HasFilter("state NOT IN ('completed', 'cancelled')")
             .HasDatabaseName("ux_trip_rider_active");
+
+        // A signed quote is spent at admission. The payload supplies stable identity; this index
+        // settles concurrent consumers without requiring Trips to own Pricing's quote row.
+        builder.HasIndex(t => t.QuoteId)
+            .IsUnique()
+            .HasDatabaseName("ux_trip_quote");
     }
 }

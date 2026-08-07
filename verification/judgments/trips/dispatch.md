@@ -1,5 +1,9 @@
 # Judgments: trips/dispatch
 
+Re-judged 2026-08-08 after the bound acceptance handler entered the freshness fingerprint. Dispatch
+now asks `TripStateMachine.Next` for the assignment target instead of duplicating `Assigned`; the
+contention and late-arrival evidence remains discriminating.
+
 First pass, 2026-08-07. Four tags were corrected before judging and one test was strengthened; both
 changes are described in the entries that rest on them.
 
@@ -8,9 +12,9 @@ strengthening of `late-acceptance-rejected`.
 
 ## Claim: offer-sent-to-available-nearby-driver
 Verdict: sound
-Fingerprint: 414a984f96e6b682
-Judged: 2026-08-07
-Judge: claude-opus-5
+Fingerprint: 980e972b52987582
+Judged: 2026-08-08
+Judge: codex
 
 `Only_available_nearby_drivers_are_offered` seeds a population chosen to separate the two conditions
 — three available and near, two unavailable, one available but in another area — and asserts the
@@ -26,9 +30,9 @@ than universal over populations. `standard`'s floor is `example`.
 
 ## Claim: unavailable-driver-not-offered
 Verdict: sound
-Fingerprint: 7860aa2545e6d203
-Judged: 2026-08-07
-Judge: claude-opus-5
+Fingerprint: d7fb3bd3da6e5abf
+Judged: 2026-08-08
+Judge: codex
 
 The negative half of the same test, and it is asserted twice over — once by the exact-set
 equivalence and once by explicit `NotContain` assertions for both unavailable drivers. Redundant,
@@ -36,9 +40,9 @@ and cheaply so: the second form says out loud what the first implies.
 
 ## Claim: no-available-drivers
 Verdict: sound
-Fingerprint: d987b430f3ac9c5f
-Judged: 2026-08-07
-Judge: claude-opus-5
+Fingerprint: 6a09d142ea704e7b
+Judged: 2026-08-08
+Judge: codex
 
 `No_available_drivers_means_no_offers` seeds only an unavailable driver and a distant one, then
 asserts both that the offers endpoint returns empty *and* that the offers table holds zero rows.
@@ -54,9 +58,9 @@ against the store, but it is the half a rider actually experiences.
 
 ## Claim: first-acceptance-assigns
 Verdict: sound
-Fingerprint: de712076f1020ee7
-Judged: 2026-08-07
-Judge: claude-opus-5
+Fingerprint: 5f43ea197557b399
+Judged: 2026-08-08
+Judge: codex
 
 `Exactly_one_driver_is_assigned_however_many_accept_together` fires six acceptances at once, five
 trials, resetting between them, and asserts exactly one returns OK, the trip is stored as
@@ -68,9 +72,9 @@ many accept and the test ranges over it.
 
 ## Claim: concurrent-acceptances-yield-one-assignment
 Verdict: sound
-Fingerprint: 1876ffe24cbda890
-Judged: 2026-08-07
-Judge: claude-opus-5
+Fingerprint: 44dc420f35e5d78e
+Judged: 2026-08-08
+Judge: codex
 
 The same test read as the claim states it: *any number of drivers accepting concurrently* yields
 exactly one assignment, and every other accepter is told the offer was taken. Both are asserted —
@@ -82,9 +86,9 @@ corpus, and is stated rather than hidden.
 
 ## Claim: late-acceptance-rejected
 Verdict: sound
-Fingerprint: 76d5aa85fd129d64
-Judged: 2026-08-07
-Judge: claude-opus-5
+Fingerprint: 99ffafb16e1f832a
+Judged: 2026-08-08
+Judge: codex
 
 The claim says *any further driver*, and the test now ranges over that. It seeds five drivers, lets
 one accept, then has every other driver attempt acceptance twice, asserting each is refused with
@@ -97,9 +101,9 @@ produced repeatedly.
 
 ## Claim: other-offers-withdrawn
 Verdict: sound
-Fingerprint: 212ba75b9f161bdd
-Judged: 2026-08-07
-Judge: claude-opus-5
+Fingerprint: c7a92595599c08bd
+Judged: 2026-08-08
+Judge: codex
 
 `Assignment_withdraws_every_other_offer` seeds four drivers, accepts as one, and asserts the
 accepter's offer reads `accepted`, that *every* other offer reads `withdrawn`, and that the store
@@ -110,9 +114,9 @@ which is what a partial withdrawal looks like. Retagged `Example` — one popula
 
 ## Claim: expired-offer-withdrawn
 Verdict: sound
-Fingerprint: 8b5e3f92556105e7
-Judged: 2026-08-07
-Judge: claude-opus-5
+Fingerprint: 629480d1e9ff6d33
+Judged: 2026-08-08
+Judge: codex
 
 `An_offer_past_its_expiry_is_withdrawn` asserts the offers stand while fresh, advances the clock a
 minute past the thirty-second window, and asserts they are all withdrawn — and, importantly, that

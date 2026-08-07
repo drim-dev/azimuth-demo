@@ -23,15 +23,17 @@ The claim is about propagation across three processes. Verifying it at any one o
 something else.
 
 ## Claim: position-confined-to-live-phases
-Strength: proof
-Evidence: `DriverPosition` has no serializer and no accessor returning its raw value;
-`RiderProjection.For(tripPhase)` is the only reveal, and no rider-facing route returns a driver
-record carrying a position
+Quantification: example
+Residual: the route enumerator proves that every built rider route was considered, not that each
+`Realizes` declaration is true; the e2e evidence exercises named routes rather than the derived set
+Accepted: the machine fails closed on an absent route inventory and the agent tier reads every
+discharge. Revisit when derived egress analysis can establish the predicate without trusting tags.
 
-*(added 2026-08-07)* The e2e test is tagged `example` because that is what it is — five named
-surfaces, not the class. The claim's universality does not rest on it and never did: membership is
-derived from the route table and reported by `invariant-breach`, and what holds the predicate at
-each member is the type, which makes an unredacted position unrepresentable on the wire.
+*(revised 2026-08-08)* The e2e test is tagged `example` because that is what it is — named surfaces,
+not the class. Membership is derived from the route table and reported by `invariant-breach`; the
+predicate is held by projection guards and agent-reviewed discharges rather than by the earlier,
+false proof claim. `DriverPosition.Reveal()` is internal, so violation is representable inside the
+Trips assembly.
 
 Recorded here because the alternative was a test tagged `universal` over a hand-written list, which
 is D13.1's forbidden move and is what the tag said until today.

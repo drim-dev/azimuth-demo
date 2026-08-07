@@ -51,25 +51,32 @@ THEN it looks right
 
 fn class_model(manifest_json: &str) -> Model {
     let spec = parse_spec("beta.md", CLASS_SPEC).expect("spec parses");
-    let mut model = Model { specs: vec![spec], ..Default::default() };
+    let mut model = Model {
+        specs: vec![spec],
+        ..Default::default()
+    };
     let root = json::parse(manifest_json).expect("manifest is valid json");
     let m = manifest::parse("m.json", &root).expect("manifest parses");
     model.realizes = m.realizes;
     model.covers = m.covers;
     model.class_members = m.class_members;
+    model.enumerations = m.enumerations;
     model
 }
 
 fn model_with(manifest_json: &str) -> Model {
     let spec = parse_spec("alpha.md", SPEC).expect("spec parses");
-    let mut model = Model { specs: vec![spec], ..Default::default() };
+    let mut model = Model {
+        specs: vec![spec],
+        ..Default::default()
+    };
     if !manifest_json.is_empty() {
         let root = json::parse(manifest_json).expect("manifest is valid json");
         let m = manifest::parse("m.json", &root).expect("manifest parses");
         model.realizes = m.realizes;
         model.covers = m.covers;
-        model.untraced = m.untraced;
         model.class_members = m.class_members;
+        model.enumerations = m.enumerations;
     }
     model
 }
@@ -88,24 +95,24 @@ fn an_untagged_claim_is_both_unrealized_and_uncovered() {
     assert!(holes.contains(&(HoleKind::Uncovered, "alpha#guarded".into())));
 }
 
-/// D6.5: `routine` requires a spec entry and nothing else, so no evidence was ever demanded of it.
-/// Reporting it as uncovered would make the level meaningless. It can still be unrealized —
-/// criticality gates evidence, not implementation.
+/// D20: `routine` stops at intent, so neither linkage facet exists to have a hole.
 #[test]
-fn a_routine_claim_is_never_uncovered_but_can_be_unrealized() {
+fn a_routine_claim_has_no_linkage_holes() {
     let holes = kinds(&model_with(""));
     assert!(!holes.contains(&(HoleKind::Uncovered, "alpha#decorative".into())));
-    assert!(holes.contains(&(HoleKind::Unrealized, "alpha#decorative".into())));
+    assert!(!holes.contains(&(HoleKind::Unrealized, "alpha#decorative".into())));
 }
 
-/// D9.2: severity comes from criticality, not from the check.
+/// D9.2: severity comes from criticality, not from the check. Routine has no linkage finding to
+/// classify under D20.
 #[test]
 fn severity_follows_criticality() {
     let holes = rtm(&model_with(""));
-    let critical = holes.iter().find(|h| h.claim.as_deref() == Some("alpha#guarded")).unwrap();
-    let routine = holes.iter().find(|h| h.claim.as_deref() == Some("alpha#decorative")).unwrap();
+    let critical = holes
+        .iter()
+        .find(|h| h.claim.as_deref() == Some("alpha#guarded"))
+        .unwrap();
     assert_eq!(critical.severity, Severity::Error);
-    assert_eq!(routine.severity, Severity::Warning);
 }
 
 #[test]
@@ -142,27 +149,20 @@ fn a_tag_naming_no_claim_is_dangling() {
     assert!(holes.contains(&(HoleKind::DanglingRealization, "beta#guarded".into())));
 }
 
-#[test]
-fn an_untraced_test_is_a_hole() {
-    let model = model_with(
-        r#"{
-          "covers": [
-            {"spec":"alpha","scenario":"guarded","site":"T.A","file":"t.cs","lang":"csharp"}
-          ],
-          "untraced_tests": [{"site":"T.B","file":"t.cs","lang":"csharp"}]
-        }"#,
-    );
-    assert!(rtm(&model).iter().any(|h| h.kind == HoleKind::UntracedTest));
-}
-
 /// D6.2: a requirement without a declared criticality is a hole, and the parse still succeeds.
 #[test]
 fn an_unclassified_requirement_is_a_hole() {
     let source = SPEC.replace("Criticality: critical\n", "");
     let spec = parse_spec("alpha.md", &source).expect("parses");
-    let model = Model { specs: vec![spec], ..Default::default() };
+    let model = Model {
+        specs: vec![spec],
+        ..Default::default()
+    };
     let holes = rtm(&model);
-    let hole = holes.iter().find(|h| h.kind == HoleKind::Unclassified).expect("unclassified");
+    let hole = holes
+        .iter()
+        .find(|h| h.kind == HoleKind::Unclassified)
+        .expect("unclassified");
     assert_eq!(hole.severity, Severity::Error);
     assert_eq!(hole.claim.as_deref(), Some("alpha#matters"));
 }
@@ -177,7 +177,11 @@ fn the_triple_key_is_rejected_with_an_explanation() {
     )
     .unwrap();
     let errors = manifest::parse("m.json", &root).unwrap_err();
-    let text = errors.iter().map(|d| d.to_string()).collect::<Vec<_>>().join("\n");
+    let text = errors
+        .iter()
+        .map(|d| d.to_string())
+        .collect::<Vec<_>>()
+        .join("\n");
     assert!(text.contains("the pair (spec, scenario)"), "{text}");
 }
 
@@ -190,7 +194,11 @@ fn realizes_cannot_carry_a_form() {
     )
     .unwrap();
     let errors = manifest::parse("m.json", &root).unwrap_err();
-    let text = errors.iter().map(|d| d.to_string()).collect::<Vec<_>>().join("\n");
+    let text = errors
+        .iter()
+        .map(|d| d.to_string())
+        .collect::<Vec<_>>()
+        .join("\n");
     assert!(text.contains("not a property of code"), "{text}");
 }
 
@@ -202,7 +210,11 @@ fn unknown_form_values_are_rejected() {
     )
     .unwrap();
     let errors = manifest::parse("m.json", &root).unwrap_err();
-    let text = errors.iter().map(|d| d.to_string()).collect::<Vec<_>>().join("\n");
+    let text = errors
+        .iter()
+        .map(|d| d.to_string())
+        .collect::<Vec<_>>()
+        .join("\n");
     assert!(text.contains("unknown scope `integration`"), "{text}");
     assert!(text.contains("unit, component or e2e"), "{text}");
 }
@@ -218,8 +230,15 @@ fn the_retired_quantification_value_is_rejected() {
     )
     .unwrap();
     let errors = manifest::parse("m.json", &root).unwrap_err();
-    let text = errors.iter().map(|d| d.to_string()).collect::<Vec<_>>().join("\n");
-    assert!(text.contains("unknown quantification `invariant`"), "{text}");
+    let text = errors
+        .iter()
+        .map(|d| d.to_string())
+        .collect::<Vec<_>>()
+        .join("\n");
+    assert!(
+        text.contains("unknown quantification `invariant`"),
+        "{text}"
+    );
     assert!(text.contains("example or universal"), "{text}");
 }
 
@@ -249,7 +268,12 @@ fn the_export_carries_claims_tags_and_holes() {
     assert!(round_tripped.get("covers").is_some());
     assert!(round_tripped.get("holes").is_some());
     assert_eq!(
-        round_tripped.get("holes").unwrap().as_array().unwrap().len(),
+        round_tripped
+            .get("holes")
+            .unwrap()
+            .as_array()
+            .unwrap()
+            .len(),
         holes.len()
     );
 }
@@ -268,10 +292,14 @@ fn json_round_trips_escapes_and_unicode() {
 fn a_tagged_site_that_does_not_discharge_breaches() {
     let model = class_model(
         r#"{"realizes":[{"spec":"beta","scenario":"rendered","site":"Page","file":"page.tsx",
-            "lang":"typescript"}]}"#,
+            "lang":"typescript"}],"enumerations":[{"class":"beta","kind":"routes",
+            "source":"routes.json","source_fingerprint":"abc"}]}"#,
     );
     let holes = kinds(&model);
-    assert!(holes.contains(&(HoleKind::InvariantBreach, "beta#confined".into())), "{holes:?}");
+    assert!(
+        holes.contains(&(HoleKind::InvariantBreach, "beta#confined".into())),
+        "{holes:?}"
+    );
 }
 
 /// The case tags cannot reach, and the reason `class_members` exists: a file carrying no tag at all
@@ -284,12 +312,19 @@ fn an_emitted_member_with_no_tags_at_all_breaches() {
             "lang":"typescript"},{"spec":"beta","scenario":"confined","site":"Page",
             "file":"page.tsx","lang":"typescript"}],
             "class_members":[{"class":"beta","site":"/untouched","file":"untouched.ts",
-            "lang":"typescript"}]}"#,
+            "lang":"typescript"}],"enumerations":[{"class":"beta","kind":"routes",
+            "source":"routes.json","source_fingerprint":"abc"}]}"#,
     );
     let holes = kinds(&model);
-    assert!(holes.contains(&(HoleKind::InvariantBreach, "beta#confined".into())), "{holes:?}");
+    assert!(
+        holes.contains(&(HoleKind::InvariantBreach, "beta#confined".into())),
+        "{holes:?}"
+    );
     assert_eq!(
-        holes.iter().filter(|(k, _)| *k == HoleKind::InvariantBreach).count(),
+        holes
+            .iter()
+            .filter(|(k, _)| *k == HoleKind::InvariantBreach)
+            .count(),
         1,
         "the tagged-and-discharged site must not also breach: {holes:?}"
     );
@@ -303,11 +338,34 @@ fn an_emitted_member_discharges_from_anywhere_in_its_file() {
         r#"{"realizes":[{"spec":"beta","scenario":"confined","site":"GET",
             "file":"route.ts","lang":"typescript"}],
             "class_members":[{"class":"beta","site":"/thing","file":"route.ts",
-            "lang":"typescript"}]}"#,
+            "lang":"typescript"}],"enumerations":[{"class":"beta","kind":"routes",
+            "source":"routes.json","source_fingerprint":"abc"}]}"#,
     );
     let holes = kinds(&model);
     assert!(
         !holes.iter().any(|(k, _)| *k == HoleKind::InvariantBreach),
         "discharge in the same file should clear the member: {holes:?}"
+    );
+}
+
+#[test]
+fn a_site_domain_without_a_derived_enumerator_fails_closed() {
+    let model = class_model(
+        r#"{"realizes":[{"spec":"beta","scenario":"rendered","site":"Page",
+            "file":"page.tsx","lang":"typescript"}]}"#,
+    );
+    let holes = kinds(&model);
+    assert!(
+        holes.contains(&(
+            HoleKind::EnumeratorUnsoundOrUnderived,
+            "beta#confined".into()
+        )),
+        "{holes:?}"
+    );
+    assert!(
+        !holes
+            .iter()
+            .any(|(kind, _)| *kind == HoleKind::InvariantBreach),
+        "a partial domain must not produce authoritative member findings: {holes:?}"
     );
 }

@@ -2,7 +2,7 @@ using System.Reflection;
 using System.Runtime.Loader;
 using Azimuth.Emit;
 
-// azimuth-emit-dotnet --output <path> [--root <dir>] [--traced-root <ns>]... <assembly.dll>...
+// azimuth-emit-dotnet --output <path> [--root <dir>] <assembly.dll>...
 //
 // Reflects over built assemblies and writes the language-neutral manifest the core reads. Running
 // after a build rather than scanning source is deliberate: reflection resolves inheritance and
@@ -39,7 +39,7 @@ foreach (var path in options.Assemblies)
     assemblies.Add(context.LoadFromAssemblyPath(full));
 }
 
-var result = Collector.Collect(assemblies, options.Root, options.TracedRoots);
+var result = Collector.Collect(assemblies, options.Root);
 
 foreach (var warning in result.Warnings)
 {
@@ -54,27 +54,23 @@ if (!string.IsNullOrEmpty(directory))
 
 File.WriteAllText(options.Output, Collector.ToJson(result));
 Console.Error.WriteLine(
-    $"{result.Realizes.Count} realizes, {result.Covers.Count} covers, "
-    + $"{result.UntracedTests.Count} untraced → {options.Output}");
+    $"{result.Realizes.Count} realizes, {result.Covers.Count} covers → {options.Output}");
 return 0;
 
 internal readonly record struct Options(
     string Output,
     string Root,
-    IReadOnlyList<string> TracedRoots,
     IReadOnlyList<string> Assemblies)
 {
     public const string Usage =
-        "usage: azimuth-emit-dotnet --output <path> [--root <dir>] [--traced-root <ns>]... <assembly.dll>...\n"
+        "usage: azimuth-emit-dotnet --output <path> [--root <dir>] <assembly.dll>...\n"
         + "  --output       where the manifest is written\n"
-        + "  --root         paths in the manifest are made relative to this (default: cwd)\n"
-        + "  --traced-root  namespace prefix held to tracing; repeatable, none by default";
+        + "  --root         paths in the manifest are made relative to this (default: cwd)";
 
     public static Options? Parse(string[] args)
     {
         string? output = null;
         var root = Directory.GetCurrentDirectory();
-        var tracedRoots = new List<string>();
         var assemblies = new List<string>();
 
         for (var i = 0; i < args.Length; i++)
@@ -89,10 +85,6 @@ internal readonly record struct Options(
                     if (++i >= args.Length) return null;
                     root = Path.GetFullPath(args[i]);
                     break;
-                case "--traced-root":
-                    if (++i >= args.Length) return null;
-                    tracedRoots.Add(args[i]);
-                    break;
                 default:
                     if (args[i].StartsWith('-')) return null;
                     assemblies.Add(args[i]);
@@ -105,6 +97,6 @@ internal readonly record struct Options(
             return null;
         }
 
-        return new Options(output, root, tracedRoots, assemblies);
+        return new Options(output, root, assemblies);
     }
 }

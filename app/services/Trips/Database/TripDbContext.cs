@@ -5,9 +5,9 @@ namespace Trips.Database;
 
 public sealed class TripDbContext(DbContextOptions<TripDbContext> options) : DbContext(options)
 {
-    public DbSet<Quote> Quotes => Set<Quote>();
-
     public DbSet<Trip> Trips => Set<Trip>();
+
+    public DbSet<CaptureIntent> CaptureIntents => Set<CaptureIntent>();
 
     public DbSet<TripTransition> TripTransitions => Set<TripTransition>();
 
