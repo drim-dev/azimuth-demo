@@ -79,19 +79,22 @@ The practical case for having the field at all, since "test critical things hard
 
 **Does not buy: detection.** The machine tier reported green on every dishonest tag in all three
 passes. Each was found by an agent reading test bodies, and an agent with no field at all would have
-reached the same verdicts on the same tests. The field makes the resulting judgment recordable, comparable and
-machine-expirable. It does not find anything.
+reached the same verdicts on the same tests. The field makes the resulting judgment recordable,
+comparable and machine-expirable. It does not find anything.
 
 ## 5. The uncomfortable ledger
 
 Quantification is the field with the highest observed dishonesty rate in the repo.
 
-| Spec | Claims judged | Tag failures | Other adverse |
-|---|---|---|---|
-| `trips/request` | 8 | 4 | 2 toothless |
-| `payments/capture` | 10 | 2 (since fixed) | 1 toothless |
-| `trips/rider-view` | 9 | 1 | 3 toothless · 2 spec-gap |
-| **Total** | **27** | **7** | **6 toothless · 2 spec-gap · 12 sound** |
+What the passes *found*, not the state after fixing — the dishonesty rate is the number this section
+is about, and repairing it does not unmake the observation.
+
+| Spec | Claims judged | Tag failures | Other adverse | Since fixed |
+|---|---|---|---|---|
+| `trips/request` | 8 | 4 | 2 toothless | all 6, re-judged `sound` 2026-08-07 |
+| `payments/capture` | 10 | 2 | 1 toothless | the 2 tag failures |
+| `trips/rider-view` | 9 | 1 | 3 toothless · 2 spec-gap | none |
+| **Total** | **27** | **7** | **6 toothless · 2 spec-gap · 12 sound** | **8 of 15** |
 
 Every tag failure across all three passes was `Quantification`, or the `Oracle` beside it — the
 pattern held for a third spec, on evidence written months apart. D18.1 already drew the general
@@ -109,10 +112,19 @@ violations. `docs/framework.md:271` carries this as an open falsifier: *"artifac
 cost exceeds what the defects justify → ceremony | never measured"*. Still never measured.
 
 **The test that would settle it:** whether a `dishonest-tag` finding ever leads to a rewrite that
-catches a defect the example-tagged version would have missed. One data point so far, and it points
-the wrong way: `payments/capture#capture-equals-trip-fare` was rewritten to 36 generated amounts and
-found nothing — the implementation was already correct. On current evidence the field's demonstrated
-yield is bookkeeping about evidence, not defects.
+catches a defect the example-tagged version would have missed.
+
+**Still not satisfied, and the second data point is more interesting than the first** *(updated
+2026-08-07)*. `payments/capture#capture-equals-trip-fare` was rewritten to 36 generated amounts and
+found nothing — the implementation was already correct. The `trips/request` rewrite went further:
+three faults were *injected* and the old evidence survived all three while the new evidence killed
+all three, including the grace window the judgment had named in advance.
+
+That is fault-detection capability, measured, which is the mutation-testing currency and is worth
+having. It is **not** a defect found, which is what this test asks for and what the ceremony
+falsifier trades in. Nobody has yet been surprised by a bug because a tag was made honest. Until
+that happens the field's demonstrated yield remains bookkeeping about evidence — better-founded
+bookkeeping than a week ago, and still bookkeeping.
 
 ## 6. Observation — the field is one bit and evidence is multi-axis
 
