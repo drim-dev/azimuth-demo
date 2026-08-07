@@ -15,7 +15,7 @@ either genuinely out of scope or a proposal nobody has been willing to decide.
 | `site-class-evidence.md` | why a behavioural test cannot be universal evidence for a claim over a derived set of sites | finding · one proposal |
 | `fingerprint-granularity.md` | that the judgment fingerprint over-fires on renames and under-fires on plan changes | open question · one bounded fix |
 | `scope-field.md` | that the harness decided every scope tag in one spec, and that a mutation derived a required scope | observations · open question |
-| `exemption-visibility.md` | that 17 `Untraced` exemptions and their reasons never reach the model, and an unspecified 400/422 boundary | finding · candidate spec change |
+| `exemption-visibility.md` | 17 exemptions disappear; one 400/422 boundary is unspecified | implementation finding · D20.1 decided the framework fix |
 | `unclaimed-outcomes.md` | making "which claims must exist" checkable over a derived surface of client-visible refusals | proposed · one prediction |
 | `design-fiction.md` | three design entries named mechanisms nobody wrote, and the judging rubric that trusted them | finding · rubric fixed |
 | `entry-point-surfaces.md` | an entry-point inventory with classes as subsets of it, and why choke-point crediting comes first | proposed · one measured finding |
@@ -38,7 +38,7 @@ tier and turned into an examination of the quantification field itself. Four art
   which no fixture path can trigger, and scenarios for the pushed-observation modes `design/` names
   — live in that file and are not restated here.
 - The rename decided from it — **D19** and **D19.1** in `docs/decisions.md`.
-- The authoring skill written in response — `.claude/skills/azimuth-cover/`, with its own falsifier
+- The authoring skill written in response — `.agents/skills/azimuth-cover/`, with its own falsifier
   and a fixture-local reference file.
 
 Citations to outside literature in these files are from model knowledge and were **not verified**

@@ -54,7 +54,7 @@ spec" is a decision about 11 outcomes, not a matter of feel.
 
 ## The obstacle, which is the real content of this proposal
 
-**The enumerator must come from the project, not the tool.** `CLAUDE.md` forbids domain vocabulary
+**The enumerator must come from the project, not the tool.** `AGENTS.md` forbids domain vocabulary
 in `tools/`, and "an error code looks like `a:b:c:d`" is fixture convention. The tool cannot derive
 this surface without knowing something about the project. The shape that fits the existing design is
 the one `covers` and `realizes` already use: the project's extractor emits an `outcomes` array into

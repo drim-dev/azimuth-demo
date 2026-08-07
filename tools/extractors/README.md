@@ -56,6 +56,11 @@ opt-in area: a namespace prefix in .NET, a file already carrying at least one `c
 TypeScript. Holding every test in a repo to it would be noise, and partial adoption is what makes
 the ratchet work (D8).
 
+**Decided, not implemented:** D20.1 removes `untraced_tests` from the claim-assurance model.
+`covers` opts a test into evidence; an untagged test is ordinary project evidence outside Azimuth,
+not evidence without intent. Both extractors retain the old field until the first manual change has
+validated the process and the tool is updated across one change.
+
 ## Tests
 
 ```

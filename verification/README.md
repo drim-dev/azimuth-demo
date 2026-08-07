@@ -4,6 +4,10 @@ The evidence facet (D3). A plan records **what would be sufficient to believe a 
 what currently exists. The evidence that exists is derived from `covers` tags and appears in the
 export; hand-listing it would create a second copy that drifts (D4.5).
 
+Only standard and critical claims owe evidence. Routine claims stop at intent and need no
+`covers` tags (D20). A test without `covers` is an ordinary test outside Azimuth's evidence model,
+not an untraced evidence item and not an exemption (D20.1).
+
 ## What a plan contains
 
 Only what is not derivable:

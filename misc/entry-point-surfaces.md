@@ -93,7 +93,7 @@ missing.
 ## What is deliberately not built
 
 **No gRPC, Kafka or scheduler adapters.** The fixture uses none of them, and building extractors for
-technologies the corpus does not exercise is the failure mode `CLAUDE.md` names — the fixture
+technologies the corpus does not exercise is the failure mode `AGENTS.md` names — the fixture
 becoming the product. It is also premature given the ordering constraint above.
 
 **No inventory/class split yet either.** It is a small change and testable on the two apps that

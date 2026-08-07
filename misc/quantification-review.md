@@ -48,7 +48,7 @@ reader from the formal-methods literature hits first. It bites harder because D1
 every claim is ∀ over its domain, so "invariant" cannot be distinguishing anything on the claim side
 at all.
 
-This is the liability `CLAUDE.md` names for borrowed terms: precision the mechanism does not back.
+This is the liability `AGENTS.md` names for borrowed terms: precision the mechanism does not back.
 
 ## 3. The rename — decided as D19 *(graduated out)*
 
@@ -170,7 +170,7 @@ field.
 
 ### 6.4 The option space, ranked
 
-1. Nothing; it stays prose in the residue, which is what `CLAUDE.md` prescribes for a singleton.
+1. Nothing; it stays prose in the residue, which is what `AGENTS.md` prescribes for a singleton.
 2. A rubric item in the agent tier — already present as `azimuth-cover`'s third self-check.
 3. A descriptive, never-gated field, on the `Oracle` precedent. Answers 6.1's lesser question.
 4. A new gated field. No: it would need a check to consume it, and the only candidate check is (2).
@@ -190,7 +190,7 @@ because the temptation after two judging passes is to promote an argument that h
 
 ## 7. Related work from the same session
 
-`.claude/skills/azimuth-cover/` — an authoring skill that attacks the cost gradient directly: name
+`.agents/skills/azimuth-cover/` — an authoring skill that attacks the cost gradient directly: name
 the axis the claim quantifies over, range over that one, and when the required form is unavailable,
 tag what the test *is* and record the deviation in the plan. It carries its own falsifier and the
 baseline above.

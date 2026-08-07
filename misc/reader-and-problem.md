@@ -41,7 +41,7 @@ Add a short section to `docs/framework.md`, near the top, stating four things:
 3. **What they do instead today**, named honestly, including why it partly works.
 4. **What would falsify the claim that they have this problem.**
 
-Item 4 is what keeps the section from becoming the marketing register `CLAUDE.md` bans. "These
+Item 4 is what keeps the section from becoming the marketing register `AGENTS.md` bans. "These
 readers have this problem" is a proposition that can be wrong; "powerful and seamless" is not.
 
 ## Candidate readers — the author's call, not mine

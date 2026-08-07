@@ -100,6 +100,13 @@ critical requirement is a hole. Partial adoption still reports.
 
 ## What it does not do yet
 
+- **D20's intent-only routine level is not implemented.** The checker still reports `unrealized`
+  on a routine claim at warning severity, and still consumes `untraced_tests`. The decided result
+  is that routine claims owe no linkage and untagged tests are outside the evidence model, so
+  neither finding survives the implementation.
+- **Changes and archives are not implemented.** D21 decides the lifecycle, but the first feature
+  follows `changes/README.md` manually. The core reads only accepted current facets and has no
+  target-state projection or archive command.
 - **Enforcement claimed versus enforcement found is not checked.** Design entries name artifacts
   precisely enough for it — a constraint by name and table, a type and the property it makes
   impossible — and the code and manifests to check against now exist. The check is simply not

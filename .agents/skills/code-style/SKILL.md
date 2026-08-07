@@ -1,11 +1,11 @@
 ---
 name: code-style
-description: Use when writing or reviewing code comments or naming things (variables, functions, types, files) — worked examples for the project's two hard rules: comments explain WHY not WHAT, and names describe purpose not implementation/history (project)
+description: "Use when writing or reviewing code comments or naming things (variables, functions, types, files) — worked examples for the project's two hard rules: comments explain WHY not WHAT, and names describe purpose not implementation/history (project)"
 ---
 
 # Code Style — Comments & Naming
 
-Worked examples for two project rules stated in CLAUDE.md. The rules themselves are mandatory and always apply; this skill is the reference with concrete before/after.
+Worked examples for two project rules stated in AGENTS.md. The rules themselves are mandatory and always apply; this skill is the reference with concrete before/after.
 
 ## Comments: explain WHY, never WHAT
 

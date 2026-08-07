@@ -181,3 +181,11 @@ column alone.
 What has *not* changed: **no falsifier has been retired**, two remain fired, and the validity note
 above applies to everything in this document. The agent-tier row moved from "one run" to "three
 passes" without changing its verdict, because more self-judging is more of the same evidence.
+
+## Decisions after this measurement
+
+D20 and D21 were decided on 2026-08-07 after the counts above: routine claims now stop at intent,
+untagged tests are outside the evidence model, and changes/archive form the transition around the
+three current-state facets. None is implemented in the tool, and none changes the measurements in
+this document. The first feature will run the provisional protocol in `changes/README.md` manually
+before notation or automation is added.

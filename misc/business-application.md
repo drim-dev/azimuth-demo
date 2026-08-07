@@ -56,7 +56,7 @@ claim is demonstrated once, by its author, on one spec, and that annotation cost
 weighed against defects found. The session that produced these notes added evidence in both
 directions: the quantification field caught four dishonest tags and also produced them.
 
-Selling that as established produces exactly the outcome `CLAUDE.md` warns about for overreaching
+Selling that as established produces exactly the outcome `AGENTS.md` warns about for overreaching
 terminology — the first rigorous reader who pushes on it costs more credibility than the claim ever
 bought. Selling it as a working hypothesis with a visible revision history is both honest and the
 better teaching material, because a decision that was made, falsified and revised can be shown end

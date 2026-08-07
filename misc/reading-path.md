@@ -4,7 +4,7 @@
 knowledge and were not verified this session — check editions and availability before buying
 anything.
 
-The writing register used in this repo is not invented here. `CLAUDE.md`'s "Writing" section
+The writing register used in this repo is not invented here. `AGENTS.md`'s "Writing" section
 prescribes it: claims as propositions rather than aspirations, every assertion derived or cited or
 marked as a prediction, say what would falsify it, quantities over adjectives, no marketing
 register, concede prior art, distinguish decided from proposed. Four separate literatures produced

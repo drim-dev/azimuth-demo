@@ -23,9 +23,9 @@ Residual: optional
 Proof satisfies a demonstration requirement, and `universal` satisfies an `example` requirement. A
 required form is a floor, not a target.
 
-`Strength: none` on `routine` is D6.5: the level requires a spec entry and nothing else, so no
-evidence was ever demanded. A routine claim can still be `unrealized` — criticality gates evidence,
-not implementation.
+`Strength: none` on `routine` is D6.5 and D20: the level requires a spec entry and change history,
+and nothing in the mechanism or evidence facets. Neither `unrealized` nor `uncovered` applies. The
+tooling has not implemented the linkage half of that decision yet.
 
 ## Scope is not derived from criticality
 

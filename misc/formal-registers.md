@@ -24,7 +24,7 @@ D7's "strong enforcement is self-evidencing" arriving from the type-system side.
 
 **Property-based testing forces the `example` → `universal` shift by construction.** There is no
 expected value to hard-code, because the input is not known when the test is written. That is the
-same mechanic `.claude/skills/azimuth-cover/SKILL.md` states as its first self-check.
+same mechanic `.agents/skills/azimuth-cover/SKILL.md` states as its first self-check.
 
 ## What none of them force
 

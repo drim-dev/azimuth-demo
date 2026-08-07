@@ -44,14 +44,23 @@ AND <further outcome>         (optional, repeatable)
 Declared on every requirement. Absence is a hole, not a default (D6.2). The level gates which
 artifacts are required at all (D6.5):
 
-| Level | Spec | Design | Verification plan |
-|---|---|---|---|
-| `critical` | required | required | required |
-| `standard` | required | optional | required |
-| `routine` | required | — | — |
+| Level | Spec | `realizes` | Evidence / `covers` | Current design |
+|---|---|---|---|---|
+| `critical` | required | required | required at the critical floor | required |
+| `standard` | required | required | required at the standard floor | optional |
+| `routine` | required | — | — | — |
+
+Routine means intent only (D20), not weaker tracing. Production code and tests for a routine claim
+need no Azimuth tags, and an untagged test needs no exemption. The verification standard supplies
+the evidence floor for standard and critical claims; a plan file contains deviations and other
+non-derivable evidence facts, so no file is needed when the standard applies unchanged.
 
 Scenarios inherit criticality from their requirement. Moving a scenario between requirements can
 therefore change its rigor — visibly, in the spec diff, which is where it belongs.
+
+Criticality may also change in place without changing the requirement or scenario id. D21.1 makes
+that a change delta: raising it derives new obligations; lowering it records a rationale and revisit
+condition; archiving preserves the transition.
 
 ## What scenarios do not carry
 

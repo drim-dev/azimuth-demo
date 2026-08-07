@@ -63,6 +63,6 @@ over. This one asks who enumerates a domain — the test or the model. Adjacent,
 
 If they ever converge it will be through a shared observation: **the tag reports a property of the
 evidence, and in both cases the interesting fact is a relationship between the evidence and the
-claim's domain.** One instance each is not enough to build notation on, and `CLAUDE.md`'s rule that
+claim's domain.** One instance each is not enough to build notation on, and `AGENTS.md`'s rule that
 mechanisms need ≥2 structurally different concerns is doing real work here — it is the reason
 neither has become a field.

@@ -1,7 +1,10 @@
 # Exemptions are recorded in source and invisible to the model
 
-**Status: one finding, one candidate spec change, one lifecycle question answered.** Found on
-2026-08-07 while asking why the validator tests in `RequestRideTests.cs` carry `[Untraced]`.
+**Status: implementation finding; framework proposal superseded by D20.1.** Found on 2026-08-07
+while asking why the validator tests in `RequestRideTests.cs` carry `[Untraced]`. D20.1 later
+decided that untagged tests are outside the evidence model and removes the general `Untraced`
+mechanism rather than exporting its reasons. The finding remains true of the current tool until
+that decision is implemented.
 
 ## The finding
 

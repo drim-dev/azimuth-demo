@@ -15,6 +15,11 @@ justification for the format:
 
 Required for `critical` requirements, optional for `standard`, absent for `routine` (D6.5).
 
+This directory describes **accepted current mechanisms**. Proposed architecture, alternatives and
+implementation sequencing live in `changes/<id>/design.md` (D21.2), where a planned mechanism may
+honestly be absent. Archiving distils only what was built into this directory; copying an abandoned
+plan here would turn change history into design fiction.
+
 ## Files
 
 ```markdown
