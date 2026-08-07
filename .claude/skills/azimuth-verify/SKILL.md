@@ -27,6 +27,10 @@ true.
 
 1. **Read the claim** in `specs/`, and the required form in `verification/`.
 2. **Read every covering test** in the evidence files. Not the name — the body.
+2b. **Check the design entry against the source.** A `Site:` is prose and nothing parses it, so it
+   can name a type nobody wrote. Open the file it names before believing it. Three entries in this
+   corpus described mechanisms that do not exist, and two verdicts were wrong because a judge cited
+   one of them as evidence of a gap.
 3. **Ask, in order:**
    - *Would this test fail against a plausible wrong implementation?* Construct one mentally: delete
      the guard, drop the constraint, return a constant. If the test still passes, it is

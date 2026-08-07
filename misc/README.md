@@ -17,6 +17,7 @@ either genuinely out of scope or a proposal nobody has been willing to decide.
 | `scope-field.md` | that the harness decided every scope tag in one spec, and that a mutation derived a required scope | observations · open question |
 | `exemption-visibility.md` | that 17 `Untraced` exemptions and their reasons never reach the model, and an unspecified 400/422 boundary | finding · candidate spec change |
 | `unclaimed-outcomes.md` | making "which claims must exist" checkable over a derived surface of client-visible refusals | proposed · one prediction |
+| `design-fiction.md` | three design entries named mechanisms nobody wrote, and the judging rubric that trusted them | finding · rubric fixed |
 | `entry-point-surfaces.md` | an entry-point inventory with classes as subsets of it, and why choke-point crediting comes first | proposed · one measured finding |
 | `reader-and-problem.md` | that `framework.md` names no reader, and two candidate readers with their falsifiers | proposed |
 | `formal-registers.md` | languages that force precision, and what none of them force | reference · one proposal |
