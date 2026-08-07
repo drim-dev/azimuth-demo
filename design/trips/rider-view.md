@@ -16,13 +16,16 @@ That gap is the point of the residual in `verification/trips/rider-view.md`.
 ## Requirement: driver-hidden-after-terminal
 Enforcement: type
 Site: the same `RiderProjection.For(tripPhase)`, which returns no position for terminal phases
-Enforcement: choke-point
-Site: `RiderTripStream.Close` is invoked by the state machine's terminal transition, not by the
-client disconnecting
 
-The projection covers what a request returns. The stream teardown covers what an already-open
-connection keeps pushing, which the projection cannot reach — the interesting failure is a
-subscription that was correct while the trip ran and is never torn down.
+Every rider-facing read of a trip goes through the projection, and after a terminal transition it
+returns no position. There is one observation mode and the projection covers it.
+
+*(revised 2026-08-07 — supersedes a second `Enforcement: choke-point` naming `RiderTripStream.Close`,
+"invoked by the state machine's terminal transition, not by the client disconnecting", described as
+covering what an already-open connection keeps pushing. **No such type exists.** The fixture has no
+streaming: the rider page polls with `router.refresh()`, which re-runs the same projection on the
+server. The entry described a mechanism for a failure mode this system cannot have, and the agent
+tier cited it as evidence for two `spec-gap` verdicts before anyone checked the code against it.)*
 
 ## Requirement: position-confined-to-live-phases
 Enforcement: type
@@ -52,7 +55,8 @@ accepted for now on the argument that markets launch dense; it is wrong in a mar
 which is exactly when nobody is watching. If a launch checklist is ever written, this belongs on
 it.
 
-**The rider client caches the last known driver position for offline display.** Terminal-state
-teardown clears it, but a client that is killed mid-trip and reopened after completion restores
-from cache before the first fetch. The window is small and the claim
-`no-position-after-completion` does not currently cover the client's cold start.
+*(removed 2026-08-07 — a residue paragraph claimed "the rider client caches the last known driver
+position for offline display", leaving a cold-start window the claims did not cover. The client
+caches nothing: `lib/trip-service.ts` fetches with `cache: 'no-store'`, and `refresher.tsx` uses
+`router.refresh()` specifically so that what the page shows is decided by the same server-side
+projection that decided the first render. The residue recorded a risk the system does not have.)*

@@ -135,6 +135,15 @@ after(async () => {
   docker('rm', '-f', PG);
 });
 
+/** Moves the seeded driver. Position is fixture data, so it changes the way it was seeded. */
+function moveDriver(position: string) {
+  const moved = docker(
+    'exec', PG, 'psql', '-U', 'postgres', '-d', 'trip', '-c',
+    `UPDATE drivers SET position = '${position}' WHERE id = 'driver-e2e'`,
+  );
+  assert.equal(moved.status, 0, moved.stderr);
+}
+
 async function requestedTrip(rider: string) {
   const quote = await post('/api/rider/quotes', {
     pickup: 'a', dropoff: 'b', baseMinor: 500, distanceMinor: 1000, currency: 'EUR',
@@ -170,16 +179,25 @@ test("the driver's position reaches the rider only while the trip is live", asyn
 
   const assigned = await get(`/api/rider/trips/${id}`);
   assert.equal(assigned.body.driver?.name, 'Sam');
+  assert.equal(assigned.body.vehicle ?? assigned.body.driver?.vehicle, 'blue hatchback');
   assert.equal(assigned.body.driverPosition, '52.37,4.89');
 
+  // The claim is that the shown position *follows* the driver, so the driver has to move. Asserting
+  // the same literal twice passes against a projection that caches or hard-codes it.
+  moveDriver('52.38,4.90');
+  assert.equal((await get(`/api/rider/trips/${id}`)).body.driverPosition, '52.38,4.90');
+
   assert.equal(await driver(`/trips/${id}/start?actor=driver-e2e`), 200);
-  assert.equal((await get(`/api/rider/trips/${id}`)).body.driverPosition, '52.37,4.89');
+  moveDriver('52.39,4.91');
+  assert.equal((await get(`/api/rider/trips/${id}`)).body.driverPosition, '52.39,4.91');
 
   assert.equal(await driver(`/trips/${id}/complete?actor=driver-e2e`), 200);
   const done = await get(`/api/rider/trips/${id}`);
   assert.equal(done.body.driverPosition, null);
   assert.equal(done.body.driver?.name, 'Sam');
-  assert.equal(JSON.stringify(done.body).includes('52.37'), false);
+  assert.equal(JSON.stringify(done.body).includes('52.3'), false);
+
+  moveDriver('52.37,4.89');
 });
 
 test('a cancelled trip shows no position either', async () => {
@@ -224,7 +242,9 @@ test('a fare outside every serviced area is refused', async () => {
  * class grew when the web app did, which is the whole point of quantifying over it.
  */
 test('no rider-reachable surface carries a position outside the live phases', async () => {
-  covers('trips/rider-view', 'position-confined-to-live-phases', 'e2e', 'universal');
+  // Five named surfaces, not the class: membership is derived from the route table, and the
+  // universal evidence for this claim is `invariant-breach` over that plus the type-level mechanism.
+  covers('trips/rider-view', 'position-confined-to-live-phases', 'e2e', 'example');
 
   const id = await requestedTrip(`rider-${Date.now()}-leak`);
   await driver(`/trips/${id}/accept/driver-e2e`);

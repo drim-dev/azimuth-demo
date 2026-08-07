@@ -1,3 +1,4 @@
+import { realizes } from '@azimuth/annotations';
 import { redirect } from 'next/navigation';
 
 export const dynamic = 'force-dynamic';
@@ -18,6 +19,9 @@ async function open(formData: FormData) {
  * specific offer instead.
  */
 export default function Home() {
+  // A form that takes two identifiers and redirects. It shows no rider and holds no trip.
+  realizes('trips/driver-view', 'rider-contact-confined-to-held-trips');
+
   return (
     <>
       <h1>Open an offer</h1>

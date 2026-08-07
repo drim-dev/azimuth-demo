@@ -7,6 +7,9 @@ export const dynamic = 'force-dynamic';
 export async function POST(request: Request) {
   realizes('trips/request', 'request-admitted-with-valid-quote');
   realizes('trips/request', 'request-rejected-with-expired-quote');
+  // Creation answers with the trip's own facts; the response model carries no driver at all,
+  // assigned or otherwise.
+  realizes('trips/rider-view', 'position-confined-to-live-phases');
 
   try {
     const result = await requestRide(await request.json());

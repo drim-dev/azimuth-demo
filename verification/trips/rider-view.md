@@ -22,6 +22,28 @@ Scope: e2e
 The claim is about propagation across three processes. Verifying it at any one of them verifies
 something else.
 
+## Claim: position-confined-to-live-phases
+Strength: proof
+Evidence: `DriverPosition` has no serializer and no accessor returning its raw value;
+`RiderProjection.For(tripPhase)` is the only reveal, and no rider-facing route returns a driver
+record carrying a position
+
+*(added 2026-08-07)* The e2e test is tagged `example` because that is what it is — five named
+surfaces, not the class. The claim's universality does not rest on it and never did: membership is
+derived from the route table and reported by `invariant-breach`, and what holds the predicate at
+each member is the type, which makes an unredacted position unrepresentable on the wire.
+
+Recorded here because the alternative was a test tagged `universal` over a hand-written list, which
+is D13.1's forbidden move and is what the tag said until today.
+
+## Claim: supply-density-shown-before-assignment
+Residual: identifiability is not checked. Evidence shows the density carries no coordinate; it does
+not show that a density value cannot single out a driver where few are nearby.
+Accepted: `design/trips/rider-view.md` records that density is computed from real positions and is
+not differentially private, and accepts it on the argument that markets launch dense. The claim's
+"identifies no individual driver" is therefore held by an argument, not by evidence. Revisit with
+the first sparse market, which is also when nobody is watching.
+
 ## Residual: rider-reachable-surface
 Accepted: deliberately, for now — the steel thread is built without cross-cutting notation so that
 we learn whether the per-scenario matrix notices this class of leak; if it does not, and it should

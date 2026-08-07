@@ -174,6 +174,9 @@ public sealed class RiderProjectionTests
         {
             var view = View(phase);
             Assert.Equal("Sam", view.DriverDisplay);
+            // The scenario names three things shown, and the vehicle was the one nothing checked:
+            // the projection could return null for it and every test in the corpus still passed.
+            Assert.Equal("blue hatchback", view.Vehicle);
             Assert.Equal("52.37,4.89", view.DriverPosition);
         }
     }
