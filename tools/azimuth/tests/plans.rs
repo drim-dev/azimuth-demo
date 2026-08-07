@@ -13,7 +13,7 @@ Default scope: unit
 
 ## Level: critical
 Strength: demonstration
-Quantification: invariant
+Quantification: universal
 Residual: required
 
 ## Level: standard
@@ -83,7 +83,7 @@ fn standards_parse() {
     assert_eq!(s.default_scope, Scope::Unit);
     let critical = s.for_level(azimuth::model::Criticality::Critical).unwrap();
     assert_eq!(critical.strength, Some(Strength::Demonstration));
-    assert_eq!(critical.quantification, Some(Quantification::Invariant));
+    assert_eq!(critical.quantification, Some(Quantification::Universal));
     assert!(critical.residual_required);
     let routine = s.for_level(azimuth::model::Criticality::Routine).unwrap();
     assert_eq!(routine.strength, None);
@@ -104,14 +104,14 @@ const RAISED_SCOPE: &str = "\
 
 ## Claim: concurrent-thing
 Scope: component
-Quantification: invariant
+Quantification: universal
 
 An in-memory repository serializes writes and cannot exhibit the race.
 ";
 
 #[test]
 fn a_plan_entry_raises_the_required_scope() {
-    let m = model(RAISED_SCOPE, &covers("concurrent-thing", "unit", "invariant"));
+    let m = model(RAISED_SCOPE, &covers("concurrent-thing", "unit", "universal"));
     let holes = kinds(&m);
     assert!(
         holes.contains(&(HoleKind::WrongForm, "alpha#concurrent-thing".into())),
@@ -121,21 +121,21 @@ fn a_plan_entry_raises_the_required_scope() {
 
 #[test]
 fn evidence_at_the_required_form_satisfies() {
-    let m = model(RAISED_SCOPE, &covers("concurrent-thing", "component", "invariant"));
+    let m = model(RAISED_SCOPE, &covers("concurrent-thing", "component", "universal"));
     assert!(!kinds(&m).iter().any(|(k, _)| *k == HoleKind::WrongForm));
 }
 
 /// Ladders: a stronger form on any axis satisfies a requirement for a weaker one.
 #[test]
 fn a_stronger_form_satisfies_a_weaker_requirement() {
-    let m = model(RAISED_SCOPE, &covers("concurrent-thing", "e2e", "invariant"));
+    let m = model(RAISED_SCOPE, &covers("concurrent-thing", "e2e", "universal"));
     assert!(!kinds(&m).iter().any(|(k, _)| *k == HoleKind::WrongForm));
 }
 
 /// A completeness rule checked by one happy-path example is a hole coverage calls green. This is
 /// the case the whole framework exists for.
 #[test]
-fn an_example_does_not_satisfy_an_invariant_requirement() {
+fn an_example_does_not_satisfy_a_universal_requirement() {
     let m = model("", &covers("typed-thing", "unit", "example"));
     let holes = kinds(&m);
     assert!(holes.contains(&(HoleKind::WrongForm, "alpha#typed-thing".into())), "{holes:?}");

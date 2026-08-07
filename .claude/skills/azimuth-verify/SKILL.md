@@ -31,7 +31,7 @@ true.
    - *Would this test fail against a plausible wrong implementation?* Construct one mentally: delete
      the guard, drop the constraint, return a constant. If the test still passes, it is
      **toothless**.
-   - *Does the test do what its tag claims?* A tag saying `invariant` on a test with one hard-coded
+   - *Does the test do what its tag claims?* A tag saying `universal` on a test with one hard-coded
      case is a **dishonest-tag**, however true the case is. So is `component` on a test that never
      touches the real store.
    - *Does the claim describe the behaviour that matters?* If the code is right, the test is toothy,

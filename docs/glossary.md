@@ -1,7 +1,7 @@
 # Glossary
 
 Bounded definitions. Several terms here are borrowed from fields with established formal
-meanings — proof, invariant, quantification, evidence. **Where a term is borrowed, the entry
+meanings — proof, universal, quantification, evidence. **Where a term is borrowed, the entry
 states how this framework's use is narrower than the original.** That narrowing is deliberate:
 precise vocabulary is only an asset while the model behaves the way the vocabulary implies. A
 term that writes a cheque the model cannot cash costs more credibility than it buys.
@@ -79,10 +79,18 @@ no weight is combined or accumulated across items.
 - **Detection** — we would learn if it stopped holding. Monitors, reconciliation jobs, alerts.
   A claim about the *detector*, never about the property.
 
-**Quantification** — `example` | `invariant`: whether evidence checked one case or ranges over
-all of them. A property of evidence, not of the claim. *Collision warning:* the alpha also used
-"invariant" for cross-cutting rules. In this framework **invariant is only ever a quantification
-value**; a cross-cutting rule is a claim with a non-default domain.
+**Quantification** — `example` | `universal`: whether evidence checked one case or ranges over
+all of them. A property of evidence, not of the claim. This is property-based testing's
+example/property cut, named on the *breadth of the evidence* rather than on the predicate under
+test — the framework accepts derived enumeration, generation and repeated contention as satisfying
+it, and only one of the three is a property test. *Narrowing:* `universal` names the quantifier the
+evidence ranges under, not exhaustiveness; a generated or interleaved space is a wider sample and
+still a sample (see **Demonstration**). *(revised — the value was `invariant` until D19, which
+renamed it because a Floyd or Meyer invariant is a predicate about the system, and this field is
+about the evidence. `invariant` is now no value of this field at all. The word survives here only
+as the alpha's name for a cross-cutting rule, which in this framework is a claim with a non-default
+domain, and in `invariant-breach`, the hole kind for a member of such a domain that discharges
+nothing.)*
 
 **Scope** — `unit` | `component` | `e2e`, defined by what must be *real*, not by how much runs
 (D15). Applies to demonstration-strength evidence only: a static rule executes nothing and has no

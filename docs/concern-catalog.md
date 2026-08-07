@@ -19,7 +19,7 @@ Each entry records:
   *choke point* (one place violation must pass through), *type/schema* (violation
   unrepresentable), *storage constraint*, *out-of-band job*.
 - **Verification** — how you'd show it holds. Where the existing vocabulary
-  (`scope ∈ {unit, component, e2e}`, `quantification ∈ {example, invariant}`) fits, it's used;
+  (`scope ∈ {unit, component, e2e}`, `quantification ∈ {example, universal}`) fits, it's used;
   where it doesn't, that's noted as a **gap**, which is the payload of this document.
 - **Silent failure** — how it breaks with every existing check green. If there isn't a good
   answer here, the concern doesn't belong in the catalog.
@@ -142,7 +142,7 @@ Each entry records:
   reconciliation retry, support-issued charge, consumer redelivery.
 - **Enforcement.** Idempotency key at a choke point in payments, backed by a unique constraint.
   The constraint is the real enforcement; the application code is a courtesy.
-- **Verification.** `component`/`invariant` under concurrent and duplicated input — a property
+- **Verification.** `component`/`universal` under concurrent and duplicated input — a property
   test, not an example. Plus the DB constraint itself, which is enforcement *and* proof.
 - **Silent failure.** A new cancellation flow generates its own key format; duplicates slip.
 - **Forgotten by.** Anyone adding a new charge trigger.
@@ -204,7 +204,7 @@ Each entry records:
 - **Surface.** Every path that can create or reassign an active trip.
 - **Enforcement.** Serialization at one point — a partial unique index, or a per-driver
   single-writer. Guards at each site are the failure mode.
-- **Verification.** `component`/`invariant` under concurrency against the real store. An
+- **Verification.** `component`/`universal` under concurrency against the real store. An
   in-memory fake proves nothing here, which is an interesting constraint on what `component`
   is allowed to mean.
 - **Silent failure.** A new support "force assign" tool writes directly.
@@ -219,7 +219,7 @@ Each entry records:
 - **Enforcement.** A state machine with a guarded transition function, plus a conditional write
   on the current state.
 - **Verification.** Model-based: the property is over the transition *relation*, checkable
-  exhaustively against a model. This is where `quantification: invariant` fits most naturally
+  exhaustively against a model. This is where `quantification: universal` fits most naturally
   of anything in the catalog.
 - **Silent failure.** An out-of-order event from a redelivered message rewinds a trip.
 - **Forgotten by.** Anyone adding a state or a consumer.

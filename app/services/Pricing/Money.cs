@@ -43,7 +43,7 @@ public readonly record struct Money
     /// <summary>Sums components, refusing a mix of currencies.</summary>
     /// <remarks>
     /// The sum relation is what <c>pricing/quote#total-equals-components</c> asserts, and the plan
-    /// requires it at <c>invariant</c> quantification with a metamorphic oracle: generate component
+    /// requires it at <c>universal</c> quantification with a metamorphic oracle: generate component
     /// sets and assert the relation, rather than asserting one arithmetic result that a
     /// reimplementation of the same bug would also produce.
     /// </remarks>

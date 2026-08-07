@@ -12,7 +12,7 @@ Default scope: unit
 
 ## Level: critical
 Strength: demonstration
-Quantification: invariant
+Quantification: universal
 Residual: required
 
 ## Level: standard

@@ -52,7 +52,7 @@ namespace Azimuth.Fixture.Traced
     public sealed class Tests
     {
         [Fact]
-        [Covers("alpha", "method-level-thing", Scope.Component, Quantification.Invariant)]
+        [Covers("alpha", "method-level-thing", Scope.Component, Quantification.Universal)]
         public void Covered()
         {
         }

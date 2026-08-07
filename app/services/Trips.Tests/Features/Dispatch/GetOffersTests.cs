@@ -23,8 +23,8 @@ public sealed class GetOffersTests(TripTestFixture fixture) : IAsyncLifetime
     /// ride rather than something a caller triggers.
     /// </summary>
     [Fact]
-    [Covers("trips/dispatch", "offer-sent-to-available-nearby-driver", Scope.Component, Quantification.Invariant)]
-    [Covers("trips/dispatch", "unavailable-driver-not-offered", Scope.Component, Quantification.Invariant)]
+    [Covers("trips/dispatch", "offer-sent-to-available-nearby-driver", Scope.Component, Quantification.Universal)]
+    [Covers("trips/dispatch", "unavailable-driver-not-offered", Scope.Component, Quantification.Universal)]
     public async Task Only_available_nearby_drivers_are_offered()
     {
         var client = fixture.HttpClient.CreateClient();
@@ -46,7 +46,7 @@ public sealed class GetOffersTests(TripTestFixture fixture) : IAsyncLifetime
     }
 
     [Fact]
-    [Covers("trips/dispatch", "no-available-drivers", Scope.Component, Quantification.Invariant)]
+    [Covers("trips/dispatch", "no-available-drivers", Scope.Component, Quantification.Universal)]
     public async Task No_available_drivers_means_no_offers()
     {
         var client = fixture.HttpClient.CreateClient();

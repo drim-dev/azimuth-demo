@@ -55,8 +55,9 @@ therefore change its rigor — visibly, in the spec diff, which is where it belo
 
 ## What scenarios do not carry
 
-- **No `Quantification`.** Claims are universal; `example` vs `invariant` is how thoroughly the
-  *evidence* ranges, and it lives in the verification plan (D5, D13).
+- **No `Quantification`.** Every claim is universal, so on the claim side the field would be
+  constant. `example` vs `universal` records how thoroughly the *evidence* ranges, and lives in the
+  verification plan (D5, D13, D19).
 - **No `Scope`.** Required scope is an evidence judgment and lives in the verification plan. The
   tag on a test declares what that test actually is; `wrong-form` compares the two.
 - **No cross-cutting notation.** The steel thread is deliberately built without it, with the

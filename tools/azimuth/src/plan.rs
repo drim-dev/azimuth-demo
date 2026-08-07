@@ -201,7 +201,7 @@ pub fn parse_standards(path: &str, source: &str) -> Result<Standards, Vec<Diag>>
                         path,
                         ln,
                         format!("unknown quantification `{v}`"),
-                        "example or invariant",
+                        "example or universal",
                     )),
                 }
             } else if strength.is_some() {
@@ -209,7 +209,7 @@ pub fn parse_standards(path: &str, source: &str) -> Result<Standards, Vec<Diag>>
                     path,
                     ln,
                     format!("level `{name}` requires evidence but no quantification"),
-                    "`Quantification: example` or `invariant`",
+                    "`Quantification: example` or `universal`",
                 ));
             }
 
@@ -501,7 +501,7 @@ fn claim_entry(
                 path,
                 line,
                 format!("unknown quantification `{v}`"),
-                "example or invariant",
+                "example or universal",
             )),
         }
     }

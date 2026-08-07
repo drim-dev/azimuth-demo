@@ -69,14 +69,14 @@ impl Scope {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Quantification {
     Example,
-    Invariant,
+    Universal,
 }
 
 impl Quantification {
     pub fn parse(s: &str) -> Option<Self> {
         match s {
             "example" => Some(Quantification::Example),
-            "invariant" => Some(Quantification::Invariant),
+            "universal" => Some(Quantification::Universal),
             _ => None,
         }
     }
@@ -84,7 +84,7 @@ impl Quantification {
     pub fn name(self) -> &'static str {
         match self {
             Quantification::Example => "example",
-            Quantification::Invariant => "invariant",
+            Quantification::Universal => "universal",
         }
     }
 }

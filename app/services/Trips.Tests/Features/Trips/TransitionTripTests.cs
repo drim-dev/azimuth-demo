@@ -54,7 +54,7 @@ public sealed class TransitionTripTests(TripTestFixture fixture) : IAsyncLifetim
     /// compares a state it was handed, which is not the claim.
     /// </summary>
     [Fact]
-    [Covers("trips/lifecycle", "replayed-transition-is-inert", Scope.Component, Quantification.Invariant)]
+    [Covers("trips/lifecycle", "replayed-transition-is-inert", Scope.Component, Quantification.Universal)]
     public async Task A_replayed_transition_changes_nothing_however_many_times_it_arrives()
     {
         var client = fixture.HttpClient.CreateClient();
@@ -78,8 +78,8 @@ public sealed class TransitionTripTests(TripTestFixture fixture) : IAsyncLifetim
     }
 
     [Fact]
-    [Covers("trips/lifecycle", "history-is-append-only", Scope.Component, Quantification.Invariant)]
-    [Covers("trips/lifecycle", "transition-records-actor-and-instant", Scope.Component, Quantification.Invariant)]
+    [Covers("trips/lifecycle", "history-is-append-only", Scope.Component, Quantification.Universal)]
+    [Covers("trips/lifecycle", "transition-records-actor-and-instant", Scope.Component, Quantification.Universal)]
     public async Task History_only_grows_and_records_who_caused_each_move()
     {
         var client = fixture.HttpClient.CreateClient();
@@ -104,7 +104,7 @@ public sealed class TransitionTripTests(TripTestFixture fixture) : IAsyncLifetim
     }
 
     [Fact]
-    [Covers("trips/lifecycle", "no-transition-out-of-terminal", Scope.Component, Quantification.Invariant)]
+    [Covers("trips/lifecycle", "no-transition-out-of-terminal", Scope.Component, Quantification.Universal)]
     public async Task A_terminal_trip_admits_no_event_against_a_real_store()
     {
         var client = fixture.HttpClient.CreateClient();

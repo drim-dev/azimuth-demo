@@ -136,7 +136,7 @@ namespace Azimuth.Annotations
         Example,
 
         /// <summary>A property over all cases in the domain.</summary>
-        Invariant,
+        Universal,
     }
 
     /// <summary>How the expected result was obtained. Descriptive, never gated.</summary>

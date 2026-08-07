@@ -90,7 +90,7 @@ public sealed class CollectorTests
         var entry = Assert.Single(
             Collect().Covers.Where(c => c.Site.EndsWith(".Covered", StringComparison.Ordinal)));
         Assert.Equal("component", entry.Scope);
-        Assert.Equal("invariant", entry.Quantification);
+        Assert.Equal("universal", entry.Quantification);
     }
 
     [Fact]

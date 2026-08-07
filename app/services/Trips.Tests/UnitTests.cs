@@ -18,7 +18,7 @@ public sealed class MoneyTests
     /// bug would also produce.
     /// </summary>
     [Fact]
-    [Covers("pricing/quote", "total-equals-components", Scope.Unit, Quantification.Invariant, Oracle.Metamorphic)]
+    [Covers("pricing/quote", "total-equals-components", Scope.Unit, Quantification.Universal, Oracle.Metamorphic)]
     public void A_total_equals_the_sum_of_its_components()
     {
         var random = new Random(20260805);
@@ -42,7 +42,7 @@ public sealed class MoneyTests
     }
 
     [Fact]
-    [Covers("pricing/quote", "total-in-minor-units", Scope.Unit, Quantification.Invariant)]
+    [Covers("pricing/quote", "total-in-minor-units", Scope.Unit, Quantification.Universal)]
     public void An_amount_states_its_currency_and_counts_minor_units()
     {
         var amount = Money.Of(1234, "eur");
@@ -82,9 +82,9 @@ public sealed class StateMachineTests
     /// accepted. A list of examples would satisfy the words and not the claim.
     /// </summary>
     [Fact]
-    [Covers("trips/lifecycle", "unpermitted-transition-rejected", Scope.Unit, Quantification.Invariant, Oracle.ModelBased)]
-    [Covers("trips/lifecycle", "assigned-to-in-progress", Scope.Unit, Quantification.Invariant, Oracle.ModelBased)]
-    [Covers("trips/lifecycle", "in-progress-to-completed", Scope.Unit, Quantification.Invariant, Oracle.ModelBased)]
+    [Covers("trips/lifecycle", "unpermitted-transition-rejected", Scope.Unit, Quantification.Universal, Oracle.ModelBased)]
+    [Covers("trips/lifecycle", "assigned-to-in-progress", Scope.Unit, Quantification.Universal, Oracle.ModelBased)]
+    [Covers("trips/lifecycle", "in-progress-to-completed", Scope.Unit, Quantification.Universal, Oracle.ModelBased)]
     public void Exactly_the_permitted_pairs_are_accepted()
     {
         foreach (var from in TripStateMachine.States)
@@ -98,8 +98,8 @@ public sealed class StateMachineTests
     }
 
     [Fact]
-    [Covers("trips/lifecycle", "no-transition-out-of-terminal", Scope.Unit, Quantification.Invariant, Oracle.ModelBased)]
-    [Covers("trips/lifecycle", "cancellation-after-completion-rejected", Scope.Unit, Quantification.Invariant, Oracle.ModelBased)]
+    [Covers("trips/lifecycle", "no-transition-out-of-terminal", Scope.Unit, Quantification.Universal, Oracle.ModelBased)]
+    [Covers("trips/lifecycle", "cancellation-after-completion-rejected", Scope.Unit, Quantification.Universal, Oracle.ModelBased)]
     public void A_terminal_state_admits_no_event_at_all()
     {
         foreach (var terminal in TripStateMachine.States.Where(TripStateMachine.IsTerminal))
@@ -112,8 +112,8 @@ public sealed class StateMachineTests
     }
 
     [Fact]
-    [Covers("trips/lifecycle", "rider-cancels-before-start", Scope.Unit, Quantification.Invariant, Oracle.ModelBased)]
-    [Covers("trips/lifecycle", "driver-cancels-after-assignment", Scope.Unit, Quantification.Invariant, Oracle.ModelBased)]
+    [Covers("trips/lifecycle", "rider-cancels-before-start", Scope.Unit, Quantification.Universal, Oracle.ModelBased)]
+    [Covers("trips/lifecycle", "driver-cancels-after-assignment", Scope.Unit, Quantification.Universal, Oracle.ModelBased)]
     public void Cancellation_is_permitted_from_every_non_terminal_state()
     {
         foreach (var state in TripStateMachine.States.Where(s => !TripStateMachine.IsTerminal(s)))
@@ -149,8 +149,8 @@ public sealed class RiderProjectionTests
     /// later is covered on the day it is added.
     /// </summary>
     [Fact]
-    [Covers("trips/rider-view", "no-driver-identity-before-assignment", Scope.Unit, Quantification.Invariant)]
-    [Covers("trips/rider-view", "no-driver-position-before-assignment", Scope.Unit, Quantification.Invariant)]
+    [Covers("trips/rider-view", "no-driver-identity-before-assignment", Scope.Unit, Quantification.Universal)]
+    [Covers("trips/rider-view", "no-driver-position-before-assignment", Scope.Unit, Quantification.Universal)]
     public void Before_assignment_no_individual_driver_is_shown()
     {
         var view = View(TripState.Requested);
@@ -160,14 +160,14 @@ public sealed class RiderProjectionTests
     }
 
     [Fact]
-    [Covers("trips/rider-view", "supply-density-shown-before-assignment", Scope.Unit, Quantification.Invariant)]
+    [Covers("trips/rider-view", "supply-density-shown-before-assignment", Scope.Unit, Quantification.Universal)]
     public void Before_assignment_only_coarse_density_is_shown()
     {
         Assert.Equal("moderate", View(TripState.Requested).SupplyDensity);
     }
 
     [Fact]
-    [Covers("trips/rider-view", "driver-shown-after-assignment", Scope.Unit, Quantification.Invariant)]
+    [Covers("trips/rider-view", "driver-shown-after-assignment", Scope.Unit, Quantification.Universal)]
     public void Between_assignment_and_a_terminal_state_the_driver_is_shown()
     {
         foreach (var phase in new[] { TripState.Assigned, TripState.InProgress })
@@ -179,9 +179,9 @@ public sealed class RiderProjectionTests
     }
 
     [Fact]
-    [Covers("trips/rider-view", "no-position-after-completion", Scope.Unit, Quantification.Invariant)]
-    [Covers("trips/rider-view", "no-position-after-cancellation", Scope.Unit, Quantification.Invariant)]
-    [Covers("trips/rider-view", "driver-identity-remains-on-receipt", Scope.Unit, Quantification.Invariant)]
+    [Covers("trips/rider-view", "no-position-after-completion", Scope.Unit, Quantification.Universal)]
+    [Covers("trips/rider-view", "no-position-after-cancellation", Scope.Unit, Quantification.Universal)]
+    [Covers("trips/rider-view", "driver-identity-remains-on-receipt", Scope.Unit, Quantification.Universal)]
     public void After_a_terminal_state_the_name_remains_and_the_position_does_not()
     {
         foreach (var phase in TripStateMachine.States.Where(TripStateMachine.IsTerminal))

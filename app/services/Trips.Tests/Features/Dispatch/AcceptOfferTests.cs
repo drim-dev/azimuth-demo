@@ -41,8 +41,8 @@ public sealed class AcceptOfferTests(TripTestFixture fixture) : IAsyncLifetime
     /// accepts twice sequentially satisfies the words and not the claim.
     /// </summary>
     [Fact]
-    [Covers("trips/dispatch", "concurrent-acceptances-yield-one-assignment", Scope.Component, Quantification.Invariant)]
-    [Covers("trips/dispatch", "first-acceptance-assigns", Scope.Component, Quantification.Invariant)]
+    [Covers("trips/dispatch", "concurrent-acceptances-yield-one-assignment", Scope.Component, Quantification.Universal)]
+    [Covers("trips/dispatch", "first-acceptance-assigns", Scope.Component, Quantification.Universal)]
     public async Task Exactly_one_driver_is_assigned_however_many_accept_together()
     {
         var client = fixture.HttpClient.CreateClient();
@@ -66,7 +66,7 @@ public sealed class AcceptOfferTests(TripTestFixture fixture) : IAsyncLifetime
     }
 
     [Fact]
-    [Covers("trips/dispatch", "late-acceptance-rejected", Scope.Component, Quantification.Invariant)]
+    [Covers("trips/dispatch", "late-acceptance-rejected", Scope.Component, Quantification.Universal)]
     public async Task An_acceptance_after_assignment_changes_nothing()
     {
         var client = fixture.HttpClient.CreateClient();
@@ -86,7 +86,7 @@ public sealed class AcceptOfferTests(TripTestFixture fixture) : IAsyncLifetime
     }
 
     [Fact]
-    [Covers("trips/dispatch", "other-offers-withdrawn", Scope.Component, Quantification.Invariant)]
+    [Covers("trips/dispatch", "other-offers-withdrawn", Scope.Component, Quantification.Universal)]
     public async Task Assignment_withdraws_every_other_offer()
     {
         var client = fixture.HttpClient.CreateClient();

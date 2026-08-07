@@ -10,10 +10,10 @@ recorded so that the absence of a runtime test for it reads as a design outcome 
 oversight.
 
 ## Claim: total-equals-components
-Quantification: invariant
+Quantification: universal
 Oracle: metamorphic
 
-Already `invariant` by criticality; recorded for the oracle. The useful check generates component
+Already `universal` by criticality; recorded for the oracle. The useful check generates component
 sets and asserts the sum relation, rather than asserting one arithmetic result that a
 reimplementation of the same bug would also produce.
 

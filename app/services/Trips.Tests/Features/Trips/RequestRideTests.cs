@@ -19,8 +19,8 @@ public sealed class RequestRideTests(TripTestFixture fixture) : IAsyncLifetime
     public Task DisposeAsync() => Task.CompletedTask;
 
     [Fact]
-    [Covers("trips/request", "request-admitted-with-valid-quote", Scope.Component, Quantification.Invariant)]
-    [Covers("trips/request", "trip-created-in-requested-state", Scope.Component, Quantification.Invariant)]
+    [Covers("trips/request", "request-admitted-with-valid-quote", Scope.Component, Quantification.Universal)]
+    [Covers("trips/request", "trip-created-in-requested-state", Scope.Component, Quantification.Universal)]
     public async Task A_valid_quote_admits_a_request_and_creates_one_trip()
     {
         var client = fixture.HttpClient.CreateClient();
@@ -43,7 +43,7 @@ public sealed class RequestRideTests(TripTestFixture fixture) : IAsyncLifetime
     }
 
     [Fact]
-    [Covers("trips/request", "request-rejected-with-expired-quote", Scope.Component, Quantification.Invariant)]
+    [Covers("trips/request", "request-rejected-with-expired-quote", Scope.Component, Quantification.Universal)]
     public async Task An_expired_quote_is_refused_and_creates_nothing()
     {
         var client = fixture.HttpClient.CreateClient();
@@ -57,7 +57,7 @@ public sealed class RequestRideTests(TripTestFixture fixture) : IAsyncLifetime
     }
 
     [Fact]
-    [Covers("trips/request", "request-rejected-with-unknown-quote", Scope.Component, Quantification.Invariant, Oracle.Contract)]
+    [Covers("trips/request", "request-rejected-with-unknown-quote", Scope.Component, Quantification.Universal, Oracle.Contract)]
     public async Task An_unrecognised_quote_is_refused()
     {
         var client = fixture.HttpClient.CreateClient();
@@ -73,7 +73,7 @@ public sealed class RequestRideTests(TripTestFixture fixture) : IAsyncLifetime
     /// with no constraint at all, which is the whole reason the plan raises the scope.
     /// </summary>
     [Fact]
-    [Covers("trips/request", "quote-consumed-once", Scope.Component, Quantification.Invariant)]
+    [Covers("trips/request", "quote-consumed-once", Scope.Component, Quantification.Universal)]
     public async Task A_quote_is_consumed_by_at_most_one_request_however_many_arrive_together()
     {
         var client = fixture.HttpClient.CreateClient();
@@ -96,7 +96,7 @@ public sealed class RequestRideTests(TripTestFixture fixture) : IAsyncLifetime
     }
 
     [Fact]
-    [Covers("trips/request", "second-request-rejected-while-active", Scope.Component, Quantification.Invariant)]
+    [Covers("trips/request", "second-request-rejected-while-active", Scope.Component, Quantification.Universal)]
     public async Task A_rider_holds_at_most_one_active_trip_however_many_requests_arrive_together()
     {
         var client = fixture.HttpClient.CreateClient();
@@ -115,7 +115,7 @@ public sealed class RequestRideTests(TripTestFixture fixture) : IAsyncLifetime
     }
 
     [Fact]
-    [Covers("trips/request", "request-admitted-after-terminal", Scope.Component, Quantification.Invariant)]
+    [Covers("trips/request", "request-admitted-after-terminal", Scope.Component, Quantification.Universal)]
     public async Task A_rider_may_request_again_once_their_trip_is_terminal()
     {
         var client = fixture.HttpClient.CreateClient();

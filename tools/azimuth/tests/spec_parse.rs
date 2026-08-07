@@ -181,7 +181,7 @@ fn unknown_labels_fail_loudly() {
 fn a_spec_cannot_carry_a_required_form() {
     let source = MINIMAL.replace(
         "Criticality: standard",
-        "Criticality: standard\nQuantification: invariant",
+        "Criticality: standard\nQuantification: universal",
     );
     assert!(err(&source).contains("unknown label `Quantification:`"));
 }

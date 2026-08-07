@@ -8,7 +8,7 @@
  */
 
 export type Scope = 'unit' | 'component' | 'e2e';
-export type Quantification = 'example' | 'invariant';
+export type Quantification = 'example' | 'universal';
 export type Oracle = 'direct' | 'golden' | 'metamorphic' | 'model-based' | 'contract';
 
 /**

@@ -3,7 +3,7 @@ import { covers, untraced } from '@azimuth/annotations';
 declare function test(name: string, body: () => void): void;
 
 test('the route answers', () => {
-  covers('alpha', 'route-thing', 'component', 'invariant');
+  covers('alpha', 'route-thing', 'component', 'universal');
 });
 
 test('the projection redacts', () => {

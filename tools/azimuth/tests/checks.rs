@@ -86,7 +86,7 @@ fn tags_close_holes() {
           ],
           "covers": [
             {"spec":"alpha","scenario":"guarded","site":"Tests.Guarded","file":"t.cs",
-             "lang":"csharp","scope":"component","quantification":"invariant"}
+             "lang":"csharp","scope":"component","quantification":"universal"}
           ]
         }"#,
     );
@@ -173,6 +173,22 @@ fn unknown_form_values_are_rejected() {
     let text = errors.iter().map(|d| d.to_string()).collect::<Vec<_>>().join("\n");
     assert!(text.contains("unknown scope `integration`"), "{text}");
     assert!(text.contains("unit, component or e2e"), "{text}");
+}
+
+/// D19 renamed the quantification value `invariant` → `universal` with no alias (D2.3). The retired
+/// word must fail as an unknown value rather than be quietly accepted, because a manifest emitted
+/// by a stale extractor would otherwise report a form the model no longer defines.
+#[test]
+fn the_retired_quantification_value_is_rejected() {
+    let root = json::parse(
+        r#"{"covers":[{"spec":"alpha","scenario":"guarded","site":"X","file":"t.cs",
+            "lang":"csharp","scope":"unit","quantification":"invariant"}]}"#,
+    )
+    .unwrap();
+    let errors = manifest::parse("m.json", &root).unwrap_err();
+    let text = errors.iter().map(|d| d.to_string()).collect::<Vec<_>>().join("\n");
+    assert!(text.contains("unknown quantification `invariant`"), "{text}");
+    assert!(text.contains("example or universal"), "{text}");
 }
 
 /// Selection operates on ids, not paths, so it survives a reorganization of the tree.

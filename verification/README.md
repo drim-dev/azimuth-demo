@@ -33,7 +33,7 @@ non-test evidence and accepting no residual needs **no plan file at all**.
 ```markdown
 ## Claim: <scenario-id>
 Scope: unit | component | e2e
-Quantification: example | invariant
+Quantification: example | universal
 Oracle: direct | golden | metamorphic | model-based | contract
 
 Prose stating why this claim needs what it needs. Required — an entry without a reason is a
@@ -53,7 +53,7 @@ what it changes. `Oracle` is descriptive and never gated.
 
 ### Ladders
 
-`Scope` and `Quantification` are ladders: `unit < component < e2e`, `example < invariant`.
+`Scope` and `Quantification` are ladders: `unit < component < e2e`, `example < universal`.
 Strength is a ladder too: `detection < demonstration < proof`. **A stronger form on any axis
 satisfies a requirement for a weaker one.** A required form is a floor, not a target.
 

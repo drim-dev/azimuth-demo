@@ -51,12 +51,12 @@ test('a site may realize several claims', () => {
 // A covers inside test('…') names the test, which is what a human would look for.
 test('a covers inside a test names the test', () => {
   const result = scanText(
-    `test('the route answers', () => { covers('alpha', 'route-thing', 'component', 'invariant'); });`,
+    `test('the route answers', () => { covers('alpha', 'route-thing', 'component', 'universal'); });`,
     'a.test.ts',
   );
   assert.equal(result.covers[0].site, 'the route answers');
   assert.equal(result.covers[0].scope, 'component');
-  assert.equal(result.covers[0].quantification, 'invariant');
+  assert.equal(result.covers[0].quantification, 'universal');
   assert.equal(result.covers[0].oracle, undefined);
 });
 

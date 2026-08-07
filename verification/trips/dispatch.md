@@ -2,7 +2,7 @@
 
 ## Claim: concurrent-acceptances-yield-one-assignment
 Scope: component
-Quantification: invariant
+Quantification: universal
 
 The claim quantifies over "any number of drivers accepting concurrently". A test that accepts
 twice sequentially satisfies the words and not the claim. Assignment is settled by a

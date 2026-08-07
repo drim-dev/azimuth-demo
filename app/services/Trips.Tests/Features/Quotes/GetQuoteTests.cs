@@ -16,8 +16,8 @@ public sealed class GetQuoteTests(TripTestFixture fixture) : IAsyncLifetime
     public Task DisposeAsync() => Task.CompletedTask;
 
     [Fact]
-    [Covers("pricing/quote", "quote-valid-before-expiry", Scope.Component, Quantification.Invariant)]
-    [Covers("pricing/quote", "quote-invalid-after-expiry", Scope.Component, Quantification.Invariant)]
+    [Covers("pricing/quote", "quote-valid-before-expiry", Scope.Component, Quantification.Universal)]
+    [Covers("pricing/quote", "quote-invalid-after-expiry", Scope.Component, Quantification.Universal)]
     public async Task A_quote_is_valid_until_its_expiry_and_not_after()
     {
         var client = fixture.HttpClient.CreateClient();
@@ -40,7 +40,7 @@ public sealed class GetQuoteTests(TripTestFixture fixture) : IAsyncLifetime
     /// it back. Asked again after more time has passed, an expired quote is still expired.
     /// </summary>
     [Fact]
-    [Covers("pricing/quote", "expired-quote-is-never-revalidated", Scope.Component, Quantification.Invariant)]
+    [Covers("pricing/quote", "expired-quote-is-never-revalidated", Scope.Component, Quantification.Universal)]
     public async Task An_expired_quote_stays_expired_and_a_new_one_gets_a_new_identity()
     {
         var client = fixture.HttpClient.CreateClient();

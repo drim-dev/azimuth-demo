@@ -27,8 +27,8 @@ public sealed class DispatchCapturesTests(PaymentsTestFixture fixture) : IAsyncL
     /// dishonest: it declared `Invariant` and exercised one amount. The tag now describes the test.
     /// </summary>
     [Fact]
-    [Covers("payments/capture", "capture-created-on-completion", Scope.Component, Quantification.Invariant)]
-    [Covers("payments/capture", "capture-equals-trip-fare", Scope.Component, Quantification.Invariant)]
+    [Covers("payments/capture", "capture-created-on-completion", Scope.Component, Quantification.Universal)]
+    [Covers("payments/capture", "capture-equals-trip-fare", Scope.Component, Quantification.Universal)]
     public async Task A_completed_trip_is_captured_for_whatever_its_fare_is()
     {
         var client = fixture.HttpClient.CreateClient();
@@ -58,7 +58,7 @@ public sealed class DispatchCapturesTests(PaymentsTestFixture fixture) : IAsyncL
     /// everything. A trip has to exist and be mid-flight for the claim to mean anything.
     /// </summary>
     [Fact]
-    [Covers("payments/capture", "no-capture-before-completion", Scope.Component, Quantification.Invariant)]
+    [Covers("payments/capture", "no-capture-before-completion", Scope.Component, Quantification.Universal)]
     public async Task A_trip_that_has_not_completed_has_no_capture()
     {
         var client = fixture.HttpClient.CreateClient();
@@ -84,7 +84,7 @@ public sealed class DispatchCapturesTests(PaymentsTestFixture fixture) : IAsyncL
     /// fail it.
     /// </summary>
     [Fact]
-    [Covers("payments/capture", "no-capture-on-cancellation-without-fee", Scope.Component, Quantification.Invariant)]
+    [Covers("payments/capture", "no-capture-on-cancellation-without-fee", Scope.Component, Quantification.Universal)]
     public async Task A_cancelled_trip_with_no_fee_gets_no_capture_while_a_completed_one_does()
     {
         var client = fixture.HttpClient.CreateClient();
@@ -117,7 +117,7 @@ public sealed class DispatchCapturesTests(PaymentsTestFixture fixture) : IAsyncL
     /// with no index at all, which is the whole reason the plan raises the scope.
     /// </summary>
     [Fact]
-    [Covers("payments/capture", "duplicate-completion-event", Scope.Component, Quantification.Invariant)]
+    [Covers("payments/capture", "duplicate-completion-event", Scope.Component, Quantification.Universal)]
     public async Task A_completion_delivered_any_number_of_times_captures_once()
     {
         var client = fixture.HttpClient.CreateClient();
@@ -137,7 +137,7 @@ public sealed class DispatchCapturesTests(PaymentsTestFixture fixture) : IAsyncL
     }
 
     [Fact]
-    [Covers("payments/capture", "concurrent-completion-processing", Scope.Component, Quantification.Invariant)]
+    [Covers("payments/capture", "concurrent-completion-processing", Scope.Component, Quantification.Universal)]
     public async Task Concurrent_workers_create_exactly_one_capture()
     {
         var client = fixture.HttpClient.CreateClient();
@@ -161,7 +161,7 @@ public sealed class DispatchCapturesTests(PaymentsTestFixture fixture) : IAsyncL
     /// double-charges, so it is treated as possibly-captured and the index settles it.
     /// </summary>
     [Fact]
-    [Covers("payments/capture", "retry-after-transport-failure", Scope.Component, Quantification.Invariant)]
+    [Covers("payments/capture", "retry-after-transport-failure", Scope.Component, Quantification.Universal)]
     public async Task A_retry_after_an_unobserved_outcome_still_captures_once()
     {
         var client = fixture.HttpClient.CreateClient();
@@ -188,7 +188,7 @@ public sealed class DispatchCapturesTests(PaymentsTestFixture fixture) : IAsyncL
     /// `Invariant` and the test exercised one.
     /// </summary>
     [Fact]
-    [Covers("payments/capture", "adjusted-capture-records-reason", Scope.Component, Quantification.Invariant)]
+    [Covers("payments/capture", "adjusted-capture-records-reason", Scope.Component, Quantification.Universal)]
     public async Task An_adjusted_capture_records_whatever_reason_applies()
     {
         var client = fixture.HttpClient.CreateClient();

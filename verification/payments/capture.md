@@ -2,7 +2,7 @@
 
 ## Claim: concurrent-completion-processing
 Scope: component
-Quantification: invariant
+Quantification: universal
 Oracle: direct
 
 Uniqueness is enforced by a storage constraint. An in-memory repository serializes writes and

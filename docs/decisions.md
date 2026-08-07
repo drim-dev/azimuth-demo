@@ -360,6 +360,9 @@ example or a property. `wrong-form` is the comparison between declared-actual an
 required-in-plan. Easy to misread D5 as removing form from tags; it removes the *requirement*,
 not the declaration.
 
+*(D19 renames the second value of that field `invariant` → `universal`. The prose above is left as
+written; nothing in D5's substance depends on which word names the value.)*
+
 ---
 
 ## D6 — Criticality attaches to requirements, not to code locations
@@ -627,6 +630,10 @@ appeared to do.**
 had it. It never asked what the claim asserts (always ∀); it asked whether one case or all cases
 were checked — a sufficiency judgment. See D5.
 
+*(D19 renames that value `invariant` → `universal`, and cites this paragraph as the reason: if every
+claim is ∀, "invariant" distinguishes nothing on the claim side and can only be read as a statement
+about the system. The prose above is left as written.)*
+
 **What it buys.** Supporting a new kind of rule requires a domain value, a derived enumerator
 for it, and its admissible evidence kinds — no new artifact, no new syntax, and every existing
 check generalizes. This is D8.2 satisfied by construction rather than by intention, and it is
@@ -849,6 +856,79 @@ at `e2e` scope.
 
 Recorded rather than papered over. An author optimizing for a green matrix would have stopped at
 the rewrite, and the machine tier would have agreed with them.
+
+---
+
+## D19 — `Quantification` is `example | universal` *(supersedes the term used in D5 and D13)*
+
+**Decision.** The second value of `Quantification` is `universal`. `invariant` is no longer a value
+of the field; the parser rejects it as unknown, with no alias and no migration (D2.3).
+
+**Why not `invariant`.** A Floyd loop invariant or a Meyer class invariant is a predicate that holds
+of the **system** across states. This field reports how widely the **evidence** ranged. Those are
+different sorts, and the word points at the wrong one — a category mistake in Ryle's sense rather
+than a matter of taste. It bites harder than a borrowing usually does because D13 establishes that
+every claim is ∀ over its domain: on the claim side "invariant" cannot distinguish anything, so a
+reader importing the formal-methods sense gets no correction from the model.
+
+**Why not `property`.** The main alternative, and the established one: QuickCheck (Claessen &
+Hughes, ICFP 2000) and its descendants draw exactly this cut as `example` / `property`. Rejected for
+two reasons.
+
+1. In that literature a *property* is the predicate under test — an object on the claim side. So
+   `Quantification: property` repeats the same category mistake with a different word, and collides
+   internally with the claim's own predicate.
+2. `property` names a technique, and the framework accepts three shapes as satisfying the
+   requirement: derived enumeration (D13.1), generation, and repeated contention. Nobody calls a
+   loop over two enumerated terminal states a property test. Tagging it `property` would misdescribe
+   the evidence, and would push authors toward a generator library where a derived enumeration is
+   the right and cheaper answer.
+
+**Why `universal` fits.** The field is named `Quantification`; ∀ is the universal quantifier; D13
+already establishes that claims are ∀. `Quantification: universal` reads as "this evidence is
+universally quantified over the claim's domain", and says nothing about how that was achieved —
+which is what admitting three shapes requires.
+
+**The objection, recorded.** `universal` can be misread as claiming exhaustiveness, which is never
+literally true of a generated space or a set of interleavings. That is the same overclaim risk
+`proof` carries, and `universal` is the second term the glossary must narrow at the point of use.
+Mitigated, not eliminated, by the field's own name — a quantifier's scope, not a degree of certainty
+— and by the standing line that a wider sample is still a sample (D4.1).
+
+**What it costs and buys.** A hand-edit across specs, plans, both annotation packages, both
+extractors, the tool and every `covers` tag, which D2.3 permits explicitly: one consumer, no
+migration. Operationally it buys nothing — gating, the ladders and `wrong-form` are unchanged. What
+it buys is that the glossary no longer defends a word against the meaning most readers already have
+for it.
+
+**What would change it.** A case in the corpus where the required form genuinely means "use a
+generator" rather than "range over the domain" — that is, where derived enumeration turns out never
+to be accepted in practice. The field would then be naming a technique after all and `property`
+would be the better word. No such case exists, and the one live example points the other way:
+`azimuth-cover`'s Shape A is a two-member enumeration derived from `TripStateMachine`, judged the
+honest form for `trips/request#request-admitted-after-terminal`.
+
+**What is deliberately not renamed.** `invariant` in its ordinary technical sense stays: the alpha's
+cross-cutting notation (D2.2), the `invariant-breach` hole kind, `## Invariant:` in the spec format,
+and prose recording history — including D18.1's "an example wearing an invariant's tag" and the
+judgments it summarizes. A judgment is a dated record of what a tag said when it was written;
+rewriting it would make the record agree with the present at the cost of being false about the past.
+
+### D19.1 — The rename staled every judgment that touched a retagged file
+
+**Observed, not fixed.** D18's freshness fingerprint hashes the claim text and the content of every
+file carrying evidence for it, at file granularity. Editing 64 `covers` tags — 47 C# and 17
+TypeScript — changed nothing semantic and staled **8 of 18 judgments**: `stale-judgment` went from
+10 to 18, and every judgment in the repo is now stale. The 6 live agent-tier verdicts in
+`verification/judgments/trips/request.md` (4 `dishonest-tag`, 2 `toothless`) stopped being reported
+as verdicts and are reported as staleness instead.
+
+This is D18 behaving as specified — "it over-invalidates, and that is the safe direction" — and it
+is the first measurement of what that direction costs: a pure notation edit invalidates the entire
+agent-tier record. The fingerprints were not hand-edited and nothing was re-judged, because doing
+either would destroy the measurement. Whether file granularity is the right trade remains open;
+D18's argument (a false stale costs one re-judgement, a false fresh counts a verdict about code that
+no longer exists) is unchanged by this observation, but the cost side of it now has a number.
 
 ---
 

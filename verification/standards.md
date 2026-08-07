@@ -6,7 +6,7 @@ every claim unless a plan entry deviates from it.
 
 ## Level: critical
 Strength: demonstration
-Quantification: invariant
+Quantification: universal
 Residual: required
 
 ## Level: standard
@@ -20,7 +20,7 @@ Residual: optional
 
 ## Ladders apply
 
-Proof satisfies a demonstration requirement, and `invariant` satisfies an `example` requirement. A
+Proof satisfies a demonstration requirement, and `universal` satisfies an `example` requirement. A
 required form is a floor, not a target.
 
 `Strength: none` on `routine` is D6.5: the level requires a spec entry and nothing else, so no

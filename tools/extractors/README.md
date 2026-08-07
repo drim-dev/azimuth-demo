@@ -18,7 +18,7 @@ what makes splitting or merging a requirement free, since no tag moves.
   "realizes": [{ "spec": "", "scenario": "", "site": "", "file": "", "lang": "" }],
   "covers":   [{ "spec": "", "scenario": "", "site": "", "file": "", "lang": "",
                  "scope": "unit|component|e2e",
-                 "quantification": "example|invariant",
+                 "quantification": "example|universal",
                  "oracle": "direct|golden|metamorphic|model-based|contract" }],
   "untraced_tests": [{ "site": "", "file": "", "lang": "" }]
 }

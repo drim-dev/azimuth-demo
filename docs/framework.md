@@ -125,9 +125,11 @@ Evidence carries **strength**, and the ladder is `detection < demonstration < pr
 no scope. Defining it this way makes the rung partly machine-checkable — a harness knows whether it
 started a database.
 
-**Quantification** is `example | invariant`: whether the evidence checked one case or ranges over
-all of them. It is a property of evidence, not of the claim. *Collision warning:* the alpha used
-"invariant" for cross-cutting rules; here it is only ever a quantification value.
+**Quantification** is `example | universal`: whether the evidence checked one case or ranges over
+all of them. It is a property of evidence, not of the claim. The value was `invariant` until D19
+renamed it, because a Floyd or Meyer invariant is a predicate about the *system* and this field
+reports the breadth of the *evidence*. *Narrowing:* `universal` states the quantifier the evidence
+ranges under, not exhaustiveness — a wider sample is still a sample.
 
 **Oracle** — `direct | golden | metamorphic | model-based | contract` — is descriptive and never
 gated.
@@ -137,7 +139,7 @@ rather than per claim:
 
 | Level | Strength | Quantification | Residual |
 |---|---|---|---|
-| `critical` | demonstration | invariant | required |
+| `critical` | demonstration | universal | required |
 | `standard` | demonstration | example | optional |
 | `routine` | none | — | optional |
 
@@ -147,7 +149,7 @@ critical and honestly unit-checkable, while a `standard` claim about concurrent 
 at unit scope. What determines scope is what the claim is about, not how much it matters.
 
 Ladders mean a required form is a floor, not a target: proof satisfies a demonstration
-requirement, and `invariant` satisfies an `example` one.
+requirement, and `universal` satisfies an `example` one.
 
 ---
 

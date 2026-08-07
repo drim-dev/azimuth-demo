@@ -2,14 +2,14 @@
 
 ## Claim: quote-consumed-once
 Scope: component
-Quantification: invariant
+Quantification: universal
 
 Single consumption is a uniqueness claim over concurrent requests, settled by storage. The
 sequential version of this test passes against an implementation with no constraint.
 
 ## Claim: second-request-rejected-while-active
 Scope: component
-Quantification: invariant
+Quantification: universal
 
 "A rider holds at most one active trip" is the same shape as `captured-once`: two requests
 arriving together are the case that matters, and they are only distinguishable against a real

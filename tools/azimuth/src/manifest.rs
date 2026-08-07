@@ -137,7 +137,7 @@ fn site(
                     path,
                     0,
                     format!("{where_} has unknown quantification `{v}`"),
-                    "example or invariant",
+                    "example or universal",
                 )),
             }
         }

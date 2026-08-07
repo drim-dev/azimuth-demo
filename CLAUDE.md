@@ -12,7 +12,7 @@ The alpha at `drim-dev/azimuth` is **frozen**. All development happens here.
 | Path | Holds |
 |---|---|
 | `docs/framework.md` | what the framework *is*, as it currently stands. Derived; start here. |
-| `docs/decisions.md` | numbered decisions D1–D18, with rationale and consequences. Authoritative. |
+| `docs/decisions.md` | numbered decisions D1–D19, with rationale and consequences. Authoritative. |
 | `docs/concern-catalog.md` | 18 cross-cutting concerns from the domain; the evidence the design was drawn from |
 | `docs/glossary.md` | bounded definitions. Authoritative for terminology. |
 | `docs/status.md` | the decisions checked against their own falsifiers. Two have fired. |
