@@ -18,7 +18,7 @@ public sealed class IssueQuoteTests(TripTestFixture fixture) : IAsyncLifetime
     public Task DisposeAsync() => Task.CompletedTask;
 
     [Fact]
-    [Covers("pricing/quote", "quote-returned", Scope.Component, Quantification.Universal)]
+    [Covers("pricing/quote", "quote-returned", Scope.Component, Quantification.Example)]
     public async Task An_issued_quote_carries_a_total_a_currency_and_an_expiry()
     {
         var client = fixture.HttpClient.CreateClient();
@@ -43,7 +43,7 @@ public sealed class IssueQuoteTests(TripTestFixture fixture) : IAsyncLifetime
     /// what they are being charged for cannot dispute it.
     /// </summary>
     [Fact]
-    [Covers("pricing/quote", "breakdown-accompanies-quote", Scope.Component, Quantification.Universal)]
+    [Covers("pricing/quote", "breakdown-accompanies-quote", Scope.Component, Quantification.Example)]
     public async Task An_issued_quote_carries_the_components_that_make_up_its_total()
     {
         var client = fixture.HttpClient.CreateClient();

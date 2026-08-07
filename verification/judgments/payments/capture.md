@@ -83,11 +83,12 @@ Fingerprint: 8315046774058e34
 Judged: 2026-08-07
 Judge: claude-opus-5
 
-`A_completion_delivered_any_number_of_times_captures_once` writes the intent six times and dispatches
-after each, then counts rows. Against a dispatcher without the pre-check the unique index rejects the
-second insert and the count stays at one — correctly, because the index is what the claim rests on.
-Against one with neither pre-check nor index the count reaches six and it fails. It discriminates on
-the mechanism that matters, and the redelivery axis is the one the claim quantifies over.
+`A_completion_delivered_any_number_of_times_captures_once` writes the intent six times and
+dispatches after each, then counts rows. Against a dispatcher without the pre-check the unique index
+rejects the second insert and the count stays at one — correctly, because the index is what the
+claim rests on. Against one with neither pre-check nor index the count reaches six and it fails. It
+discriminates on the mechanism that matters, and the redelivery axis is the one the claim quantifies
+over.
 
 ## Claim: concurrent-completion-processing
 Verdict: sound
@@ -96,10 +97,10 @@ Judged: 2026-08-07
 Judge: claude-opus-5
 
 `Concurrent_workers_create_exactly_one_capture` fires eight captures at once and asserts exactly one
-winner *and* exactly one row. Both halves matter: the row count alone passes if every worker silently
-loses, the winner count alone passes if two rows are written and one worker misreports. Against a
-dispatcher with only the pre-check the race writes several rows and the count fails. Five trials is
-thin for a race and is stated as such rather than hidden.
+winner *and* exactly one row. Both halves matter: the row count alone passes if every worker
+silently loses, the winner count alone passes if two rows are written and one worker misreports.
+Against a dispatcher with only the pre-check the race writes several rows and the count fails. Five
+trials is thin for a race and is stated as such rather than hidden.
 
 ## Claim: retry-after-transport-failure
 Verdict: sound
@@ -107,10 +108,11 @@ Fingerprint: c6fa00a82f771be9
 Judged: 2026-08-07
 Judge: claude-opus-5
 
-`A_retry_after_an_unobserved_outcome_still_captures_once` scripts the provider to return `Unobserved`
-first and `Captured` after, then retries four times. Against an implementation treating `Unobserved`
-as failure and retrying the provider, the count reaches two and it fails — which is the double charge
-the claim exists to prevent. It constructs the failure case rather than assuming it away.
+`A_retry_after_an_unobserved_outcome_still_captures_once` scripts the provider to return
+`Unobserved` first and `Captured` after, then retries four times. Against an implementation treating
+`Unobserved` as failure and retrying the provider, the count reaches two and it fails — which is the
+double charge the claim exists to prevent. It constructs the failure case rather than assuming it
+away.
 
 ## Claim: capture-equals-trip-fare
 Verdict: sound

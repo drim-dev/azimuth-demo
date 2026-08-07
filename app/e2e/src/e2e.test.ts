@@ -222,7 +222,7 @@ test('a rider is told their trip exists and is awaiting a driver', async () => {
 });
 
 test('a fare outside every serviced area is refused', async () => {
-  covers('pricing/quote', 'unserviceable-area', 'e2e', 'universal');
+  covers('pricing/quote', 'unserviceable-area', 'e2e', 'example');
 
   const quote = await post('/api/rider/quotes', {
     pickup: '', dropoff: 'b', baseMinor: 500, distanceMinor: 1000, currency: 'EUR',
@@ -282,8 +282,8 @@ async function asDriver(path: string) {
 }
 
 test('an offer shows the pickup and no rider', async () => {
-  covers('trips/driver-view', 'pickup-shown-on-offer', 'e2e', 'universal');
-  covers('trips/driver-view', 'rider-contact-hidden-on-offer', 'e2e', 'universal');
+  covers('trips/driver-view', 'pickup-shown-on-offer', 'e2e', 'example');
+  covers('trips/driver-view', 'rider-contact-hidden-on-offer', 'e2e', 'example');
 
   const rider = `rider-${Date.now()}-drv`;
   const id = await requestedTrip(rider);
@@ -301,9 +301,9 @@ test('an offer shows the pickup and no rider', async () => {
 });
 
 test('a rider contact reaches the driver only while they hold the trip', async () => {
-  covers('trips/driver-view', 'proxy-contact-while-held', 'e2e', 'universal');
-  covers('trips/driver-view', 'contact-withdrawn-after-terminal', 'e2e', 'universal');
-  covers('trips/driver-view', 'rider-contact-confined-to-held-trips', 'e2e', 'universal');
+  covers('trips/driver-view', 'proxy-contact-while-held', 'e2e', 'example');
+  covers('trips/driver-view', 'contact-withdrawn-after-terminal', 'e2e', 'example');
+  covers('trips/driver-view', 'rider-contact-confined-to-held-trips', 'e2e', 'example');
 
   const rider = `rider-${Date.now()}-hold`;
   const id = await requestedTrip(rider);

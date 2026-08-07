@@ -7,12 +7,17 @@ fix.
 
 **Conflict of interest, stated.** The same judge wrote the first verdicts, the rewritten tests and
 these verdicts. Reading a test one wrote is worth little. What carries the three verdicts below that
-previously failed is **mutation**: the implementation was broken in a specific way, the test was run,
-and the failure observed. Where a verdict rests on reading rather than mutation, it says so.
+previously failed is **mutation**: the implementation was broken in a specific way, the test was
+run, and the failure observed. Where a verdict rests on reading rather than mutation, it says so.
+
+**Fingerprints refreshed 2026-08-07.** Every verdict below was re-affirmed rather than re-derived:
+the evidence files changed for reasons belonging to other specs — tag corrections in shared test
+files — and no test body carrying these claims was touched. The fingerprint expired because it
+hashes whole files, which D19.1 records.
 
 ## Claim: request-admitted-with-valid-quote
 Verdict: sound
-Fingerprint: 23e2b0694ba18dc9
+Fingerprint: b34565e1c1a39bf8
 Judged: 2026-08-07
 Judge: claude-opus-5
 
@@ -28,8 +33,12 @@ component test, so nothing is weakened.
 Teeth were not assumed. `FareMinor = quote.TotalMinor` was replaced with `FareMinor = 1500` and the
 test failed. Against a handler that refused everything it fails on the first status assertion.
 
-Recorded weakness: all 24 cases use the same pickup, dropoff and instant. The claim's own axis is
-"a quote that has not expired", and the near side of that boundary is exercised by
+Re-affirmed 2026-08-07 after the shared e2e file changed for unrelated reasons — a driver-movement
+assertion and a retag belonging to `trips/rider-view`. The evidence for this claim is untouched and
+the verdict is unchanged; the fingerprint expired because it hashes whole files.
+
+Recorded weakness: all 24 cases use the same pickup, dropoff and instant. The claim's own axis is "a
+quote that has not expired", and the near side of that boundary is exercised by
 `request-rejected-with-expired-quote` rather than here.
 
 ## Claim: request-rejected-with-expired-quote
@@ -83,7 +92,8 @@ Judge: claude-opus-5
 
 Re-judged unchanged after the file was rewritten; the test itself was not modified. Eight concurrent
 requests at one quote, five trials, real Postgres, exactly one success and the right refusal code on
-every other. Eight distinct riders, so the per-rider index cannot pass it on the quote rule's behalf.
+every other. Eight distinct riders, so the per-rider index cannot pass it on the quote rule's
+behalf.
 
 Against the conditional update made unconditional, every request sees one affected row, all eight
 are admitted and the count assertion fails. Verified by reading in the first pass; not re-mutated.
@@ -107,7 +117,7 @@ where before it was above the floor and false.
 
 ## Claim: rider-informed-of-trip
 Verdict: sound
-Fingerprint: bcf04969dcba1ebd
+Fingerprint: 31045810d0df5c52
 Judged: 2026-08-07
 Judge: claude-opus-5
 
@@ -122,6 +132,9 @@ this one cost nothing to fix.
 through real process boundaries, and the identifier half is covered because `requestedTrip` cannot
 proceed without an id. Verified by reading.
 
+Re-affirmed 2026-08-07: the file changed for reasons belonging to another spec, this test did not,
+and the verdict stands.
+
 ## Claim: second-request-rejected-while-active
 Verdict: sound
 Fingerprint: 6ee2d22e5affecd5
@@ -133,8 +146,8 @@ against eight distinct quotes, five trials; exactly one success and exactly one 
 refusals are now inspected rather than only counted, so a rejection carrying the wrong reason — the
 weakness recorded last time — no longer passes.
 
-`AdmitAsync` contains no application-level active-trip check, so `ux_trip_rider_active` is the entire
-mechanism; without it all eight insert and the count fails. Verified by reading.
+`AdmitAsync` contains no application-level active-trip check, so `ux_trip_rider_active` is the
+entire mechanism; without it all eight insert and the count fails. Verified by reading.
 
 ## Claim: request-admitted-after-terminal
 Verdict: sound

@@ -5,9 +5,9 @@ Enforcement: type
 Site: `DriverPosition` has no serializer; it is convertible to a wire model only through
 `RiderProjection.For(tripPhase)`, which returns coarse density before assignment
 
-Redaction by construction rather than by remembering. The guard-at-every-site version — each
-handler checking the phase before including a position — is the design that leaks, and C1 is in
-the catalog precisely because that surface never stops growing.
+Redaction by construction rather than by remembering. The guard-at-every-site version — each handler
+checking the phase before including a position — is the design that leaks, and C1 is in the catalog
+precisely because that surface never stops growing.
 
 What this does *not* do is constrain a new endpoint that reaches for the raw position from the
 driver service directly. The type protects one path, not the class of all rider-reachable paths.
@@ -20,12 +20,13 @@ Site: the same `RiderProjection.For(tripPhase)`, which returns no position for t
 Every rider-facing read of a trip goes through the projection, and after a terminal transition it
 returns no position. There is one observation mode and the projection covers it.
 
-*(revised 2026-08-07 — supersedes a second `Enforcement: choke-point` naming `RiderTripStream.Close`,
-"invoked by the state machine's terminal transition, not by the client disconnecting", described as
-covering what an already-open connection keeps pushing. **No such type exists.** The fixture has no
-streaming: the rider page polls with `router.refresh()`, which re-runs the same projection on the
-server. The entry described a mechanism for a failure mode this system cannot have, and the agent
-tier cited it as evidence for two `spec-gap` verdicts before anyone checked the code against it.)*
+*(revised 2026-08-07 — supersedes a second `Enforcement: choke-point` naming
+`RiderTripStream.Close`, "invoked by the state machine's terminal transition, not by the client
+disconnecting", described as covering what an already-open connection keeps pushing. **No such type
+exists.** The fixture has no streaming: the rider page polls with `router.refresh()`, which re-runs
+the same projection on the server. The entry described a mechanism for a failure mode this system
+cannot have, and the agent tier cited it as evidence for two `spec-gap` verdicts before anyone
+checked the code against it.)*
 
 ## Requirement: position-confined-to-live-phases
 Enforcement: type
@@ -49,11 +50,10 @@ would have left the raw route in place for the next surface to find.
 
 ## Residue
 
-**Coarse supply density is computed from real driver positions and is not differentially
-private.** With few drivers in an area, the density signal can identify an individual. This is
-accepted for now on the argument that markets launch dense; it is wrong in a market's first week,
-which is exactly when nobody is watching. If a launch checklist is ever written, this belongs on
-it.
+**Coarse supply density is computed from real driver positions and is not differentially private.**
+With few drivers in an area, the density signal can identify an individual. This is accepted for now
+on the argument that markets launch dense; it is wrong in a market's first week, which is exactly
+when nobody is watching. If a launch checklist is ever written, this belongs on it.
 
 *(removed 2026-08-07 — a residue paragraph claimed "the rider client caches the last known driver
 position for offline display", leaving a cold-start window the claims did not cover. The client

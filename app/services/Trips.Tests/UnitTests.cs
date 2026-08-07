@@ -42,7 +42,7 @@ public sealed class MoneyTests
     }
 
     [Fact]
-    [Covers("pricing/quote", "total-in-minor-units", Scope.Unit, Quantification.Universal)]
+    [Covers("pricing/quote", "total-in-minor-units", Scope.Unit, Quantification.Example)]
     public void An_amount_states_its_currency_and_counts_minor_units()
     {
         var amount = Money.Of(1234, "eur");

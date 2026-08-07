@@ -70,23 +70,32 @@ public sealed class AcceptOfferTests(TripTestFixture fixture) : IAsyncLifetime
     public async Task An_acceptance_after_assignment_changes_nothing()
     {
         var client = fixture.HttpClient.CreateClient();
-        await SeedDrivers(available: 2);
+        const int drivers = 5;
+        await SeedDrivers(available: drivers);
         var trip = await RequestedTrip(client);
 
         (await client.Accept(trip.Encoded, "driver-0")).StatusCode.Should().Be(HttpStatusCode.OK);
         var before = (await fixture.Database.SingleOrDefault<Trip>(
             t => t.Id == trip.Id, Cancellation.Token()))!.AssignedDriverId;
 
-        var late = await client.Accept(trip.Encoded, "driver-1");
+        // "Any further driver", so every other driver tries — twice, because a second refusal is
+        // where an implementation that reassigns on the losing path would show itself.
+        for (var round = 0; round < 2; round++)
+        {
+            for (var i = 1; i < drivers; i++)
+            {
+                await (await client.Accept(trip.Encoded, $"driver-{i}"))
+                    .ShouldBeConflict("trip:dispatch:accept:offer_taken");
+            }
+        }
 
-        await late.ShouldBeConflict("trip:dispatch:accept:offer_taken");
         var after = (await fixture.Database.SingleOrDefault<Trip>(
             t => t.Id == trip.Id, Cancellation.Token()))!.AssignedDriverId;
         after.Should().Be(before);
     }
 
     [Fact]
-    [Covers("trips/dispatch", "other-offers-withdrawn", Scope.Component, Quantification.Universal)]
+    [Covers("trips/dispatch", "other-offers-withdrawn", Scope.Component, Quantification.Example)]
     public async Task Assignment_withdraws_every_other_offer()
     {
         var client = fixture.HttpClient.CreateClient();

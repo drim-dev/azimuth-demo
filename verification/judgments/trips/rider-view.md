@@ -13,9 +13,14 @@ design, and this pass is the argument that it should.
 fixes, the design correction and these verdicts. Where a verdict rests on mutation it says so; where
 it rests on reading, it says that too.
 
+**Fingerprints refreshed 2026-08-07.** Every verdict below was re-affirmed rather than re-derived:
+the evidence files changed for reasons belonging to other specs — tag corrections in shared test
+files — and no test body carrying these claims was touched. The fingerprint expired because it
+hashes whole files, which D19.1 records.
+
 ## Claim: position-confined-to-live-phases
 Verdict: sound
-Fingerprint: d8a4ee558351343f
+Fingerprint: 177694b2c0ab41dd
 Judged: 2026-08-07
 Judge: claude-opus-5
 
@@ -32,8 +37,8 @@ two forward the trip service's projection unchanged, and the rest carry no drive
 
 **The e2e test is tagged `example`**, which is what five named surfaces are. The claim's universal
 requirement is met by the plan's proof-strength entry: `DriverPosition` has no serializer and no raw
-accessor, so an unredacted position is unrepresentable on the wire (D7), backed by
-`Enforcement: type` in the design.
+accessor, so an unredacted position is unrepresentable on the wire (D7), backed by `Enforcement:
+type` in the design.
 
 What makes this sound rather than merely re-labelled: the evidence for universality is now a
 mechanism that cannot be forgotten, plus an enumerator that grows with the build. The previous
@@ -41,7 +46,7 @@ arrangement asserted the same thing with a list that grew when someone remembere
 
 ## Claim: no-driver-identity-before-assignment
 Verdict: sound
-Fingerprint: d2c172ce5b4a7816
+Fingerprint: 1bdf7367dad642fd
 Judged: 2026-08-07
 Judge: claude-opus-5
 
@@ -56,7 +61,7 @@ The doc comment above it, which claimed derivation this body does not do, is sti
 
 ## Claim: no-driver-position-before-assignment
 Verdict: sound
-Fingerprint: abae0f49582e23fa
+Fingerprint: 558fa2e0b504ae99
 Judged: 2026-08-07
 Judge: claude-opus-5
 
@@ -66,7 +71,7 @@ test fails on the null assertion and the e2e on both the field and the substring
 
 ## Claim: supply-density-shown-before-assignment
 Verdict: sound
-Fingerprint: 2bd6b7eecb177299
+Fingerprint: ce418900a1a1fe3e
 Judged: 2026-08-07
 Judge: claude-opus-5
 
@@ -87,7 +92,7 @@ The unit test remains a round-trip and adds nothing. It is not the evidence carr
 
 ## Claim: driver-shown-after-assignment
 Verdict: sound
-Fingerprint: 80571b779461be8e
+Fingerprint: 38cffe12f1241175
 Judged: 2026-08-07
 Judge: claude-opus-5
 
@@ -106,7 +111,7 @@ escape.
 
 ## Claim: driver-position-follows-driver
 Verdict: sound
-Fingerprint: 494857a24561ffdf
+Fingerprint: 9c8ddaf890cf1dfd
 Judged: 2026-08-07
 Judge: claude-opus-5
 
@@ -124,7 +129,7 @@ and the claim does not say the driver moves via an endpoint.
 
 ## Claim: no-position-after-completion
 Verdict: sound
-Fingerprint: 85a0e780e6bdccc0
+Fingerprint: 8a141561dbc0fc67
 Judged: 2026-08-07
 Judge: claude-opus-5
 
@@ -147,7 +152,7 @@ asserts the position is gone.
 
 ## Claim: no-position-after-cancellation
 Verdict: sound
-Fingerprint: d10bd0abcf0c7b67
+Fingerprint: 9f72e9e06ee4747c
 Judged: 2026-08-07
 Judge: claude-opus-5
 
@@ -161,7 +166,7 @@ removed this claim would have no evidence that constructs the failure case.
 
 ## Claim: driver-identity-remains-on-receipt
 Verdict: sound
-Fingerprint: 9665a8beb3bcd7eb
+Fingerprint: a1603562e5235798
 Judged: 2026-08-07
 Judge: claude-opus-5
 
