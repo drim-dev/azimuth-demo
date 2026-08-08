@@ -42,6 +42,20 @@ public static class Api
     public static Task<HttpResponseMessage> GetFailures(this HttpClient client, long tripId) =>
         client.GetAsync($"/captures/{IdEncoding.Encode(tripId)}/failures");
 
+    public static Task<HttpResponseMessage> GetStatus(this HttpClient client, long tripId) =>
+        client.GetAsync($"/captures/{IdEncoding.Encode(tripId)}/status");
+
+    public static Task<HttpResponseMessage> GetSettlementMetrics(this HttpClient client) =>
+        client.GetAsync("/operations/metrics");
+
+    public static Task<HttpResponseMessage> UpdatePaymentMethod(
+        this HttpClient client,
+        long tripId,
+        string paymentMethod) =>
+        client.PutAsJsonAsync(
+            $"/captures/{IdEncoding.Encode(tripId)}/payment-method",
+            new { paymentMethod });
+
     /// <summary>The capture a trip has, or null when it has none.</summary>
     public static async Task<GetCapture.Response?> Capture(this HttpClient client, long tripId)
     {
@@ -67,6 +81,7 @@ public static class Api
         {
             TripId = tripId,
             QuoteToken = Quote(amountMinor, currency),
+            PaymentMethod = "default",
             WrittenAt = PaymentsTestFixture.Start,
         };
 

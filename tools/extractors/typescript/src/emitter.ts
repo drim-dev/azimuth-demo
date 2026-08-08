@@ -29,6 +29,11 @@ export interface Entry {
   site: string;
   file: string;
   lang: string;
+  source_fingerprint: string;
+  evidence_kind?: string;
+  evidence_outcome?: string;
+  observed_at?: string;
+  expires_at?: number;
   scope?: string;
   quantification?: string;
   oracle?: string;
@@ -48,11 +53,18 @@ export interface Enumeration {
   source_fingerprint: string;
 }
 
+export interface Artifact {
+  id: string;
+  kind: string;
+  file: string;
+}
+
 export interface Manifest {
   realizes: Entry[];
   covers: Entry[];
   class_members: ClassMember[];
   enumerations: Enumeration[];
+  artifacts: Artifact[];
 }
 
 export interface Warning {
@@ -78,12 +90,14 @@ export function scanText(text: string, file: string): ScanResult {
         result.warnings.push(warn(node, source, file, 'realizes needs a spec and a scenario id'));
         return;
       }
+      const site = resolveSite(node, source);
       result.realizes.push({
         spec: args[0],
         scenario: args[1],
-        site: resolveSite(node),
+        site: site.name,
         file,
         lang: LANG,
+        source_fingerprint: site.fingerprint,
       });
       return;
     }
@@ -111,12 +125,14 @@ export function scanText(text: string, file: string): ScanResult {
         result.warnings.push(warn(node, source, file, `unknown oracle \`${oracle}\``));
         return;
       }
+      const site = resolveSite(node, source);
       result.covers.push({
         spec,
         scenario,
-        site: resolveSite(node),
+        site: site.name,
         file,
         lang: LANG,
+        source_fingerprint: site.fingerprint,
         scope,
         quantification,
         ...(oracle === undefined ? {} : { oracle }),
@@ -165,24 +181,37 @@ function stringArgs(call: ts.CallExpression): string[] {
  * `test('…', () => …)` therefore names the test, while a `realizes` in `export function GET` names
  * the handler.
  */
-function resolveSite(call: ts.CallExpression): string {
+function resolveSite(call: ts.CallExpression, source: ts.SourceFile): {
+  name: string;
+  fingerprint: string;
+} {
   let node: ts.Node | undefined = call.parent;
   while (node) {
     if (isTestCall(node)) {
-      return testName(node);
+      return namedSite(testName(node), node, source);
     }
     if ((ts.isFunctionDeclaration(node) || ts.isMethodDeclaration(node)) && node.name) {
-      return node.name.getText();
+      return namedSite(node.name.getText(), node, source);
     }
     if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name)) {
-      return node.name.text;
+      return namedSite(node.name.text, node, source);
     }
     if (ts.isClassDeclaration(node) && node.name) {
-      return node.name.text;
+      return namedSite(node.name.text, node, source);
     }
     node = node.parent;
   }
-  return '<module>';
+  return namedSite('<module>', source, source);
+}
+
+function namedSite(name: string, node: ts.Node, source: ts.SourceFile): {
+  name: string;
+  fingerprint: string;
+} {
+  return {
+    name,
+    fingerprint: createHash('sha256').update(node.getText(source)).digest('hex'),
+  };
 }
 
 function testName(call: ts.CallExpression): string {
@@ -220,7 +249,13 @@ export function walk(dir: string, out: string[] = []): string[] {
 }
 
 export function emit(roots: string[], repoRoot: string): { manifest: Manifest; warnings: Warning[] } {
-  const manifest: Manifest = { realizes: [], covers: [], class_members: [], enumerations: [] };
+  const manifest: Manifest = {
+    realizes: [],
+    covers: [],
+    class_members: [],
+    enumerations: [],
+    artifacts: [],
+  };
   const warnings: Warning[] = [];
 
   const files: string[] = [];

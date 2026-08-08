@@ -33,6 +33,7 @@ internal static class Collector
         string Scenario,
         string Site,
         string File,
+        string SourceFingerprint,
         string? Scope,
         string? Quantification,
         string? Oracle);
@@ -126,7 +127,15 @@ internal static class Collector
 
             var (spec, scenario) = Pair(attribute);
             result.Realizes.Add(
-                new Entry(spec, scenario, type.FullName ?? type.Name, files.PathOf(type), null, null, null));
+                new Entry(
+                    spec,
+                    scenario,
+                    type.FullName ?? type.Name,
+                    files.PathOf(type),
+                    files.FingerprintOf(type),
+                    null,
+                    null,
+                    null));
         }
 
         foreach (var method in type.GetMethods(Members))
@@ -137,6 +146,7 @@ internal static class Collector
             }
             var site = $"{typeName}.{method.Name}";
             var file = files.PathOf(method);
+            var sourceFingerprint = files.FingerprintOf(method);
             result.Artifacts.Add(
                 new Artifact($"dotnet-symbol:{site}", "dotnet-method", file));
             var data = method.GetCustomAttributesData();
@@ -146,11 +156,12 @@ internal static class Collector
                 if (name == RealizesName)
                 {
                     var (spec, scenario) = Pair(attribute);
-                    result.Realizes.Add(new Entry(spec, scenario, site, file, null, null, null));
+                    result.Realizes.Add(
+                        new Entry(spec, scenario, site, file, sourceFingerprint, null, null, null));
                 }
                 else if (name == CoversName)
                 {
-                    result.Covers.Add(Covers(attribute, site, file));
+                    result.Covers.Add(Covers(attribute, site, file, sourceFingerprint));
                 }
             }
         }
@@ -238,7 +249,11 @@ internal static class Collector
         return (spec, scenario);
     }
 
-    private static Entry Covers(CustomAttributeData attribute, string site, string file)
+    private static Entry Covers(
+        CustomAttributeData attribute,
+        string site,
+        string file,
+        string sourceFingerprint)
     {
         var args = attribute.ConstructorArguments;
         var (spec, scenario) = Pair(attribute);
@@ -247,6 +262,7 @@ internal static class Collector
             scenario,
             site,
             file,
+            sourceFingerprint,
             args.Count > 2 ? EnumName(args[2]) : null,
             args.Count > 3 ? EnumName(args[3]) : null,
             args.Count > 4 ? EnumName(args[4]) : null);
@@ -372,6 +388,10 @@ internal static class Collector
             writer.WriteString("site", entry.Site);
             writer.WriteString("file", entry.File);
             writer.WriteString("lang", Lang);
+            if (entry.SourceFingerprint.Length > 0)
+            {
+                writer.WriteString("source_fingerprint", entry.SourceFingerprint);
+            }
             if (form)
             {
                 if (entry.Scope is not null)

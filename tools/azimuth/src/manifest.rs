@@ -219,6 +219,97 @@ fn site(
     let site_name = string_field(path, &where_, item, "site", &mut errors);
     let file = string_field(path, &where_, item, "file", &mut errors);
     let lang = string_field(path, &where_, item, "lang", &mut errors);
+    let source_fingerprint = match item.get("source_fingerprint") {
+        Some(value) => match value.as_str() {
+            Some(value) => value.to_string(),
+            None => {
+                errors.push(Diag::at(
+                    path,
+                    0,
+                    format!("{where_}.source_fingerprint is not a string"),
+                ));
+                String::new()
+            }
+        },
+        None => String::new(),
+    };
+    let evidence_kind = optional_string_field(path, &where_, item, "evidence_kind", &mut errors);
+    let evidence_outcome =
+        optional_string_field(path, &where_, item, "evidence_outcome", &mut errors);
+    let observed_at = optional_string_field(path, &where_, item, "observed_at", &mut errors);
+    let expires_at = match item.get("expires_at") {
+        Some(value) => match value.as_num() {
+            Some(value) if value >= 0.0 && value.fract() == 0.0 && value <= u64::MAX as f64 => {
+                Some(value as u64)
+            }
+            _ => {
+                errors.push(Diag::expecting(
+                    path,
+                    0,
+                    format!("{where_}.expires_at is not a Unix-second integer"),
+                    "a non-negative integer",
+                ));
+                None
+            }
+        },
+        None => None,
+    };
+
+    if let Some(kind) = &evidence_kind {
+        if !is_test {
+            errors.push(Diag::at(
+                path,
+                0,
+                format!("{where_} imports evidence under `realizes`; use `covers`"),
+            ));
+        }
+        if kind != "manual-test" {
+            errors.push(Diag::expecting(
+                path,
+                0,
+                format!("{where_} has unknown evidence kind `{kind}`"),
+                "manual-test",
+            ));
+        }
+        if !matches!(evidence_outcome.as_deref(), Some("passed" | "failed")) {
+            errors.push(Diag::expecting(
+                path,
+                0,
+                format!("{where_} has no usable evidence outcome"),
+                "`evidence_outcome: passed` or `failed`",
+            ));
+        }
+        if observed_at.is_none() {
+            errors.push(Diag::expecting(
+                path,
+                0,
+                format!("{where_} has no observation instant"),
+                "an ISO-8601 `observed_at` string",
+            ));
+        }
+        if expires_at.is_none() {
+            errors.push(Diag::expecting(
+                path,
+                0,
+                format!("{where_} has no expiry"),
+                "`expires_at` as Unix seconds",
+            ));
+        }
+        if source_fingerprint.is_empty() {
+            errors.push(Diag::expecting(
+                path,
+                0,
+                format!("{where_} has no immutable result fingerprint"),
+                "`source_fingerprint` from the imported result payload",
+            ));
+        }
+    } else if evidence_outcome.is_some() || observed_at.is_some() || expires_at.is_some() {
+        errors.push(Diag::at(
+            path,
+            0,
+            format!("{where_} carries receipt fields without `evidence_kind`"),
+        ));
+    }
 
     let mut scope = None;
     let mut quantification = None;
@@ -270,6 +361,11 @@ fn site(
         site: site_name.unwrap_or_default(),
         file: file.unwrap_or_default(),
         lang: lang.unwrap_or_default(),
+        source_fingerprint,
+        evidence_kind,
+        evidence_outcome,
+        observed_at,
+        expires_at,
         scope,
         quantification,
         oracle,
@@ -294,5 +390,29 @@ fn string_field(
             ));
             None
         }
+    }
+}
+
+fn optional_string_field(
+    path: &str,
+    where_: &str,
+    item: &Json,
+    key: &str,
+    errors: &mut Vec<Diag>,
+) -> Option<String> {
+    match item.get(key) {
+        Some(value) => match value.as_str() {
+            Some(value) => Some(value.to_string()),
+            None => {
+                errors.push(Diag::expecting(
+                    path,
+                    0,
+                    format!("{where_}.{key} is not a string"),
+                    format!("a string `{key}`"),
+                ));
+                None
+            }
+        },
+        None => None,
     }
 }

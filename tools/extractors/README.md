@@ -15,8 +15,10 @@ what makes splitting or merging a requirement free, since no tag moves.
 
 ```json
 {
-  "realizes": [{ "spec": "", "scenario": "", "site": "", "file": "", "lang": "" }],
+  "realizes": [{ "spec": "", "scenario": "", "site": "", "file": "", "lang": "",
+                 "source_fingerprint": "" }],
   "covers":   [{ "spec": "", "scenario": "", "site": "", "file": "", "lang": "",
+                 "source_fingerprint": "",
                  "scope": "unit|component|e2e",
                  "quantification": "example|universal",
                  "oracle": "direct|golden|metamorphic|model-based|contract" }],
@@ -30,6 +32,10 @@ what makes splitting or merging a requirement free, since no tag moves.
 `realizes` carries no form: form is how a test checks, not a property of code. The core rejects a
 `realizes` that carries one, and rejects any entry carrying `req`, rather than ignoring it — a
 stale emitter must not be able to produce tags that look fine and are not.
+
+`source_fingerprint` hashes the compiler-resolved enclosing symbol or test. Judgment freshness uses
+it to distinguish a changed evidence site from an unrelated edit in a shared file. It is optional:
+when an extractor cannot resolve a site, the core conservatively hashes the complete file.
 
 An enumeration witness says where a class came from independently of linkage tags. Its members are
 authoritative only when the source was read completely; a missing build output or unresolved member
@@ -55,6 +61,7 @@ azimuth-emit-dotnet --output m.json --root . path/to/Assembly.dll
 Static scan over the compiler API. The front end is functions, not classes, so the tags are typed
 no-op function calls rather than decorators; the emitter resolves each call's enclosing named
 symbol as the site, which makes a `covers` inside `test('…')` name the test.
+The same AST node is the source-fingerprint boundary.
 
 ```
 azimuth-emit-ts --output m.json --root . src
@@ -62,6 +69,40 @@ azimuth-emit-ts --output m.json --root . src
 
 `--next-app <class>=<dir>` derives route members from Next's built route manifest. The option fails
 closed when the build manifest is absent or a route cannot be resolved to project source.
+
+`--prometheus <rules.yml>,<rules.test.yml>` emits `prometheus-alert:<name>` and
+`prometheus-rule-test:<name>` artifacts. The repository runs `promtool test rules` before emission;
+the extractor supplies machine addresses after Prometheus has validated the files, not a substitute
+YAML interpretation.
+
+### External manual results
+
+`azimuth-import-manual <export.json> <manifest.json>` converts a provider-neutral manual-run export
+into covering evidence receipts. A TestRail, Qase, Zephyr or similar adapter maps its API response
+to this boundary:
+
+```json
+{
+  "provider": "testrail",
+  "run_id": "run-7",
+  "observed_at": "2026-08-08T01:00:00Z",
+  "expires_at": "2026-09-08T01:00:00Z",
+  "results": [{
+    "case_id": "case-42",
+    "spec": "payments/capture",
+    "scenario": "receipt-explains-payment-state",
+    "status": "passed",
+    "scope": "e2e",
+    "quantification": "example",
+    "url": "https://tracker.example/runs/7#42"
+  }]
+}
+```
+
+Only `passed` and `failed` cross the boundary; provider-specific states must be mapped explicitly.
+The importer preserves failures, result attribution, observation time, expiry and a payload
+fingerprint. A failed or expired receipt is a hole and does not count as coverage. A charter or test
+case without an executed result emits nothing.
 
 ## Evidence opt-in
 

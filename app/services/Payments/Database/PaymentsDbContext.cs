@@ -11,6 +11,10 @@ public sealed class PaymentsDbContext(DbContextOptions<PaymentsDbContext> option
 
     public DbSet<CaptureFailure> CaptureFailures => Set<CaptureFailure>();
 
+    public DbSet<TripEventInbox> TripEventInbox => Set<TripEventInbox>();
+
+    public DbSet<TripEventCursor> TripEventCursors => Set<TripEventCursor>();
+
     protected override void OnModelCreating(ModelBuilder builder) =>
         builder.ApplyConfigurationsFromAssembly(typeof(PaymentsDbContext).Assembly);
 }

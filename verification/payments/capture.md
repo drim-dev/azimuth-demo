@@ -3,13 +3,42 @@
 ## Claim: capture-created-on-completion
 Scope: e2e
 Quantification: example
+Strength: detection
+Evidence: `payments_capture_overdue_intents` and the worker heartbeat feed repository-owned
+Prometheus rules for overdue work and detector death
+Binding: prometheus-alert:PaymentsCaptureOverdue, prometheus-alert:PaymentsCaptureWorkerSilent
+Re-established: continuously
+Dies silently: Payments is not scraped, either rule is absent, or notification routing is muted
+Detector test: the component metric test injects a fresh and overdue intent; `promtool` evaluates
+the versioned alert rules against synthetic series
+Detector binding: dotnet-symbol:Payments.Tests.Features.Captures.PaymentStatusTests.Settlement_metrics_distinguish_fresh_and_overdue_intents,
+prometheus-rule-test:PaymentsCaptureOverdue, prometheus-rule-test:PaymentsCaptureWorkerSilent
 Residual: real-process composition is sampled once rather than ranged across all fares and
 currencies at e2e scope
 Accepted: component evidence ranges over amounts and currencies; the e2e case exists to establish
 the process handoff and carries the non-zero surge mutation
 
-The real-process test completes a trip, dispatches the transactional intent and observes the
-capture. Component evidence separately ranges over amounts and currencies from intent onward.
+The real-process test completes a trip and observes capture without calling the dispatch endpoint.
+Component evidence separately ranges over amounts and currencies from intent onward. Detection is
+supplementary; it does not replace the demonstration requirement.
+
+## Claim: receipt-explains-payment-state
+Scope: e2e
+Quantification: example
+Oracle: contract
+
+The status crosses Payments, the rider BFF and the rendered receipt. Component evidence ranges over
+all four service states, while the e2e case establishes one captured composition. A human charter
+exists in the change record but is not claimed as evidence until an execution receipt exists.
+
+## Claim: malformed-intent-does-not-starve-batch
+Scope: component
+Quantification: example
+Oracle: direct
+
+The guarantee depends on a real pending batch, failure record and dispatch marker. The example puts
+the malformed intent first, observes two valid captures behind it, then replays settlement to prove
+the terminal item is not retried.
 
 ## Claim: capture-equals-trip-fare
 Scope: component
@@ -49,8 +78,9 @@ The test actually cancels through Trips, dispatches Payments and observes no cap
 ## Claim: duplicate-completion-event
 Scope: component
 
-Deduplication depends on the same storage constraint. The claim is about what the store permits,
-not about what the handler intends.
+Broker-backed evidence redelivers the same event id repeatedly and then delivers a distinct older
+version. The Payments inbox produces one local intent. Capture evidence separately exercises the
+unique storage constraint; neither mechanism is credited for the other.
 
 ## Claim: retry-after-transport-failure
 Scope: component
@@ -75,3 +105,10 @@ the ledger there is nothing to conserve
 No evidence that captures, payouts and fees sum correctly across the system. Concern C8, whose
 domain is aggregate state over time and whose only honest evidence is a reconciliation job in
 production.
+
+## Residual: alert-delivery
+Accepted: the repository validates metric production and Prometheus rule evaluation; revisit when
+the demo acquires a deployment environment with an actual notification receiver
+
+No evidence establishes that Alertmanager routes a firing capture alert to an on-call recipient.
+Calling the metric or rule test an end-to-end notification test would hide that operational gap.

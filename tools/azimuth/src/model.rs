@@ -193,6 +193,14 @@ pub struct Site {
     pub site: String,
     pub file: String,
     pub lang: String,
+    /// Hash of the compiler-resolved source site. An empty value means the extractor could not
+    /// isolate the site, so judgment freshness falls back to the whole file.
+    pub source_fingerprint: String,
+    /// Present for evidence imported from a system of record rather than extracted from code.
+    pub evidence_kind: Option<String>,
+    pub evidence_outcome: Option<String>,
+    pub observed_at: Option<String>,
+    pub expires_at: Option<u64>,
     pub scope: Option<Scope>,
     pub quantification: Option<Quantification>,
     pub oracle: Option<String>,
@@ -318,18 +326,39 @@ impl Model {
             .collect()
     }
 
-    /// Every file the agent-tier rubric requires for a verdict: covering evidence, the applicable
-    /// design entry and the compiler/schema artifacts to which that design binds.
-    pub fn judgment_files(&self, spec: &str, scenario: &str) -> Vec<String> {
-        let mut files = self.evidence_files(spec, scenario);
+    /// Every source the agent-tier rubric requires for a verdict. Compiler-resolved evidence sites
+    /// carry their own fingerprint; prose and bound mechanisms remain deliberately file-scoped.
+    pub fn judgment_inputs(
+        &self,
+        spec: &str,
+        scenario: &str,
+    ) -> Vec<crate::judgment::FingerprintInput> {
+        let mut inputs: Vec<crate::judgment::FingerprintInput> = self
+            .covers
+            .iter()
+            .filter(|site| site.spec == spec && site.scenario == scenario)
+            .map(crate::judgment::FingerprintInput::site)
+            .collect();
         let Some(claim) = self.find_claim(spec, scenario) else {
-            return files;
+            return inputs;
         };
         if let Some(standards) = &self.standards {
-            files.push(standards.path.clone());
+            inputs.push(crate::judgment::FingerprintInput::file(&standards.path));
         }
         if let Some(plan) = self.plan_for(spec) {
-            files.push(plan.path.clone());
+            inputs.push(crate::judgment::FingerprintInput::file(&plan.path));
+            if let Some(evidence) = plan
+                .entry(scenario)
+                .and_then(|entry| entry.evidence.as_ref())
+            {
+                for binding in evidence.bindings.iter().chain(&evidence.detector_bindings) {
+                    if let Some(artifact) = self.artifacts.iter().find(|item| item.id == *binding) {
+                        if !artifact.file.is_empty() {
+                            inputs.push(crate::judgment::FingerprintInput::file(&artifact.file));
+                        }
+                    }
+                }
+            }
         }
         if let Some(design) = self.design_for(spec) {
             let entries = design
@@ -346,18 +375,18 @@ impl Model {
                         .find(|artifact| artifact.id == mechanism.binding)
                     {
                         if !artifact.file.is_empty() {
-                            files.push(artifact.file.clone());
+                            inputs.push(crate::judgment::FingerprintInput::file(&artifact.file));
                         }
                     }
                 }
             }
             if has_entry {
-                files.push(design.path.clone());
+                inputs.push(crate::judgment::FingerprintInput::file(&design.path));
             }
         }
-        files.sort();
-        files.dedup();
-        files
+        inputs.sort_by(|a, b| a.identity.cmp(&b.identity));
+        inputs.dedup_by(|a, b| a.identity == b.identity);
+        inputs
     }
 
     pub fn claim_text(&self, claim: &ClaimView<'_>) -> String {
@@ -368,7 +397,12 @@ impl Model {
             .map(|s| format!("{} {}", s.kind.name(), s.text))
             .collect();
         format!(
-            "{}|{}|{}",
+            "{}|{}|{}|{}",
+            claim
+                .requirement
+                .criticality
+                .map(|criticality| criticality.name())
+                .unwrap_or("unclassified"),
             claim.requirement.statement,
             claim.scenario.id,
             steps.join("|")
@@ -573,6 +607,24 @@ fn site_json(s: &Site) -> Json {
         ("file".to_string(), Json::str(&s.file)),
         ("lang".to_string(), Json::str(&s.lang)),
     ];
+    if !s.source_fingerprint.is_empty() {
+        pairs.push((
+            "source_fingerprint".to_string(),
+            Json::str(&s.source_fingerprint),
+        ));
+    }
+    if let Some(value) = &s.evidence_kind {
+        pairs.push(("evidence_kind".to_string(), Json::str(value)));
+    }
+    if let Some(value) = &s.evidence_outcome {
+        pairs.push(("evidence_outcome".to_string(), Json::str(value)));
+    }
+    if let Some(value) = &s.observed_at {
+        pairs.push(("observed_at".to_string(), Json::str(value)));
+    }
+    if let Some(value) = s.expires_at {
+        pairs.push(("expires_at".to_string(), Json::Num(value as f64)));
+    }
     if let Some(scope) = s.scope {
         pairs.push(("scope".to_string(), Json::str(scope.name())));
     }

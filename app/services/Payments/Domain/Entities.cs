@@ -1,11 +1,10 @@
 namespace Payments.Domain;
 
 /// <summary>
-/// The outbox row the trip service writes in the same transaction as the completion.
+/// Settlement work accepted from the lifecycle-event inbox.
 /// </summary>
 /// <remarks>
-/// Keyed by trip, so a completion delivered twice writes one intent. The dispatcher is its only
-/// reader.
+/// Keyed by trip, so independently redelivered completion events still produce one local intent.
 /// </remarks>
 public sealed class CaptureIntent
 {
@@ -13,9 +12,31 @@ public sealed class CaptureIntent
 
     public required string QuoteToken { get; set; }
 
+    public required string PaymentMethod { get; set; }
+
     public DateTimeOffset WrittenAt { get; set; }
 
     public DateTimeOffset? DispatchedAt { get; set; }
+}
+
+public sealed class TripEventInbox
+{
+    public Guid EventId { get; set; }
+
+    public long TripId { get; set; }
+
+    public long Version { get; set; }
+
+    public required string State { get; set; }
+
+    public DateTimeOffset ReceivedAt { get; set; }
+}
+
+public sealed class TripEventCursor
+{
+    public long TripId { get; set; }
+
+    public long Version { get; set; }
 }
 
 public sealed class Capture
@@ -58,5 +79,9 @@ public enum ProviderOutcome
 
 public interface IPaymentProvider
 {
-    Task<ProviderOutcome> CaptureAsync(long tripId, long amountMinor, string currency);
+    Task<ProviderOutcome> CaptureAsync(
+        long tripId,
+        long amountMinor,
+        string currency,
+        string paymentMethod);
 }

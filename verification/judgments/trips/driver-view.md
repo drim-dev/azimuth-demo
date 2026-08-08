@@ -1,5 +1,8 @@
 # Judgments: trips/driver-view
 
+Rebased 2026-08-08 after criticality entered claim freshness. No level, evidence site, required
+form or verdict changed.
+
 Re-judged 2026-08-08 after design bindings and their source entered the freshness fingerprint.
 `RiderContact.Reveal()` disproved the earlier type/proof rationale. The plan now declares the e2e as
 an example with an accepted egress-analysis residual, and the projection guards were read directly.
@@ -17,7 +20,7 @@ entries.
 
 ## Claim: rider-contact-confined-to-held-trips
 Verdict: sound
-Fingerprint: cfb70d0ff811dc63
+Fingerprint: b8b8c3e11732d0ef
 Judged: 2026-08-08
 Judge: codex
 
@@ -37,7 +40,7 @@ the trip was held by someone, the first two assertions pass and that one fails.
 
 ## Claim: pickup-shown-on-offer
 Verdict: sound
-Fingerprint: cbf7393a0df815cf
+Fingerprint: bf93505a8ee701bc
 Judged: 2026-08-08
 Judge: codex
 
@@ -56,7 +59,7 @@ market repeatedly. That is the deviation path used deliberately rather than an o
 
 ## Claim: rider-contact-hidden-on-offer
 Verdict: sound
-Fingerprint: 1eae622a24d52696
+Fingerprint: 7f4213e987aa4b59
 Judged: 2026-08-08
 Judge: codex
 
@@ -71,7 +74,7 @@ declare a discharge, but neither fact makes a false declaration impossible.
 
 ## Claim: proxy-contact-while-held
 Verdict: sound
-Fingerprint: 69787fa8e8648c78
+Fingerprint: f27c30ba23bfeb90
 Judged: 2026-08-08
 Judge: codex
 
@@ -90,7 +93,7 @@ otherwise have to.
 
 ## Claim: contact-withdrawn-after-terminal
 Verdict: sound
-Fingerprint: 9b2d6b3737ae5057
+Fingerprint: f594cee0b137a9db
 Judged: 2026-08-08
 Judge: codex
 

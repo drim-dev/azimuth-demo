@@ -1,0 +1,39 @@
+rule_files:
+  - trip-events.rules.yml
+
+evaluation_interval: 10s
+
+tests:
+  - interval: 10s
+    input_series:
+      - series: trips_event_outbox_oldest_pending_age_seconds
+        values: 45x18
+      - series: rabbitmq_queue_messages_ready{queue="trip.lifecycle.analytics"}
+        values: 3x24
+      - series: rabbitmq_queue_messages{queue="trip.lifecycle.analytics.dead"}
+        values: 1x12
+      - series: rabbitmq_queue_messages{queue="trip.lifecycle.payments.dead"}
+        values: 0x12
+    alert_rule_test:
+      - eval_time: 1m
+        alertname: TripEventRelayStalled
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+            exp_annotations:
+              summary: Committed trip events are not reaching the broker
+      - eval_time: 2m
+        alertname: TripEventAnalyticsBacklog
+        exp_alerts:
+          - exp_labels:
+              queue: trip.lifecycle.analytics
+              severity: warning
+            exp_annotations:
+              summary: Analytics trip-event consumption is falling behind
+      - eval_time: 30s
+        alertname: TripEventDeadLetters
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+            exp_annotations:
+              summary: Trip lifecycle messages require diagnosis

@@ -102,6 +102,11 @@ namespace Payments.Database.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("dispatched_at");
 
+                    b.Property<string>("PaymentMethod")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("payment_method");
+
                     b.Property<string>("QuoteToken")
                         .IsRequired()
                         .HasColumnType("text")
@@ -114,6 +119,49 @@ namespace Payments.Database.Migrations
                     b.HasKey("TripId");
 
                     b.ToTable("capture_intents", (string)null);
+                });
+
+            modelBuilder.Entity("Payments.Domain.TripEventCursor", b =>
+                {
+                    b.Property<long>("TripId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("trip_id");
+
+                    b.Property<long>("Version")
+                        .HasColumnType("bigint")
+                        .HasColumnName("version");
+
+                    b.HasKey("TripId");
+
+                    b.ToTable("payment_trip_event_cursors", (string)null);
+                });
+
+            modelBuilder.Entity("Payments.Domain.TripEventInbox", b =>
+                {
+                    b.Property<Guid>("EventId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("event_id");
+
+                    b.Property<DateTimeOffset>("ReceivedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("received_at");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("state");
+
+                    b.Property<long>("TripId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("trip_id");
+
+                    b.Property<long>("Version")
+                        .HasColumnType("bigint")
+                        .HasColumnName("version");
+
+                    b.HasKey("EventId");
+
+                    b.ToTable("payment_trip_event_inbox", (string)null);
                 });
 #pragma warning restore 612, 618
         }

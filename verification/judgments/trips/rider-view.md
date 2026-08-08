@@ -1,5 +1,8 @@
 # Judgments: trips/rider-view
 
+Rebased 2026-08-08 after criticality entered claim freshness. No level, evidence site, required
+form or verdict changed.
+
 Re-judged 2026-08-08 after design bindings and their source entered the freshness fingerprint. The
 re-read rejected the earlier proof argument: `DriverPosition.Reveal()` is assembly-internal, so an
 unredacted position is representable. The plan now records example evidence plus an accepted
@@ -29,7 +32,7 @@ hashes whole files, which D19.1 records.
 
 ## Claim: position-confined-to-live-phases
 Verdict: sound
-Fingerprint: 0cc4ca7cb2a1d31a
+Fingerprint: e6f8be7063dfaf9d
 Judged: 2026-08-08
 Judge: codex
 
@@ -51,7 +54,7 @@ because the evidence tag and plan no longer claim the type proof that the code c
 
 ## Claim: no-driver-identity-before-assignment
 Verdict: sound
-Fingerprint: e765c847ff339159
+Fingerprint: 006d2db7b3655b2c
 Judged: 2026-08-08
 Judge: codex
 
@@ -66,7 +69,7 @@ The doc comment above it, which claimed derivation this body does not do, is sti
 
 ## Claim: no-driver-position-before-assignment
 Verdict: sound
-Fingerprint: 0abf5e8027459c95
+Fingerprint: 8383a73f39ecf6ac
 Judged: 2026-08-08
 Judge: codex
 
@@ -76,7 +79,7 @@ test fails on the null assertion and the e2e on both the field and the substring
 
 ## Claim: supply-density-shown-before-assignment
 Verdict: sound
-Fingerprint: 5844a7025e038ccc
+Fingerprint: 3c9f89ad7f44116e
 Judged: 2026-08-08
 Judge: codex
 
@@ -97,7 +100,7 @@ The unit test remains a round-trip and adds nothing. It is not the evidence carr
 
 ## Claim: driver-shown-after-assignment
 Verdict: sound
-Fingerprint: b18b9c8b8a7f7322
+Fingerprint: c04b1b81de5d29a8
 Judged: 2026-08-08
 Judge: codex
 
@@ -116,7 +119,7 @@ escape.
 
 ## Claim: driver-position-follows-driver
 Verdict: sound
-Fingerprint: 9626307e7b4d8f02
+Fingerprint: 56190aa0fab5de64
 Judged: 2026-08-08
 Judge: codex
 
@@ -134,7 +137,7 @@ and the claim does not say the driver moves via an endpoint.
 
 ## Claim: no-position-after-completion
 Verdict: sound
-Fingerprint: 7eaab72f8a57eca7
+Fingerprint: 94631c10512cd206
 Judged: 2026-08-08
 Judge: codex
 
@@ -157,7 +160,7 @@ asserts the position is gone.
 
 ## Claim: no-position-after-cancellation
 Verdict: sound
-Fingerprint: 7fe68b1a0e1308de
+Fingerprint: 412c42364e940ee7
 Judged: 2026-08-08
 Judge: codex
 
@@ -171,7 +174,7 @@ removed this claim would have no evidence that constructs the failure case.
 
 ## Claim: driver-identity-remains-on-receipt
 Verdict: sound
-Fingerprint: 974ca690ab6cc8da
+Fingerprint: 2e43b77f78cc502d
 Judged: 2026-08-08
 Judge: codex
 

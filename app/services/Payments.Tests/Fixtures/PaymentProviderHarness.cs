@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using Common.Testing;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -19,22 +20,40 @@ namespace Payments.Tests.Fixtures;
 public sealed class PaymentProviderHarness : IHarness<Program>, IPaymentProvider
 {
     private ProviderOutcome[] _outcomes = [ProviderOutcome.Captured];
+    private HashSet<int> _failingCalls = [];
     private int _calls;
+    private readonly ConcurrentQueue<string> _paymentMethods = new();
 
     public int Calls => _calls;
+
+    public IReadOnlyList<string> PaymentMethods => _paymentMethods.ToArray();
 
     /// <summary>Answers in order, then repeats the last answer for every further call.</summary>
     public void Script(params ProviderOutcome[] outcomes)
     {
         _outcomes = outcomes.Length == 0 ? [ProviderOutcome.Captured] : outcomes;
         Interlocked.Exchange(ref _calls, 0);
+        _paymentMethods.Clear();
+        _failingCalls = [];
     }
+
+    public void FailOnCalls(params int[] oneBasedCalls) =>
+        _failingCalls = oneBasedCalls.ToHashSet();
 
     public void Reset() => Script(ProviderOutcome.Captured);
 
-    public Task<ProviderOutcome> CaptureAsync(long tripId, long amountMinor, string currency)
+    public Task<ProviderOutcome> CaptureAsync(
+        long tripId,
+        long amountMinor,
+        string currency,
+        string paymentMethod)
     {
         var index = Interlocked.Increment(ref _calls) - 1;
+        _paymentMethods.Enqueue(paymentMethod);
+        if (_failingCalls.Contains(index + 1))
+        {
+            throw new HttpRequestException("scripted provider transport failure");
+        }
         return Task.FromResult(index < _outcomes.Length ? _outcomes[index] : _outcomes[^1]);
     }
 

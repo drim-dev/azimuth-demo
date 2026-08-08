@@ -88,6 +88,16 @@ fn covers(scenario: &str, scope: &str, quantification: &str) -> String {
     )
 }
 
+fn manual_receipt(outcome: &str, expires_at: u64) -> String {
+    format!(
+        r#"{{"covers":[{{"spec":"alpha","scenario":"typed-thing",
+           "site":"testrail:case-42","file":"https://tracker.example/runs/7#42",
+           "lang":"external","source_fingerprint":"abc123","evidence_kind":"manual-test",
+           "evidence_outcome":"{outcome}","observed_at":"2026-08-08T01:00:00Z",
+           "expires_at":{expires_at},"scope":"unit","quantification":"universal"}}]}}"#
+    )
+}
+
 #[test]
 fn standards_parse() {
     let s = parse_standards("standards.md", STANDARDS).unwrap();
@@ -149,6 +159,47 @@ fn evidence_at_the_required_form_satisfies() {
     assert!(!kinds(&m).iter().any(|(k, _)| *k == HoleKind::WrongForm));
 }
 
+#[test]
+fn a_current_passed_manual_receipt_satisfies_the_evidence_floor() {
+    let m = model("", &manual_receipt("passed", 9_999_999_999));
+    let holes = kinds(&m);
+    assert!(!holes.contains(&(HoleKind::Uncovered, "alpha#typed-thing".into())));
+    assert!(!holes.contains(&(HoleKind::WrongForm, "alpha#typed-thing".into())));
+}
+
+#[test]
+fn a_failed_manual_receipt_is_adverse_evidence_not_coverage() {
+    let m = model("", &manual_receipt("failed", 9_999_999_999));
+    let holes = kinds(&m);
+    assert!(holes.contains(&(HoleKind::FailedEvidence, "alpha#typed-thing".into())));
+    assert!(holes.contains(&(HoleKind::Uncovered, "alpha#typed-thing".into())));
+}
+
+#[test]
+fn an_expired_manual_receipt_is_named_and_no_longer_covers() {
+    let m = model("", &manual_receipt("passed", 100));
+    let receipt_holes = azimuth::check::receipt_holes_at(&m, 100);
+    assert_eq!(receipt_holes.len(), 1);
+    assert_eq!(receipt_holes[0].kind, HoleKind::ExpiredEvidence);
+
+    let holes = kinds(&m);
+    assert!(holes.contains(&(HoleKind::ExpiredEvidence, "alpha#typed-thing".into())));
+    assert!(holes.contains(&(HoleKind::Uncovered, "alpha#typed-thing".into())));
+}
+
+#[test]
+fn a_manual_receipt_without_freshness_is_rejected() {
+    let source = manual_receipt("passed", 100).replace("\"expires_at\":100,", "");
+    let root = json::parse(&source).unwrap();
+    let errors = manifest::parse("manual.json", &root).unwrap_err();
+    assert!(
+        errors
+            .iter()
+            .any(|error| error.to_string().contains("no expiry")),
+        "{errors:?}"
+    );
+}
+
 /// Ladders: a stronger form on any axis satisfies a requirement for a weaker one.
 #[test]
 fn a_stronger_form_satisfies_a_weaker_requirement() {
@@ -208,9 +259,11 @@ fn detection_does_not_satisfy_a_demonstration_requirement() {
 ## Claim: typed-thing
 Strength: detection
 Evidence: a nightly scan for non-integer amounts
+Binding: synthetic:nightly-scan
 Re-established: continuously
 Dies silently: the query drifts after a schema change and fires zero times
 Detector test: ScanTests.FlagsPlantedRow
+Detector binding: synthetic:scan-test
 
 Recorded to show that a monitor is not a substitute here.
 ";
@@ -218,6 +271,20 @@ Recorded to show that a monitor is not a substitute here.
     let holes = kinds(&m);
     assert!(
         holes.contains(&(HoleKind::WrongForm, "alpha#typed-thing".into())),
+        "{holes:?}"
+    );
+    assert!(
+        holes.contains(&(
+            HoleKind::UnresolvedEvidenceBinding,
+            "alpha#typed-thing".into()
+        )),
+        "{holes:?}"
+    );
+    assert!(
+        holes.contains(&(
+            HoleKind::UnresolvedDetectorBinding,
+            "alpha#typed-thing".into()
+        )),
         "{holes:?}"
     );
 }
@@ -237,6 +304,8 @@ A reason.
 ";
     let text = plan_err(source);
     assert!(text.contains("Detector test:"), "{text}");
+    assert!(text.contains("Binding:"), "{text}");
+    assert!(text.contains("Detector binding:"), "{text}");
     assert!(text.contains("Re-established:"), "{text}");
     assert!(text.contains("Dies silently:"), "{text}");
 }

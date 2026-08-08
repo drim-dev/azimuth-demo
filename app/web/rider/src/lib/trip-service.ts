@@ -2,6 +2,7 @@ import {
   RiderQuote,
   RiderReceipt,
   RiderTrip,
+  ServicePaymentStatus,
   ServiceQuote,
   ServiceTrip,
   riderQuote,
@@ -19,6 +20,7 @@ import {
  */
 const tripUrl = () => process.env.TRIP_URL ?? 'http://localhost:5080';
 const pricingUrl = () => process.env.PRICING_URL ?? 'http://localhost:5070';
+const paymentsUrl = () => process.env.PAYMENTS_URL ?? 'http://localhost:5085';
 
 export type Forwarded<T> = { status: number; body: T | null };
 
@@ -66,8 +68,20 @@ export async function receipt(id: string): Promise<Forwarded<RiderReceipt>> {
   }
 
   const driver = await forward<{ display?: string }>(tripUrl(), `/trips/${id}/driver`);
+  const payment = await forward<ServicePaymentStatus>(paymentsUrl(), `/captures/${id}/status`);
   return {
     status: 200,
-    body: riderReceipt(result.body, driver.status === 200 ? driver.body : null),
+    body: riderReceipt(
+      result.body,
+      driver.status === 200 ? driver.body : null,
+      payment.status === 200 && payment.body
+        ? payment.body
+        : {
+            status: 'unavailable',
+            amountMinor: null,
+            currency: null,
+            message: 'Payment status is temporarily unavailable.',
+          },
+    ),
   };
 }

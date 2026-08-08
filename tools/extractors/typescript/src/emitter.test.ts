@@ -61,6 +61,23 @@ test('a covers inside a test names the test', () => {
   assert.equal(result.covers[0].scope, 'component');
   assert.equal(result.covers[0].quantification, 'universal');
   assert.equal(result.covers[0].oracle, undefined);
+  assert.match(result.covers[0].source_fingerprint, /^[0-9a-f]{64}$/);
+});
+
+test('a site fingerprint changes only when that site changes', () => {
+  const before = scanText(
+    `test('first', () => { covers('a', 'first', 'unit', 'example'); assert(1); });
+     test('second', () => { covers('a', 'second', 'unit', 'example'); assert(2); });`,
+    'a.test.ts',
+  );
+  const after = scanText(
+    `test('first', () => { covers('a', 'first', 'unit', 'example'); assert(1); });
+     test('second', () => { covers('a', 'second', 'unit', 'example'); assert(3); });`,
+    'a.test.ts',
+  );
+
+  assert.equal(before.covers[0].source_fingerprint, after.covers[0].source_fingerprint);
+  assert.notEqual(before.covers[1].source_fingerprint, after.covers[1].source_fingerprint);
 });
 
 test('an oracle is carried when given', () => {

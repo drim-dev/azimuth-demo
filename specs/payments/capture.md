@@ -83,3 +83,29 @@ GIVEN a trip whose capture was declined
 WHEN capture is attempted again with a different instrument
 THEN a capture may be created
 AND the trip still has at most one capture
+
+## Requirement: rider-sees-payment-status
+Criticality: standard
+
+A completed trip receipt SHALL communicate whether payment is pending, captured or declined,
+without relying on color alone.
+
+### Scenario: receipt-explains-payment-state
+GIVEN payment is pending, captured or declined
+WHEN the rider opens the completed trip receipt
+THEN the current payment state is named
+AND a declined state explains what happens next
+AND the state remains understandable without color
+
+## Requirement: capture-batch-isolates-invalid-intents
+Criticality: standard
+
+A malformed capture intent SHALL be quarantined without preventing independent valid intents from
+being attempted.
+
+### Scenario: malformed-intent-does-not-starve-batch
+GIVEN a malformed capture intent precedes valid intents in the pending batch
+WHEN settlement processes the batch
+THEN the malformed intent records its terminal failure
+AND valid intents behind it are still attempted
+AND later settlement cycles do not retry the malformed intent

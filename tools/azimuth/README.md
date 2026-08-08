@@ -12,7 +12,7 @@ azimuth check                          # all checks, specs/ by default
 azimuth check rtm --only 'billing/**'  # one check, scoped by id
 azimuth export --out model.json
 azimuth judge                          # claims with the fingerprint a judgment must carry
-azimuth change check changes/<id>      # additive target projection and applied-state report
+azimuth change check changes/<id>      # target projection and applied-state report
 azimuth change finalize changes/<id>   # gate completion and write finalization.json
 azimuth change archive changes/<id> --date YYYY-MM-DD
 ```
@@ -52,8 +52,8 @@ rather than from the check (D9.2).
   `spec-gap` — each carrying a fingerprint over everything the judgment looked at.
 - **`check.rs`** runs `rtm`.
 - **`model.rs`** holds the derived model and writes the export (D10).
-- **`change.rs`** projects additive intent deltas, preflights accepted completion, fingerprints the
-  derived model and gates deterministic archiving (D21.4).
+- **`change.rs`** projects additive and criticality-transition intent deltas, preflights accepted
+  completion, fingerprints the derived model and gates deterministic archiving (D21.4, D24).
 
 Four behaviours worth knowing:
 
@@ -66,12 +66,12 @@ Four behaviours worth knowing:
   artifacts, and it is the concrete argument that three beat one.
 - **A judgment is evidence *about* evidence, and its value is negative** (D18, revising D14). It
   cannot make a claim covered; it can take a claim that looks covered and report it as a hole.
-  Freshness is a fingerprint that over-invalidates on purpose — a false stale costs a re-judgement,
-  a false fresh is a lie carried on the books.
+  Freshness isolates compiler-resolved evidence sites while retaining whole-file fallback for
+  inputs without a trustworthy boundary (D22).
 
 ### Hole kinds
 
-Twenty-one, in six groups.
+Twenty-five, in seven groups.
 
 **Missing-facet** (D3's central structural claim — the facet is simply absent):
 
@@ -91,7 +91,7 @@ kinds and the two site-class kinds are not missing-facet combinations either. Se
 `docs/framework.md`, which states the question without deciding it.
 
 **Cross-facet consistency:** `unbacked-proof`, `unresolved-design-binding`,
-`enforcement-mismatch`.
+`unresolved-evidence-binding`, `unresolved-detector-binding`, `enforcement-mismatch`.
 
 **Agent tier** — findings the machine tier structurally cannot reach, because a tag is only as
 honest as whoever wrote it: `toothless-evidence`, `dishonest-tag-judged`, `spec-gap`,
@@ -104,23 +104,27 @@ required before member findings are authoritative; tags never count as a complet
 claim quantified over a set of sites is not established by evidence about one site however good
 that evidence is.
 
+**External evidence lifecycle:** `failed-evidence`, `expired-evidence`. An imported manual result
+remains visible when adverse or stale and cannot be counted as coverage.
+
 `undeclared-mechanism` is gated on the design artifact being in use at all. D8.1 requires each
 mechanism to be usable alone, so a project running `rtm` without designs is not told that every
 critical requirement is a hole. Partial adoption still reports.
 
 ## What it does not do yet
 
-- **Change projection supports additions only.** Replacement, removal, scenario movement and
-  criticality transitions fail as unsupported rather than being approximated.
+- **Change projection supports additions and criticality transitions.** Replacement, removal and
+  scenario movement fail as unsupported rather than being approximated.
 - **Symbol bindings establish existence only.** Database index bindings additionally compare
   uniqueness, columns and predicates. “Only caller,” transaction sharing and semantic properties
   still require a purpose-built analyzer, evidence or agent judgment.
 - **`invariant-breach` verifies only the weakest rung of the enforcement ladder** — a guard at every
   site. A choke point every member routes through would report N−1 breaches, which is exactly the
   defect D7 names in the alpha. Crediting one needs call-graph analysis in the extractor (D10.1).
-- **Non-test evidence is taken on trust by the machine tier.** A declared manual pass or attestation
-  is believed at its stated strength. That is the agent tier's job, and the agent tier now exists —
-  but nothing forces a judgment to have happened except `unjudged` on critical claims.
+- **Authored non-test evidence is taken on trust by the machine tier.** Imported manual receipts are
+  checked for pass/fail and expiry; a prose attestation in a plan is still believed at its stated
+  strength. Semantic honesty remains the agent tier's job, and nothing forces a judgment except
+  `unjudged` on critical claims.
 - **Two domains of the six are exercised** (D13.3 closes the set at six). Claims are
   `(domain, predicate)`; the behavioural domain is what scenarios take implicitly, and the site
   class is declared with `## Invariant:`. The remaining four arrive as data, not as new artifact

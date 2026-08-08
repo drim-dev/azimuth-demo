@@ -17,6 +17,7 @@ public static class CaptureTrip
     public sealed record Request(
         long TripId,
         string QuoteToken,
+        string PaymentMethod,
         string? AdjustmentReason = null,
         long AdjustmentMinor = 0)
         : IRequest<Response>;
@@ -88,7 +89,11 @@ public static class CaptureTrip
                     "payment:capture:create:invalid_adjustment");
             }
 
-            var outcome = await provider.CaptureAsync(request.TripId, captureAmount, quote.Currency);
+            var outcome = await provider.CaptureAsync(
+                request.TripId,
+                captureAmount,
+                quote.Currency,
+                request.PaymentMethod);
 
             // An outcome the caller never observed may or may not have succeeded, so it is treated
             // as possibly-captured and the index settles it. Assuming failure here double-charges.
@@ -102,6 +107,11 @@ public static class CaptureTrip
                 });
 
                 await db.SaveChangesAsync(ct);
+                await db.CaptureIntents
+                    .Where(intent => intent.TripId == request.TripId)
+                    .ExecuteUpdateAsync(
+                        setters => setters.SetProperty(intent => intent.DispatchedAt, clock.Now),
+                        ct);
                 return new Response(Captured: false);
             }
 

@@ -14,9 +14,14 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="../../../packages/dotnet/Azimuth.Annotations/Azimuth.Annotations.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="MediatR" Version="12.4.1" />
     <PackageReference Include="FluentValidation" Version="11.11.0" />
     <PackageReference Include="IdGen" Version="3.0.7" />
+    <PackageReference Include="RabbitMQ.Client" Version="7.2.1" />
   </ItemGroup>
 
 </Project>

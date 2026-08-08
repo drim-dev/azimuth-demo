@@ -45,6 +45,13 @@ impl Json {
         }
     }
 
+    pub fn as_num(&self) -> Option<f64> {
+        match self {
+            Json::Num(value) => Some(*value),
+            _ => None,
+        }
+    }
+
     pub fn obj(pairs: Vec<(&str, Json)>) -> Json {
         Json::Obj(pairs.into_iter().map(|(k, v)| (k.to_string(), v)).collect())
     }

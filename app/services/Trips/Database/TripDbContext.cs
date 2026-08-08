@@ -7,7 +7,7 @@ public sealed class TripDbContext(DbContextOptions<TripDbContext> options) : DbC
 {
     public DbSet<Trip> Trips => Set<Trip>();
 
-    public DbSet<CaptureIntent> CaptureIntents => Set<CaptureIntent>();
+    public DbSet<TripEventOutbox> TripEvents => Set<TripEventOutbox>();
 
     public DbSet<TripTransition> TripTransitions => Set<TripTransition>();
 

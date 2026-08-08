@@ -15,6 +15,7 @@ export const dynamic = 'force-dynamic';
 export default async function ReceiptPage({ params }: { params: Promise<{ id: string }> }) {
   realizes('trips/rider-view', 'driver-identity-remains-on-receipt');
   realizes('trips/rider-view', 'position-confined-to-live-phases');
+  realizes('payments/capture', 'receipt-explains-payment-state');
 
   const { id } = await params;
   const result = await fetchReceipt(id);
@@ -53,6 +54,14 @@ export default async function ReceiptPage({ params }: { params: Promise<{ id: st
             ? `Route ${receipt.route.pickup} → ${receipt.route.dropoff}`
             : 'Route thumbnail unavailable for this trip.'}
         </p>
+      </div>
+
+      <div className="card" aria-live="polite">
+        <h2>Payment</h2>
+        <p>
+          <strong>{receipt.payment.status}</strong>
+        </p>
+        <p>{receipt.payment.message}</p>
       </div>
     </>
   );

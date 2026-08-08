@@ -1,6 +1,7 @@
 using Common.Exceptions;
 using Common.Http;
 using Common.Identity;
+using Common.Messaging;
 using Common.Time;
 using Common.Validation;
 using FluentValidation;
@@ -8,6 +9,8 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Pricing;
 using Trips.Database;
+using Trips.Features.Events;
+using Trips.Features.Events.Options;
 
 // The trip service. Slice 1 (D16.2): pricing lives here as a module and is split out in slice 3.
 
@@ -27,6 +30,13 @@ builder.Services.AddValidatorsFromAssemblyContaining<TripDbContext>();
 builder.Services.AddSingleton(
     new IdFactory(generatorId: 0, new DateTimeOffset(2024, 1, 1, 0, 0, 0, TimeSpan.Zero)));
 builder.Services.AddSingleton(Clock.System);
+builder.Services.Configure<TripEventRelayOptions>(builder.Configuration.GetSection("TripEventRelay"));
+builder.Services.AddSingleton(new RabbitMqAddress(
+    builder.Configuration["RabbitMq:Uri"]
+    ?? Environment.GetEnvironmentVariable("RABBITMQ_URI")
+    ?? string.Empty));
+builder.Services.AddSingleton<TripEventRelayState>();
+builder.Services.AddHostedService<TripEventRelay>();
 builder.Services.AddSingleton(new QuoteTokenCodec(
     builder.Configuration["QuoteSigningKey"]
     ?? Environment.GetEnvironmentVariable("QUOTE_SIGNING_KEY")

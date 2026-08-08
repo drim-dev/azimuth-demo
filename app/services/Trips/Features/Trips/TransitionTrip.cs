@@ -105,7 +105,9 @@ public static class TransitionTrip
             var to = next.To;
             var moved = await db.Trips
                 .Where(t => t.Id == id && t.State == from)
-                .ExecuteUpdateAsync(t => t.SetProperty(x => x.State, to), ct);
+                .ExecuteUpdateAsync(t => t
+                    .SetProperty(x => x.State, to)
+                    .SetProperty(x => x.Version, x => x.Version + 1), ct);
 
             if (moved != 1)
             {
@@ -124,17 +126,16 @@ public static class TransitionTrip
                 OccurredAt = clock.Now,
             });
 
-            if (to == TripState.Completed)
+            db.TripEvents.Add(new TripEventOutbox
             {
-                // The intent commits with the state change. A direct payment call here could
-                // charge before a transaction that later rolls back.
-                db.CaptureIntents.Add(new CaptureIntent
-                {
-                    TripId = id,
-                    QuoteToken = current.QuoteToken,
-                    WrittenAt = clock.Now,
-                });
-            }
+                EventId = Guid.NewGuid(),
+                TripId = id,
+                Version = current.Version + 1,
+                State = to,
+                QuoteToken = current.QuoteToken,
+                PaymentMethod = "default",
+                OccurredAt = clock.Now,
+            });
 
             await db.SaveChangesAsync(ct);
             await transaction.CommitAsync(ct);

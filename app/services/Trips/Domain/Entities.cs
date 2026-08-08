@@ -12,6 +12,8 @@ public sealed class Trip
 
     public TripState State { get; set; }
 
+    public long Version { get; set; }
+
     public long FareMinor { get; set; }
 
     public required string Currency { get; set; }
@@ -33,16 +35,24 @@ public sealed class Trip
     public Money Fare => Money.Of(FareMinor, Currency);
 }
 
-/// <summary>The transactional handoff from a completed trip to Payments.</summary>
-public sealed class CaptureIntent
+/// <summary>The committed side of the database-to-broker handoff.</summary>
+public sealed class TripEventOutbox
 {
+    public Guid EventId { get; set; }
+
     public long TripId { get; set; }
+
+    public long Version { get; set; }
+
+    public TripState State { get; set; }
 
     public required string QuoteToken { get; set; }
 
-    public DateTimeOffset WrittenAt { get; set; }
+    public required string PaymentMethod { get; set; }
 
-    public DateTimeOffset? DispatchedAt { get; set; }
+    public DateTimeOffset OccurredAt { get; set; }
+
+    public DateTimeOffset? PublishedAt { get; set; }
 }
 
 /// <summary>One move of a trip through the machine, written and never amended.</summary>

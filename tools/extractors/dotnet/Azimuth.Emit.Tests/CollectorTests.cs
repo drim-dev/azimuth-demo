@@ -19,7 +19,8 @@ public sealed class CollectorTests
     public void A_type_level_tag_names_its_site_by_the_type()
     {
         var entry = Assert.Single(
-            Collect().Realizes.Where(r => r.Scenario == "type-level-thing"));
+            Collect().Realizes,
+            r => r.Scenario == "type-level-thing");
         Assert.Equal("alpha", entry.Spec);
         Assert.Equal("Azimuth.Fixture.Production", entry.Site);
     }
@@ -28,7 +29,8 @@ public sealed class CollectorTests
     public void A_method_level_tag_names_its_site_by_type_and_method()
     {
         var entry = Assert.Single(
-            Collect().Realizes.Where(r => r.Scenario == "method-level-thing"));
+            Collect().Realizes,
+            r => r.Scenario == "method-level-thing");
         Assert.Equal("Azimuth.Fixture.Production.Method", entry.Site);
     }
 
@@ -52,7 +54,8 @@ public sealed class CollectorTests
     public void A_value_type_is_a_realization_site()
     {
         var entry = Assert.Single(
-            Collect().Realizes.Where(r => r.Scenario == "struct-level-thing"));
+            Collect().Realizes,
+            r => r.Scenario == "struct-level-thing");
         Assert.Equal("Azimuth.Fixture.Amount", entry.Site);
     }
 
@@ -95,7 +98,8 @@ public sealed class CollectorTests
     public void Covers_carries_its_form_in_kebab_case()
     {
         var entry = Assert.Single(
-            Collect().Covers.Where(c => c.Site.EndsWith(".Covered", StringComparison.Ordinal)));
+            Collect().Covers,
+            c => c.Site.EndsWith(".Covered", StringComparison.Ordinal));
         Assert.Equal("component", entry.Scope);
         Assert.Equal("universal", entry.Quantification);
     }
@@ -104,7 +108,8 @@ public sealed class CollectorTests
     public void A_multi_word_oracle_becomes_kebab_case()
     {
         var entry = Assert.Single(
-            Collect().Covers.Where(c => c.Site.EndsWith(".CoveredWithOracle", StringComparison.Ordinal)));
+            Collect().Covers,
+            c => c.Site.EndsWith(".CoveredWithOracle", StringComparison.Ordinal));
         Assert.Equal("e2e", entry.Scope);
         Assert.Equal("model-based", entry.Oracle);
     }
@@ -113,7 +118,8 @@ public sealed class CollectorTests
     public void An_omitted_oracle_takes_its_default()
     {
         var entry = Assert.Single(
-            Collect().Covers.Where(c => c.Site.EndsWith(".Covered", StringComparison.Ordinal)));
+            Collect().Covers,
+            c => c.Site.EndsWith(".Covered", StringComparison.Ordinal));
         Assert.Equal("direct", entry.Oracle);
     }
 
@@ -126,6 +132,14 @@ public sealed class CollectorTests
         Assert.All(Collect().Realizes, entry => Assert.EndsWith("Fixture.cs", entry.File));
     }
 
+    [Fact]
+    public void Sites_carry_a_compiler_resolved_source_fingerprint()
+    {
+        Assert.All(
+            Collect().Covers,
+            entry => Assert.Matches("^[0-9a-f]{64}$", entry.SourceFingerprint));
+    }
+
     /// <summary>
     /// Most tagged methods in a service are async, and an async method's sequence points live on
     /// the compiler-generated state machine rather than on the method the tag sits on. Without the
@@ -135,7 +149,9 @@ public sealed class CollectorTests
     [Fact]
     public void An_async_method_still_carries_a_source_path()
     {
-        var entry = Assert.Single(Collect().Realizes.Where(r => r.Scenario == "async-thing"));
+        var entry = Assert.Single(
+            Collect().Realizes,
+            r => r.Scenario == "async-thing");
         Assert.EndsWith("Fixture.cs", entry.File);
     }
 
@@ -157,6 +173,9 @@ public sealed class CollectorTests
         Assert.True(realizes.TryGetProperty("scenario", out _));
         Assert.False(realizes.TryGetProperty("req", out _));
         Assert.Equal("csharp", realizes.GetProperty("lang").GetString());
+        Assert.Matches(
+            "^[0-9a-f]{64}$",
+            realizes.GetProperty("source_fingerprint").GetString()!);
         Assert.False(realizes.TryGetProperty("scope", out _));
 
         Assert.NotEmpty(root.GetProperty("covers").EnumerateArray());

@@ -8,18 +8,21 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { emit, nextRoutes } from './emitter';
+import { prometheusArtifacts } from './prometheus';
 
-const USAGE = `usage: azimuth-emit-ts --output <path> [--root <dir>] [--next-app <class>=<dir>] <dir-or-file>...
+const USAGE = `usage: azimuth-emit-ts --output <path> [--root <dir>] [--next-app <class>=<dir>] [--prometheus <rules>,<tests>] <dir-or-file>...
   --output    where the manifest is written
   --root      paths in the manifest are made relative to this (default: cwd)
   --next-app  enumerate a built Next.js app's routes as members of <class>, repeatable.
-              Membership comes from the build, so an untagged route is still a member.`;
+              Membership comes from the build, so an untagged route is still a member.
+  --prometheus enumerate alert and rule-test artifacts from promtool-validated files.`;
 
 function main(argv: string[]): number {
   let output: string | undefined;
   let root = process.cwd();
   const roots: string[] = [];
   const apps: { classId: string; dir: string }[] = [];
+  const prometheus: { rules: string; tests: string }[] = [];
 
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
@@ -35,6 +38,17 @@ function main(argv: string[]): number {
         return 2;
       }
       apps.push({ classId: value.slice(0, split), dir: path.resolve(value.slice(split + 1)) });
+    } else if (arg === '--prometheus') {
+      const value = argv[++i] ?? '';
+      const split = value.indexOf(',');
+      if (split <= 0 || split === value.length - 1) {
+        console.error(`azimuth-emit: --prometheus wants <rules>,<tests>, got \`${value}\`\n${USAGE}`);
+        return 2;
+      }
+      prometheus.push({
+        rules: path.resolve(value.slice(0, split)),
+        tests: path.resolve(value.slice(split + 1)),
+      });
     } else if (arg.startsWith('-')) {
       console.error(`azimuth-emit: unknown option \`${arg}\`\n${USAGE}`);
       return 2;
@@ -62,6 +76,15 @@ function main(argv: string[]): number {
     manifest.class_members.push(...routes.members);
     if (routes.enumeration) manifest.enumerations.push(routes.enumeration);
     warnings.push(...routes.warnings);
+  }
+
+  try {
+    for (const pair of prometheus) {
+      manifest.artifacts.push(...prometheusArtifacts(pair.rules, pair.tests, root));
+    }
+  } catch (error) {
+    console.error(`azimuth-emit: ${(error as Error).message}`);
+    return 2;
   }
 
   for (const warning of warnings) {

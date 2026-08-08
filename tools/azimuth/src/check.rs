@@ -9,6 +9,7 @@ use crate::design::Target;
 use crate::json::Json;
 use crate::model::{Criticality, Model, Quantification, Required, Scope, Site, Strength};
 use crate::plan::EvidenceItem;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Severity {
@@ -76,6 +77,14 @@ pub enum HoleKind {
     InvariantBreach,
     /// A site-domain claim has no successful derivation witness for the class it ranges over.
     EnumeratorUnsoundOrUnderived,
+    /// An imported external result is a recorded failure, so it cannot be counted as coverage.
+    FailedEvidence,
+    /// An imported result passed but is older than the validity window declared by its adapter.
+    ExpiredEvidence,
+    /// A provided non-test evidence item names a detector artifact no extractor emitted.
+    UnresolvedEvidenceBinding,
+    /// A detection item names a detector-test artifact no extractor emitted.
+    UnresolvedDetectorBinding,
     /// An invariant naming a class no spec defines.
     DanglingClass,
 }
@@ -103,6 +112,10 @@ impl HoleKind {
             HoleKind::Unjudged => "unjudged",
             HoleKind::InvariantBreach => "invariant-breach",
             HoleKind::EnumeratorUnsoundOrUnderived => "enumerator-unsound-or-underived",
+            HoleKind::FailedEvidence => "failed-evidence",
+            HoleKind::ExpiredEvidence => "expired-evidence",
+            HoleKind::UnresolvedEvidenceBinding => "unresolved-evidence-binding",
+            HoleKind::UnresolvedDetectorBinding => "unresolved-detector-binding",
             HoleKind::DanglingClass => "dangling-class",
         }
     }
@@ -218,6 +231,7 @@ pub fn rtm(model: &Model) -> Vec<Hole> {
             .covers
             .iter()
             .filter(|s| s.spec == claim.spec.id && s.scenario == claim.scenario.id)
+            .filter(|site| receipt_is_usable(site, current_unix_seconds()))
             .collect();
 
         // Non-test evidence declared in the plan. The machine cannot verify a manual pass or an
@@ -275,6 +289,7 @@ pub fn rtm(model: &Model) -> Vec<Hole> {
     holes.extend(design_holes(model));
     holes.extend(judgment_holes(model));
     holes.extend(surface_holes(model));
+    holes.extend(receipt_holes_at(model, current_unix_seconds()));
 
     for (sites, kind) in [
         (&model.covers, HoleKind::DanglingTag),
@@ -299,6 +314,60 @@ pub fn rtm(model: &Model) -> Vec<Hole> {
         (a.path.clone(), a.line, a.kind.name()).cmp(&(b.path.clone(), b.line, b.kind.name()))
     });
     holes
+}
+
+fn current_unix_seconds() -> u64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs()
+}
+
+fn receipt_is_usable(site: &Site, now: u64) -> bool {
+    site.evidence_kind.is_none()
+        || (site.evidence_outcome.as_deref() == Some("passed")
+            && site.expires_at.is_some_and(|expiry| expiry > now))
+}
+
+pub fn receipt_holes_at(model: &Model, now: u64) -> Vec<Hole> {
+    model
+        .covers
+        .iter()
+        .filter(|site| site.evidence_kind.is_some())
+        .filter_map(|site| {
+            let claim = model.find_claim(&site.spec, &site.scenario);
+            let criticality = claim.and_then(|claim| claim.requirement.criticality);
+            let base = || Hole {
+                kind: HoleKind::FailedEvidence,
+                severity: severity_for(criticality),
+                claim: Some(format!("{}#{}", site.spec, site.scenario)),
+                criticality,
+                path: site.file.clone(),
+                line: 0,
+                detail: String::new(),
+            };
+            if site.evidence_outcome.as_deref() == Some("failed") {
+                let mut hole = base();
+                hole.detail = format!(
+                    "external manual result `{}` failed at {}",
+                    site.site,
+                    site.observed_at.as_deref().unwrap_or("an unknown instant")
+                );
+                Some(hole)
+            } else if site.expires_at.is_some_and(|expiry| expiry <= now) {
+                let mut hole = base();
+                hole.kind = HoleKind::ExpiredEvidence;
+                hole.detail = format!(
+                    "external manual result `{}` expired at Unix second {}",
+                    site.site,
+                    site.expires_at.unwrap_or_default()
+                );
+                Some(hole)
+            } else {
+                None
+            }
+        })
+        .collect()
 }
 
 /// A tag declares what the test *actually* is. An emitter that omits a form is read at the weakest
@@ -366,6 +435,41 @@ fn plan_holes(model: &Model) -> Vec<Hole> {
                 });
                 continue;
             };
+
+            if let Some(evidence) = &entry.evidence {
+                for (bindings, kind, role) in [
+                    (
+                        &evidence.bindings,
+                        HoleKind::UnresolvedEvidenceBinding,
+                        "evidence",
+                    ),
+                    (
+                        &evidence.detector_bindings,
+                        HoleKind::UnresolvedDetectorBinding,
+                        "detector test",
+                    ),
+                ] {
+                    for binding in bindings {
+                        if !model
+                            .artifacts
+                            .iter()
+                            .any(|artifact| artifact.id == *binding)
+                        {
+                            holes.push(Hole {
+                                kind,
+                                severity: severity_for(claim.requirement.criticality),
+                                claim: Some(format!("{}#{}", plan.spec, entry.scenario)),
+                                criticality: claim.requirement.criticality,
+                                path: plan.path.clone(),
+                                line: entry.line,
+                                detail: format!(
+                                    "{role} binding `{binding}` was not emitted by any extractor"
+                                ),
+                            });
+                        }
+                    }
+                }
+            }
 
             // "Silent weakening is not available." A plan may require less than the standard, but
             // only with an accepted residual (D6.3 applied to evidence).
@@ -767,7 +871,7 @@ fn judgment_holes(model: &Model) -> Vec<Hole> {
 
         let expected = crate::judgment::fingerprint(
             &model.claim_text(&claim),
-            model.judgment_files(&claim.spec.id, &claim.scenario.id),
+            model.judgment_inputs(&claim.spec.id, &claim.scenario.id),
         );
         let path = model
             .judgments_for(&claim.spec.id)

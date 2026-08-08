@@ -8,6 +8,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   // The surface that leaked once. It forwards the receipt projection, which is terminal-phase
   // and therefore carries the driver's name and no position.
   realizes('trips/rider-view', 'position-confined-to-live-phases');
+  realizes('payments/capture', 'receipt-explains-payment-state');
 
   const { id } = await params;
 

@@ -34,6 +34,11 @@ foreach (var path in options.Assemblies)
     context.Resolving += (_, name) =>
     {
         var resolved = resolver.ResolveAssemblyToPath(name);
+        var adjacent = Path.Combine(Path.GetDirectoryName(full)!, $"{name.Name}.dll");
+        if (resolved is null && File.Exists(adjacent))
+        {
+            resolved = adjacent;
+        }
         return resolved is null ? null : context.LoadFromAssemblyPath(resolved);
     };
     assemblies.Add(context.LoadFromAssemblyPath(full));

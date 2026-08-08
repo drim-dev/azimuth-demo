@@ -1,4 +1,4 @@
-# Status — 2026-08-05, re-measured 2026-08-07
+# Status — 2026-08-05, re-measured 2026-08-08
 
 A point-in-time assessment against the falsifiers in [`decisions.md`](./decisions.md), written
 after the agent tier and all three slices. It is separate from the decisions document because it is
@@ -212,3 +212,86 @@ Judgment freshness now includes verification requirements, design and bound sour
 expired once and were re-read; the file-level over-invalidation cost remains. Additive change
 projection, finalization and accepted archive are implemented after the second lifecycle. Other
 delta operations and non-accepted dispositions remain unsupported rather than guessed.
+
+## Update after six sequential features *(2026-08-08)*
+
+The accepted model now contains **64 claims in seven specs**. Two routine claims stop at intent; all
+62 standard or critical claims carry current sound judgments. The final integrated run is hole-free
+and executes **200 tests**: 93 core, 38 extractor, 59 service/component and 10 composed-stack e2e,
+plus Prometheus rule evaluation.
+
+The six features were automatic capture settlement and rider-visible status, compiler-scoped
+freshness, external manual evidence receipts, poison-intent isolation, criticality transitions, and
+machine-bound detector chains. Two product changes are archived. The framework changes are recorded
+as D22–D25 because they change the shared mechanism rather than product intent.
+
+Three findings materially changed implementation during the run:
+
+- the claimed “different instrument” retry carried no payment instrument, so an explicit method
+  replacement path was added;
+- one malformed intent could abort every settlement cycle before valid siblings, so terminal
+  quarantine and per-intent isolation were added;
+- the repository check consumed historical JSON exports from `.azimuth`, so it now names only the
+  manifests emitted by the current run.
+
+The assurance surface is also more concrete. Both language extractors fingerprint every covering
+site (79 of 79 emitted covers). Payments exports four settlement metrics; two Prometheus alerts and
+two rule-test cases are emitted as artifacts, and the verification item also binds its component
+metric test. A missing rule or test is now a machine hole rather than prose drift.
+
+Four limitations keep this from becoming stronger evidence than it is:
+
+- no human executed the payment-status charter, and no real vendor result was imported; the manual
+  importer is validated only with synthetic exports;
+- criticality transitions are parser-tested but no accepted product requirement changed level;
+- the first product measurement of site-scoped freshness was confounded by a simultaneous
+  fingerprint-schema migration, so sibling isolation is established synthetically, not yet by a
+  clean product diff;
+- artifact resolution proves alert/test existence, not that the detector asks the right semantic
+  question; that remains agent-tier work.
+
+The criticality falsifier remains fired: **15 of 28 requirements (54%) are critical**. The new
+transition syntax makes correction possible but supplies no counter-pressure by itself. Ceremony
+cost also remains unsettled: the run was autonomous and did not record authoring minutes, so code
+volume and test count must not be substituted for the missing cost measurement.
+
+## Update after brokered trip activity *(2026-08-08)*
+
+The accepted model now contains **68 claims in eight specs**. Two routine claims stop at intent; all
+66 standard or critical claims carry current sound judgments. The integrated repository run is
+hole-free and executes **204 tests**: 93 core, 38 extractor, 63 service/component and 10
+composed-stack e2e tests, plus five Prometheus rule-test cases.
+
+The fixture now crosses a real RabbitMQ broker. Trips commits versioned lifecycle events with its
+aggregate, Payments and Analytics consume independent durable queues, and malformed events reach
+dead-letter queues. This closes the framework's broker question with D26: delivery topology is a
+realization site. Compiler-resolved declarations establish requested exchange, bindings and queues;
+real-broker evidence establishes their composition. Environment-specific deployed topology still
+needs a deployment-side enumerator.
+
+Seven findings materially changed the implementation or its assurance account:
+
+- the first Analytics summary projection was not translatable by EF/Postgres, so database
+  projection and response mapping were separated;
+- syntactically valid envelopes with unknown lifecycle states passed the first contract check, so
+  semantic envelope validation was added;
+- a broker accepting TCP before AMQP readiness permanently stopped one-shot consumers, so receivers
+  now reconnect after startup and channel failure;
+- the .NET extractor could not resolve async-state-machine metadata when a referenced broker
+  assembly was absent, so adjacent dependency resolution and conservative source fallback were
+  added;
+- the first e2e tag observed an Analytics row but not the claimed summary consequence, so evidence
+  now checks the exact summary delta;
+- the first universal redelivery tag repeated each event only once, so it was replaced by shuffled
+  trials with independently varied delivery multiplicity;
+- the repository check compiled every TypeScript extractor test but ran only one test file, so it
+  now executes the package's complete test suite.
+
+All 83 emitted covering sites have source fingerprints. Five alert rules and five corresponding
+rule-test artifacts are machine-enumerated across Payments and trip-event delivery. The real broker
+validated routing, acknowledgement and dead-letter behavior, but no live broker-restart chaos test,
+environment topology discovery, schema-evolution exercise or Alertmanager delivery test exists.
+
+The criticality falsifier remains fired but moved in the right direction: **15 of 30 requirements
+(50%) are critical**. Ceremony cost remains unmeasured because the autonomous run did not record
+authoring minutes.

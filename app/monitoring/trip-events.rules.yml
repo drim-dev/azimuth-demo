@@ -1,0 +1,24 @@
+groups:
+  - name: trip-lifecycle-delivery
+    rules:
+      - alert: TripEventRelayStalled
+        expr: trips_event_outbox_oldest_pending_age_seconds > 30
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: Committed trip events are not reaching the broker
+      - alert: TripEventAnalyticsBacklog
+        expr: rabbitmq_queue_messages_ready{queue="trip.lifecycle.analytics"} > 0
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: Analytics trip-event consumption is falling behind
+      - alert: TripEventDeadLetters
+        expr: sum(rabbitmq_queue_messages{queue=~"trip.lifecycle.(analytics|payments).dead"}) > 0
+        for: 30s
+        labels:
+          severity: warning
+        annotations:
+          summary: Trip lifecycle messages require diagnosis

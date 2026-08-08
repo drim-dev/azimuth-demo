@@ -1,0 +1,27 @@
+rule_files:
+  - payments.rules.yml
+
+evaluation_interval: 10s
+
+tests:
+  - interval: 10s
+    input_series:
+      - series: payments_capture_overdue_intents
+        values: 1x12
+      - series: payments_capture_worker_last_success_timestamp_seconds
+        values: 1x12
+    alert_rule_test:
+      - eval_time: 1m
+        alertname: PaymentsCaptureOverdue
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+            exp_annotations:
+              summary: Capture intents exceeded the settlement deadline
+      - eval_time: 1m20s
+        alertname: PaymentsCaptureWorkerSilent
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+            exp_annotations:
+              summary: Capture settlement worker has stopped reporting success

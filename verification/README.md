@@ -1,8 +1,9 @@
 # Verification plans
 
 The evidence facet (D3). A plan records **what would be sufficient to believe a claim** — never
-what currently exists. The evidence that exists is derived from `covers` tags and appears in the
-export; hand-listing it would create a second copy that drifts (D4.5).
+what currently exists. The evidence that exists is derived from `covers` tags or imported external
+evidence receipts and appears in the export; hand-listing it would create a second copy that drifts
+(D4.5).
 
 Only standard and critical claims owe evidence. Routine claims stop at intent and need no
 `covers` tags (D20). A test without `covers` is an ordinary test outside Azimuth's evidence model,
@@ -70,6 +71,7 @@ only. Proof has no scope; detection has a target.
 ## Claim: <scenario-id>
 Strength: proof
 Evidence: partial unique index `ux_capture_trip` on `captures(trip_id)`
+Binding: postgres-index:captures.ux_capture_trip
 
 Violation is unrepresentable at the storage layer, so no execution can exhibit it.
 ```
@@ -80,10 +82,14 @@ For detection-strength items, two further fields are required (D4.3):
 Re-established: continuously | every release | quarterly
 Dies silently: <how this stops being evidence without anyone noticing>
 Detector test: <the test proving it fires on an injected violation>
+Binding: <artifact id for the detector>
+Detector binding: <artifact id for the detector test>
 ```
 
-A detection item without a detector test is a hole. A monitor that can no longer fire is worse
-than no monitor, because it is carried on the books as evidence.
+A detection item without its freshness account, detector test, detector binding or evidence
+binding fails parsing. A named binding that no extractor emits is a hole. This establishes that the
+rule and test exist; whether they detect the right condition remains an agent judgment. A monitor
+that can no longer fire is worse than no monitor, because it is carried on the books as evidence.
 
 ### Lowering a requirement
 
@@ -117,5 +123,7 @@ is a parse error rather than something silently swallowed.
 - **Test names as evidence for a claim.** Derived from `covers` tags.
 - **The actual scope or quantification of an existing test.** Declared by the tag; the plan states
   what is *required*. `wrong-form` is the comparison.
+- **A manual charter as if it were a result.** Only an imported, passed, unexpired execution receipt
+  contributes evidence. Failed and expired receipts remain visible as holes.
 - **Restatement of the claim.** The spec owns the predicate.
 - **Anything true of every claim.** That belongs in `standards.md`.

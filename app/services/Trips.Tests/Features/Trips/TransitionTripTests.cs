@@ -55,8 +55,6 @@ public sealed class TransitionTripTests(TripTestFixture fixture) : IAsyncLifetim
     /// </summary>
     [Fact]
     [Covers("trips/lifecycle", "replayed-transition-is-inert", Scope.Component, Quantification.Universal)]
-    [Covers("payments/capture", "duplicate-completion-event", Scope.Component,
-        Quantification.Universal)]
     public async Task A_replayed_transition_changes_nothing_however_many_times_it_arrives()
     {
         var client = fixture.HttpClient.CreateClient();
@@ -76,9 +74,9 @@ public sealed class TransitionTripTests(TripTestFixture fixture) : IAsyncLifetim
 
             // One completion in the history, however many arrived.
             (await History(trip.Id)).Count(e => e.To == "completed").Should().Be(1);
-            (await fixture.Database.Count<CaptureIntent>(
+            (await fixture.Database.Count<TripEventOutbox>(
                 x => x.TripId == trip.Id,
-                Cancellation.Token())).Should().Be(1);
+                Cancellation.Token())).Should().Be(4);
         }
     }
 

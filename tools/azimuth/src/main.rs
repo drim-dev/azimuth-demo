@@ -146,6 +146,17 @@ fn command_change(args: &[String]) -> Result<ExitCode, String> {
                     change_obligations(addition.criticality)
                 );
             }
+            for change in &report.criticality_changes {
+                let state = if change.applied { "applied" } else { "planned" };
+                println!(
+                    "  criticality {}#{} · {} → {} · {state} · {}",
+                    change.spec,
+                    change.requirement,
+                    change.from.name(),
+                    change.to.name(),
+                    change_obligations(change.to)
+                );
+            }
             println!(
                 "current {} claim(s) → target {} claim(s)",
                 report.current_claims, report.target_claims
@@ -433,8 +444,8 @@ fn command_judge(options: Options) -> Result<ExitCode, String> {
     let model = &loaded.model;
 
     for claim in model.claims() {
-        let files = model.judgment_files(&claim.spec.id, &claim.scenario.id);
-        let fingerprint = azimuth::judgment::fingerprint(&model.claim_text(&claim), files.clone());
+        let inputs = model.judgment_inputs(&claim.spec.id, &claim.scenario.id);
+        let fingerprint = azimuth::judgment::fingerprint(&model.claim_text(&claim), inputs.clone());
         let existing = model
             .judgments_for(&claim.spec.id)
             .and_then(|j| j.entry(&claim.scenario.id));
@@ -455,8 +466,8 @@ fn command_judge(options: Options) -> Result<ExitCode, String> {
             fingerprint,
             state
         );
-        for file in files {
-            println!("\tevidence\t{file}");
+        for input in inputs {
+            println!("\tevidence\t{}", input.display());
         }
     }
     Ok(ExitCode::SUCCESS)

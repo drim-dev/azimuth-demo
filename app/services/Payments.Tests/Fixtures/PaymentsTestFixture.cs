@@ -1,5 +1,7 @@
 using Common.Testing;
+using Common.Messaging;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.Hosting;
 using Payments.Database;
 using Xunit;
 
@@ -21,9 +23,13 @@ public sealed class PaymentsTestFixture : IAsyncLifetime
         HttpClient = new HttpClientHarness<Program>();
         Clock = new ClockHarness<Program>(Start);
         Provider = new PaymentProviderHarness();
+        RabbitMq = new RabbitMqHarness<Program>();
 
         _factory = new WebApplicationFactory<Program>()
+            .WithWebHostBuilder(builder =>
+                builder.UseSetting("CaptureSettlement:Enabled", "false"))
             .AddHarness(Database)
+            .AddHarness(RabbitMq)
             .AddHarness(HttpClient)
             .AddHarness(Clock)
             .AddHarness(Provider);
@@ -37,16 +43,25 @@ public sealed class PaymentsTestFixture : IAsyncLifetime
 
     public PaymentProviderHarness Provider { get; }
 
+    public RabbitMqHarness<Program> RabbitMq { get; }
+
     public async Task Reset(CancellationToken cancellation)
     {
         Clock.Reset();
         Provider.Reset();
         await Database.Clear(cancellation);
+        await RabbitMq.Purge(
+            cancellation,
+            TripEventTopology.PaymentsQueue,
+            TripEventTopology.PaymentsDeadLetterQueue,
+            TripEventTopology.AnalyticsQueue,
+            TripEventTopology.AnalyticsDeadLetterQueue);
     }
 
     public async Task InitializeAsync()
     {
         await Database.Start(_factory, Cancellation.Token(120));
+        await RabbitMq.Start(_factory, Cancellation.Token(120));
         await HttpClient.Start(_factory, Cancellation.Token());
         await Clock.Start(_factory, Cancellation.Token());
         await Provider.Start(_factory, Cancellation.Token());
@@ -59,6 +74,7 @@ public sealed class PaymentsTestFixture : IAsyncLifetime
         await Provider.Stop(Cancellation.Token());
         await Clock.Stop(Cancellation.Token());
         await HttpClient.Stop(Cancellation.Token());
+        await RabbitMq.Stop(Cancellation.Token());
         await Database.Stop(Cancellation.Token());
         await _factory.DisposeAsync();
     }

@@ -65,6 +65,7 @@ declares its own cadence and how it dies silently (D4.2).
 
 ## Status
 
-No detection-strength evidence exists yet. The concerns that require it — C3, C8, C18 — are outside
-the steel thread. When the first monitor appears, D4.3's detector-test requirement applies to it
-immediately, and the parser enforces it.
+Detection-strength evidence now protects payment settlement liveness. The item binds both alert
+rules and the component plus `promtool` detector tests to emitted artifacts. Missing bindings,
+failed rule evaluation and silent-decay conditions remain distinct failures; the monitor is
+supplementary and does not replace the critical demonstration floor.

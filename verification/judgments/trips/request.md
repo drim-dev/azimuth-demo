@@ -1,5 +1,13 @@
 # Judgments: trips/request
 
+Re-judged 2026-08-08 after admission acquired aggregate version one and an atomic requested-event
+outbox write. All admission evidence passed against the expanded real schema. The new unique
+`(trip_id, version)` event constraint cannot satisfy either existing trip uniqueness rule on their
+behalf; the quote and active-rider indexes remain the mechanisms those tests isolate.
+
+Rebased 2026-08-08 after criticality entered claim freshness. No level, evidence site, required
+form or verdict changed.
+
 Re-judged 2026-08-08 after design bindings, migration metadata and bound source entered the
 freshness fingerprint. Quote decoding, both unique-index shapes and the admission constructor were
 read directly; the existing verdict rationales remain applicable.
@@ -20,7 +28,7 @@ longer describes the system.
 
 ## Claim: request-admitted-with-valid-quote
 Verdict: sound
-Fingerprint: de9b4f5c37063576
+Fingerprint: ea8420e64999d346
 Judged: 2026-08-08
 Judge: codex
 
@@ -46,7 +54,7 @@ quote that has not expired", and the near side of that boundary is exercised by
 
 ## Claim: request-rejected-with-expired-quote
 Verdict: sound
-Fingerprint: 5c25d11bb9892979
+Fingerprint: 2bd16daba889d570
 Judged: 2026-08-08
 Judge: codex
 
@@ -64,7 +72,7 @@ window still passes.
 
 ## Claim: request-rejected-with-unknown-quote
 Verdict: sound
-Fingerprint: ec0f1cced0589419
+Fingerprint: cb7c039840bca1a5
 Judged: 2026-08-08
 Judge: codex
 
@@ -81,7 +89,7 @@ altered case; treating malformed input as a server error fails the response asse
 
 ## Claim: quote-consumed-once
 Verdict: sound
-Fingerprint: cec092e7b2e6613b
+Fingerprint: 225b7310623cec61
 Judged: 2026-08-08
 Judge: codex
 
@@ -96,7 +104,7 @@ success and row counts; no write to Pricing is required.
 
 ## Claim: trip-created-in-requested-state
 Verdict: sound
-Fingerprint: 0a0f6703596cb33f
+Fingerprint: afd73301c8a11512
 Judged: 2026-08-08
 Judge: codex
 
@@ -113,7 +121,7 @@ where before it was above the floor and false.
 
 ## Claim: rider-informed-of-trip
 Verdict: sound
-Fingerprint: 0de2890ff2ea9dca
+Fingerprint: cb82e439b894aeb7
 Judged: 2026-08-08
 Judge: codex
 
@@ -133,7 +141,7 @@ and the verdict stands.
 
 ## Claim: second-request-rejected-while-active
 Verdict: sound
-Fingerprint: 466cf22d34282b02
+Fingerprint: 41ef91971a4d7bed
 Judged: 2026-08-08
 Judge: codex
 
@@ -147,7 +155,7 @@ entire mechanism; without it all eight insert and the count fails. Verified by r
 
 ## Claim: request-admitted-after-terminal
 Verdict: sound
-Fingerprint: c24a6c3698e522be
+Fingerprint: da97be16d910d593
 Judged: 2026-08-08
 Judge: codex
 

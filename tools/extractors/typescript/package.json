@@ -5,7 +5,10 @@
   "license": "MIT",
   "private": true,
   "type": "commonjs",
-  "bin": { "azimuth-emit-ts": "dist/cli.js" },
+  "bin": {
+    "azimuth-emit-ts": "dist/cli.js",
+    "azimuth-import-manual": "dist/manual-cli.js"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "test": "node --test dist/*.test.js"

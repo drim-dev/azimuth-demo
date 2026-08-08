@@ -1,7 +1,8 @@
 # Changes
 
-Status: **experimental parsed contract for additive intent changes**. Two completed changes supplied
-the evidence for D21.4. Unsupported delta operations fail; they are not interpreted as prose.
+Status: **experimental parsed contract for additions and criticality transitions**. Five completed
+product changes and the explicit need to raise routine claims supplied the evidence for D21.4 and
+D24. Unsupported delta operations fail; they are not interpreted as prose.
 
 ## Authority
 
@@ -16,8 +17,8 @@ current model + change deltas = proposed target model
 ```
 
 `azimuth check` still reads accepted state only. `azimuth change check <dir>` projects supported
-additions, reports planned versus applied state and derives their criticality obligations without
-treating planned mechanisms as current facts.
+additions and criticality transitions, reports planned versus applied state and derives their
+criticality obligations without treating planned mechanisms as current facts.
 
 ## Shape
 
@@ -40,7 +41,9 @@ because its change contains a solution design.
 This is not a required seven-file ceremony. Omit a file that carries no
 non-derivable information and record whether its absence caused a problem.
 
-## Parsed additive delta
+## Parsed intent deltas
+
+### Additive requirement
 
 An additive intent file uses the ordinary requirement content with operation-shaped headings:
 
@@ -60,8 +63,29 @@ THEN ...
 
 The machine derives target claim count and criticality. It marks an addition applied only when its
 requirement statement and every scenario step—not merely their ids—are already present in current
-specs. Replacement, removal, scenario movement and criticality transitions are not parsed yet.
-Their appearance is an error, not an invitation to guess.
+specs.
+
+### Criticality transition
+
+```markdown
+# Intent delta: trips/rider-view
+
+## Change criticality: compact-trip-summary
+From: routine
+To: standard
+Because: the summary now drives a support decision
+```
+
+The requirement and scenario ids do not change. `From` must match current intent before application;
+after application `To` must match. A third value is an error, so a stale delta cannot be silently
+reinterpreted. Lowering additionally requires:
+
+```markdown
+Revisit: raise again if the summary becomes an input to an automated decision
+```
+
+Replacement, removal and scenario movement are not parsed yet. Their appearance is an error, not
+an invitation to guess.
 
 ## Criticality
 
@@ -99,9 +123,10 @@ azimuth change finalize changes/<id> [model options]
 azimuth change archive changes/<id> --date YYYY-MM-DD [model options]
 ```
 
-Finalization requires an applied delta and a hole-free accepted model, and writes the SHA-256 model
-fingerprint and summary. Archive verifies that this file is fresh before moving the directory to
-`changes/archive/YYYY-MM-DD-<change-id>/`. The commands derive no explanations and accept no risk.
+Finalization requires at least one applied supported delta and a hole-free accepted model, and
+writes the SHA-256 model fingerprint and summary. Archive verifies that this file is fresh before
+moving the directory to `changes/archive/YYYY-MM-DD-<change-id>/`. The commands derive no
+explanations and accept no risk.
 
 Rejected and abandoned changes are archived too, with their outcome and reason, but update no
 current facet. The command currently automates accepted changes only; other dispositions remain a

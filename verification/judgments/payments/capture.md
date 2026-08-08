@@ -1,5 +1,14 @@
 # Judgments: payments/capture
 
+Re-judged 2026-08-08 after completion crossed a real broker. The producer transaction, declared
+topology, Payments inbox and automatic settlement were read as separate mechanisms. Broker
+redelivery evidence replaced the former shared-table assertion for `duplicate-completion-event`;
+unchanged capture tests were re-read because the payment design file correctly expired them.
+
+Rebased 2026-08-08 after criticality entered claim freshness and the shared standard recorded the
+first detector chain. No level changed. The payment detector was re-read through its two alert-rule
+bindings, component metric test and two `promtool` rule-test bindings; all resolved.
+
 Re-judged 2026-08-08 after design bindings, migration metadata and bound source entered the
 freshness fingerprint. The unique index properties, transactional intent writer and capture
 constructor were read directly; the existing verdict rationales remain applicable.
@@ -10,19 +19,19 @@ was not evidence of cancellation. Both claims now run through real Trips and Pay
 
 ## Claim: capture-created-on-completion
 Verdict: sound
-Fingerprint: 7abb1c587d02a93f
+Fingerprint: 41c60ba61c717689
 Judged: 2026-08-08
 Judge: codex
 
-The e2e moves a real trip through accept, start and complete, then dispatches Payments and reads the
-capture. `TransitionTrip` was checked against the source: it inserts the quote token into
-`capture_intents` before committing the same database transaction. Removing either the outbox write
-or dispatcher makes the final lookup fail. The tag is honestly `example`, with the weakening from
-the universal floor accepted in the verification plan.
+The e2e moves a real trip through accept, start and complete, then waits without calling the dispatch
+endpoint. Trips commits a versioned event with the state, the relay publishes it through the Payments
+binding, the inbox creates local settlement work, and the worker creates the capture. Removing any
+handoff makes the final lookup fail. The tag is honestly `example`, with the weakening from the
+universal floor accepted in the verification plan.
 
 ## Claim: no-capture-before-completion
 Verdict: sound
-Fingerprint: faeb693275cf9723
+Fingerprint: c275c97aac03f1d2
 Judged: 2026-08-08
 Judge: codex
 
@@ -32,7 +41,7 @@ all trips fails. The one-state sample is recorded rather than disguised as unive
 
 ## Claim: no-capture-on-cancellation-without-fee
 Verdict: sound
-Fingerprint: 736188b9322a67d4
+Fingerprint: c357d03546ef09f2
 Judged: 2026-08-08
 Judge: codex
 
@@ -42,17 +51,18 @@ on the no-fee cancellation branch fails the new evidence.
 
 ## Claim: duplicate-completion-event
 Verdict: sound
-Fingerprint: e18e4d13be885bec
+Fingerprint: 1dbc71e358269f48
 Judged: 2026-08-08
 Judge: codex
 
-The Trips component test completes a real stored trip, sends six concurrent completion replays for
-five trials, and asserts one completion history entry and one capture intent. It fails if a replay
-writes another outbox row even when Payments itself remains idempotent.
+The Payments component test sends one completion event seven times through real RabbitMQ, followed
+by a distinct older event. It observes two unique inbox entries, a version-four cursor and one local
+settlement intent. Reprocessing by delivery rather than event id, or accepting the older version,
+breaks a distinct assertion. The capture constraint remains separate evidence for the final effect.
 
 ## Claim: concurrent-completion-processing
 Verdict: sound
-Fingerprint: 6f3a54d2d20e68df
+Fingerprint: 1f178f62642207bf
 Judged: 2026-08-08
 Judge: codex
 
@@ -62,7 +72,7 @@ one row and fails the count. Distinct workers, rather than sequential repeats, e
 
 ## Claim: retry-after-transport-failure
 Verdict: sound
-Fingerprint: 45326ba006eb729f
+Fingerprint: 96257254ffa78513
 Judged: 2026-08-08
 Judge: codex
 
@@ -73,7 +83,7 @@ the asserted count at zero. Provider reconciliation remains a design residue.
 
 ## Claim: capture-equals-trip-fare
 Verdict: sound
-Fingerprint: 95de6075022919d7
+Fingerprint: 69a741ea18b2d3e7
 Judged: 2026-08-08
 Judge: codex
 
@@ -85,7 +95,7 @@ on the intent anymore. `CaptureTrip` was checked and decodes before provider I/O
 
 ## Claim: adjusted-capture-records-reason
 Verdict: sound
-Fingerprint: 51db3d46466b64fd
+Fingerprint: 345e5f107c7aecd4
 Judged: 2026-08-08
 Judge: codex
 
@@ -96,7 +106,7 @@ record assertion. The handler rejects an unreasoned or negative-result adjustmen
 
 ## Claim: declined-capture-recorded
 Verdict: sound
-Fingerprint: e564379eed313b2d
+Fingerprint: a7b839c23e9621cc
 Judged: 2026-08-08
 Judge: codex
 
@@ -106,11 +116,37 @@ matches the one decline reason.
 
 ## Claim: declined-capture-is-retryable
 Verdict: sound
-Fingerprint: a3eeb84068dd6d32
+Fingerprint: 2731d8995713c160
 Judged: 2026-08-08
 Judge: codex
 
-The provider declines once and succeeds on the next dispatch. Evidence asserts absence after the
-first, presence after the second, one capture total and one recorded failure. Marking a declined
-intent dispatched or allowing duplicate captures fails. The tag is `example`, as required for this
-standard claim.
+The provider declines `default`, the application refuses another attempt with that instrument,
+then method replacement supplies `replacement-token` and reopens settlement. Evidence observes
+both provider inputs, one recorded failure and exactly one eventual capture. A retry that merely
+replays the declined instrument, or a replacement that fails to reopen the intent, is detected.
+The tag is `example`, as required for this standard claim.
+
+## Claim: receipt-explains-payment-state
+Verdict: sound
+Fingerprint: 39064df66fb7aa46
+Judged: 2026-08-08
+Judge: codex
+
+The e2e completes a trip without invoking the dispatch endpoint, waits for the settlement worker,
+and opens the rendered receipt through the rider BFF. It asserts the named captured state and fare;
+the component table ranges over pending, captured and declined service projections. The declined
+copy states the next action in text, so color is not the only carrier. The tag remains `example`:
+it demonstrates representative states and does not claim a universal accessibility proof. The
+manual charter is intentionally not counted because it has no execution receipt.
+
+## Claim: malformed-intent-does-not-starve-batch
+Verdict: sound
+Fingerprint: 42e3a9de9ccbd90f
+Judged: 2026-08-08
+Judge: codex
+
+The component test stores an invalid signed quote ahead of two valid intents in real PostgreSQL,
+dispatches once, and observes one terminal failure plus both valid captures. A second dispatch
+proves the poison intent left the pending set. Removing per-intent isolation, failure recording or
+the dispatch marker fails a distinct assertion. The `example` tag matches the standard floor and
+does not claim all malformed payloads or interleavings.

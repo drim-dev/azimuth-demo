@@ -3,6 +3,8 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Reflection.Metadata;
 using System.Reflection.Metadata.Ecma335;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace Azimuth.Emit;
 
@@ -70,9 +72,7 @@ internal sealed class SourceFiles : IDisposable
         // machine's MoveNext, not on the method the tag sits on. Most tagged methods in a service
         // are async, so without this the manifest carries almost no paths — which is invisible
         // until something depends on them.
-        var stateMachine =
-            (method.GetCustomAttribute<AsyncStateMachineAttribute>()?.StateMachineType)
-            ?? method.GetCustomAttribute<IteratorStateMachineAttribute>()?.StateMachineType;
+        var stateMachine = StateMachineOf(method);
         if (stateMachine is null)
         {
             return string.Empty;
@@ -82,6 +82,36 @@ internal sealed class SourceFiles : IDisposable
             "MoveNext",
             BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
         return moveNext is null ? string.Empty : Lookup(moveNext);
+    }
+
+    public string FingerprintOf(MethodBase method)
+    {
+        var direct = Fingerprint(method);
+        if (direct.Length > 0)
+        {
+            return direct;
+        }
+
+        var stateMachine = StateMachineOf(method);
+        var moveNext = stateMachine?.GetMethod(
+            "MoveNext",
+            BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
+        return moveNext is null ? string.Empty : Fingerprint(moveNext);
+    }
+
+    public string FingerprintOf(Type type)
+    {
+        const BindingFlags flags = BindingFlags.Public
+            | BindingFlags.NonPublic
+            | BindingFlags.Instance
+            | BindingFlags.Static
+            | BindingFlags.DeclaredOnly;
+        var fingerprints = type.GetMethods(flags)
+            .Select(FingerprintOf)
+            .Where(value => value.Length > 0)
+            .OrderBy(value => value, StringComparer.Ordinal)
+            .ToArray();
+        return fingerprints.Length == 0 ? string.Empty : Hash(string.Join("\n", fingerprints));
     }
 
     private string Lookup(MethodBase method)
@@ -112,6 +142,86 @@ internal sealed class SourceFiles : IDisposable
         catch (Exception)
         {
             return string.Empty;
+        }
+    }
+
+    private string Fingerprint(MethodBase method)
+    {
+        if (_reader is null)
+        {
+            return string.Empty;
+        }
+
+        try
+        {
+            var row = method.MetadataToken & 0x00FFFFFF;
+            var info = _reader.GetMethodDebugInformation(
+                MetadataTokens.MethodDebugInformationHandle(row));
+            var points = info.GetSequencePoints()
+                .Where(point => !point.IsHidden)
+                .ToArray();
+            if (points.Length == 0)
+            {
+                return string.Empty;
+            }
+
+            var documentHandle = points.First(point => !point.Document.IsNil).Document;
+            var relevant = points.Where(point => point.Document == documentHandle).ToArray();
+            var startLine = relevant.Min(point => point.StartLine);
+            var endLine = relevant.Max(point => point.EndLine);
+            var document = _reader.GetDocument(documentHandle);
+            var sourcePath = _reader.GetString(document.Name);
+            var readablePath = File.Exists(sourcePath)
+                ? sourcePath
+                : Path.Combine(_root, Relative(sourcePath));
+            if (!File.Exists(readablePath))
+            {
+                return string.Empty;
+            }
+
+            var lines = File.ReadAllLines(readablePath);
+            if (startLine < 1 || endLine < startLine || startLine > lines.Length)
+            {
+                return string.Empty;
+            }
+            var count = Math.Min(endLine, lines.Length) - startLine + 1;
+            return Hash(string.Join("\n", lines.Skip(startLine - 1).Take(count)));
+        }
+        catch (Exception)
+        {
+            return string.Empty;
+        }
+    }
+
+    private static string Hash(string source) =>
+        Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(source))).ToLowerInvariant();
+
+    private static Type? StateMachineOf(MethodBase method)
+    {
+        try
+        {
+            return method.GetCustomAttribute<AsyncStateMachineAttribute>()?.StateMachineType
+                ?? method.GetCustomAttribute<IteratorStateMachineAttribute>()?.StateMachineType;
+        }
+        catch (Exception error) when (error is TypeLoadException
+            or FileNotFoundException
+            or FileLoadException)
+        {
+            // Source navigation is optional. A package type in the generated machine must not turn
+            // an otherwise readable assembly into a missing manifest.
+            try
+            {
+                return method.DeclaringType?.GetNestedTypes(BindingFlags.Public | BindingFlags.NonPublic)
+                    .FirstOrDefault(type => type.Name.StartsWith(
+                        $"<{method.Name}>d__",
+                        StringComparison.Ordinal));
+            }
+            catch (Exception nestedError) when (nestedError is TypeLoadException
+                or FileNotFoundException
+                or FileLoadException)
+            {
+                return null;
+            }
         }
     }
 

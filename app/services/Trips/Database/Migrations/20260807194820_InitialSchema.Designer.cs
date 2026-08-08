@@ -25,28 +25,53 @@ namespace Trips.Database.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("Trips.Domain.CaptureIntent", b =>
+            modelBuilder.Entity("Trips.Domain.TripEventOutbox", b =>
                 {
-                    b.Property<long>("TripId")
-                        .HasColumnType("bigint")
-                        .HasColumnName("trip_id");
+                    b.Property<Guid>("EventId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("event_id");
 
-                    b.Property<DateTimeOffset?>("DispatchedAt")
+                    b.Property<DateTimeOffset>("OccurredAt")
                         .HasColumnType("timestamp with time zone")
-                        .HasColumnName("dispatched_at");
+                        .HasColumnName("occurred_at");
+
+                    b.Property<string>("PaymentMethod")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("payment_method");
 
                     b.Property<string>("QuoteToken")
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("quote_token");
 
-                    b.Property<DateTimeOffset>("WrittenAt")
+                    b.Property<DateTimeOffset?>("PublishedAt")
                         .HasColumnType("timestamp with time zone")
-                        .HasColumnName("written_at");
+                        .HasColumnName("published_at");
 
-                    b.HasKey("TripId");
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("state");
 
-                    b.ToTable("capture_intents", (string)null);
+                    b.Property<long>("TripId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("trip_id");
+
+                    b.Property<long>("Version")
+                        .HasColumnType("bigint")
+                        .HasColumnName("version");
+
+                    b.HasKey("EventId");
+
+                    b.HasIndex("PublishedAt", "OccurredAt")
+                        .HasDatabaseName("ix_trip_events_pending");
+
+                    b.HasIndex("TripId", "Version")
+                        .IsUnique()
+                        .HasDatabaseName("ux_trip_event_version");
+
+                    b.ToTable("trip_events", (string)null);
                 });
 
             modelBuilder.Entity("Trips.Domain.Driver", b =>
@@ -162,6 +187,10 @@ namespace Trips.Database.Migrations
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("state");
+
+                    b.Property<long>("Version")
+                        .HasColumnType("bigint")
+                        .HasColumnName("version");
 
                     b.HasKey("Id");
 

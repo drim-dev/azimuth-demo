@@ -2,6 +2,8 @@
   <Project Path="../packages/dotnet/Azimuth.Annotations/Azimuth.Annotations.csproj" />
   <Project Path="services/Common/Common.csproj" />
   <Project Path="services/Common.Testing/Common.Testing.csproj" />
+  <Project Path="services/Analytics/Analytics.csproj" />
+  <Project Path="services/Analytics.Tests/Analytics.Tests.csproj" />
   <Project Path="services/Pricing/Pricing.csproj" />
   <Project Path="services/Pricing.Service/Pricing.Service.csproj" />
   <Project Path="services/Pricing.Tests/Pricing.Tests.csproj" />

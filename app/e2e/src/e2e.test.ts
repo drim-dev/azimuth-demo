@@ -1,5 +1,6 @@
 import { strict as assert } from 'node:assert';
 import { spawn, spawnSync, ChildProcess } from 'node:child_process';
+import { createConnection } from 'node:net';
 import * as path from 'node:path';
 import { after, before, test } from 'node:test';
 import { covers } from '@azimuth/annotations';
@@ -19,9 +20,11 @@ import { covers } from '@azimuth/annotations';
  */
 
 const PG = 'azimuth-e2e-pg';
+const RABBIT = 'azimuth-e2e-rabbit';
 const PRICING_PORT = 5071;
 const TRIP_PORT = 5081;
 const PAYMENTS_PORT = 5086;
+const ANALYTICS_PORT = 5088;
 const RIDER_PORT = 5091;
 const DRIVER_PORT = 5096;
 const RIDER = `http://127.0.0.1:${RIDER_PORT}`;
@@ -32,8 +35,11 @@ const APP_ROOT = path.join(__dirname, '..', '..');
 let trip: ChildProcess | undefined;
 let pricing: ChildProcess | undefined;
 let payments: ChildProcess | undefined;
+let analytics: ChildProcess | undefined;
 let riderWeb: ChildProcess | undefined;
 let driverWeb: ChildProcess | undefined;
+let createdTripCount = 0;
+let completedTripCount = 0;
 
 function docker(...args: string[]) {
   return spawnSync('docker', args, { encoding: 'utf8' });
@@ -47,11 +53,39 @@ async function waitFor(probe: () => Promise<boolean>, what: string, attempts = 2
   throw new Error(`timed out waiting for ${what}`);
 }
 
+function portIsOpen(port: number): Promise<boolean> {
+  return new Promise((resolve) => {
+    const socket = createConnection({ host: '127.0.0.1', port });
+    socket.setTimeout(500);
+    socket.once('connect', () => {
+      socket.destroy();
+      resolve(true);
+    });
+    socket.once('timeout', () => {
+      socket.destroy();
+      resolve(false);
+    });
+    socket.once('error', () => resolve(false));
+  });
+}
+
 /** Starts a built Next app on a fixed port, pointed at the trip service. */
-function startWeb(app: string, port: number, tripUrl: string, pricingUrl: string): ChildProcess {
+function startWeb(
+  app: string,
+  port: number,
+  tripUrl: string,
+  pricingUrl: string,
+  paymentsUrl: string,
+): ChildProcess {
   return spawn('npx', ['next', 'start', '-p', String(port)], {
     cwd: path.join(APP_ROOT, 'web', app),
-    env: { ...process.env, TRIP_URL: tripUrl, PRICING_URL: pricingUrl, NODE_ENV: 'production' },
+    env: {
+      ...process.env,
+      TRIP_URL: tripUrl,
+      PRICING_URL: pricingUrl,
+      PAYMENTS_URL: paymentsUrl,
+      NODE_ENV: 'production',
+    },
     stdio: 'ignore',
   });
 }
@@ -89,11 +123,15 @@ async function servicePost(base: string, path: string, body?: unknown) {
 /** Reaches past the apps to move the trip, standing in for the dispatch the driver app triggers. */
 async function driver(path: string) {
   const response = await fetch(`http://127.0.0.1:${TRIP_PORT}${path}`, { method: 'POST' });
+  if (response.status === 200 && path.includes('/complete?')) {
+    completedTripCount++;
+  }
   return response.status;
 }
 
 before(async () => {
   docker('rm', '-f', PG);
+  docker('rm', '-f', RABBIT);
   const started = docker(
     'run', '-d', '--name', PG, '-e', 'POSTGRES_PASSWORD=postgres',
     '-e', 'POSTGRES_DB=trip', '-P', 'postgres:17-alpine',
@@ -105,6 +143,13 @@ before(async () => {
   const connection = `Host=127.0.0.1;Port=${pgPort};Database=trip;Username=postgres;Password=postgres`;
 
   await waitFor(async () => docker('exec', PG, 'pg_isready', '-U', 'postgres').status === 0, 'postgres');
+
+  const rabbitStarted = docker('run', '-d', '--name', RABBIT, '-P', 'rabbitmq:4.1-alpine');
+  assert.equal(rabbitStarted.status, 0, rabbitStarted.stderr);
+  const rabbitPortLine = docker('port', RABBIT, '5672/tcp').stdout.trim().split('\n')[0];
+  const rabbitPort = rabbitPortLine.split(':').pop();
+  const rabbitUri = `amqp://guest:guest@127.0.0.1:${rabbitPort}/`;
+  await waitFor(() => portIsOpen(Number(rabbitPort)), 'rabbitmq');
 
   const pricingUrl = `http://127.0.0.1:${PRICING_PORT}`;
   pricing = spawn(
@@ -133,6 +178,7 @@ before(async () => {
       env: {
         ...process.env,
         PAYMENTS_DB: connection,
+        RABBITMQ_URI: rabbitUri,
         ASPNETCORE_URLS: paymentsUrl,
         ASPNETCORE_ENVIRONMENT: 'Development',
       },
@@ -144,6 +190,26 @@ before(async () => {
     'payments service',
   );
 
+  const analyticsUrl = `http://127.0.0.1:${ANALYTICS_PORT}`;
+  analytics = spawn(
+    'dotnet',
+    ['run', '--no-build', '--project', path.join(APP_ROOT, 'services/Analytics/Analytics.csproj')],
+    {
+      env: {
+        ...process.env,
+        ANALYTICS_DB: connection,
+        RABBITMQ_URI: rabbitUri,
+        ASPNETCORE_URLS: analyticsUrl,
+        ASPNETCORE_ENVIRONMENT: 'Development',
+      },
+      stdio: 'ignore',
+    },
+  );
+  await waitFor(
+    async () => (await fetch(`${analyticsUrl}/activity/summary`)).status < 500,
+    'analytics service',
+  );
+
   trip = spawn(
     'dotnet',
     ['run', '--no-build', '--project', path.join(APP_ROOT, 'services/Trips/Trips.csproj')],
@@ -151,6 +217,7 @@ before(async () => {
       env: {
         ...process.env,
         TRIP_DB: connection,
+        RABBITMQ_URI: rabbitUri,
         ASPNETCORE_URLS: `http://127.0.0.1:${TRIP_PORT}`,
         ASPNETCORE_ENVIRONMENT: 'Development',
       },
@@ -173,8 +240,8 @@ before(async () => {
   );
   assert.equal(seeded.status, 0, seeded.stderr);
 
-  riderWeb = startWeb('rider', RIDER_PORT, tripUrl, pricingUrl);
-  driverWeb = startWeb('driver', DRIVER_PORT, tripUrl, pricingUrl);
+  riderWeb = startWeb('rider', RIDER_PORT, tripUrl, pricingUrl, paymentsUrl);
+  driverWeb = startWeb('driver', DRIVER_PORT, tripUrl, pricingUrl, paymentsUrl);
 
   await waitFor(async () => (await fetch(`${RIDER}/`)).status < 500, 'rider web');
   await waitFor(async () => (await fetch(`${DRIVER_WEB}/`)).status < 500, 'driver web');
@@ -184,9 +251,11 @@ after(async () => {
   trip?.kill();
   pricing?.kill();
   payments?.kill();
+  analytics?.kill();
   riderWeb?.kill();
   driverWeb?.kill();
   docker('rm', '-f', PG);
+  docker('rm', '-f', RABBIT);
 });
 
 /** Moves the seeded driver. Position is fixture data, so it changes the way it was seeded. */
@@ -205,6 +274,7 @@ async function requestedTrip(rider: string) {
   assert.equal(quote.status, 200);
   const created = await post('/api/rider/trips', { riderId: rider, quoteToken: quote.body.token });
   assert.equal(created.status, 200, JSON.stringify(created.body));
+  createdTripCount++;
   return created.body.id as string;
 }
 
@@ -392,9 +462,20 @@ test('surge survives quote admission and capture unchanged', async () => {
   covers('payments/capture', 'capture-created-on-completion', 'e2e', 'example', 'contract');
   covers('payments/capture', 'no-capture-before-completion', 'e2e', 'example', 'contract');
   covers('payments/capture', 'capture-equals-trip-fare', 'e2e', 'example', 'contract');
+  covers('payments/capture', 'receipt-explains-payment-state', 'e2e', 'example', 'contract');
+  covers('analytics/trip-activity', 'latest-version-is-projected', 'e2e', 'example', 'direct');
 
   const pricingUrl = `http://127.0.0.1:${PRICING_PORT}`;
   const paymentsUrl = `http://127.0.0.1:${PAYMENTS_PORT}`;
+  const analyticsUrl = `http://127.0.0.1:${ANALYTICS_PORT}`;
+  await waitFor(async () => {
+    const summary = await (await fetch(`${analyticsUrl}/activity/summary`)).json() as any;
+    const completed = summary.states.find((entry: any) => entry.state === 'completed')?.trips ?? 0;
+    return summary.totalTrips === createdTripCount && completed === completedTripCount;
+  }, 'analytics baseline');
+  const summaryBefore = await (await fetch(`${analyticsUrl}/activity/summary`)).json() as any;
+  const completedBefore = summaryBefore.states
+    .find((entry: any) => entry.state === 'completed')?.trips ?? 0;
   const pressure = await servicePost(pricingUrl, '/market-pressure', {
     market: 'downtown', openRequests: 8, availableDrivers: 2,
   });
@@ -415,6 +496,7 @@ test('surge survives quote admission and capture unchanged', async () => {
     riderId: `rider-${Date.now()}-surge`, quoteToken: quote.body.token,
   });
   assert.equal(created.status, 200, JSON.stringify(created.body));
+  createdTripCount++;
   const id = created.body.id as string;
   await servicePost(paymentsUrl, '/dispatch');
   assert.equal((await fetch(`${paymentsUrl}/captures/${id}`)).status, 404);
@@ -422,19 +504,43 @@ test('surge survives quote admission and capture unchanged', async () => {
   await driver(`/trips/${id}/start?actor=driver-e2e`);
   await driver(`/trips/${id}/complete?actor=driver-e2e`);
 
-  const dispatch = await servicePost(paymentsUrl, '/dispatch');
-  assert.equal(dispatch.status, 200, JSON.stringify(dispatch.body));
+  await waitFor(
+    async () => (await fetch(`${paymentsUrl}/captures/${id}`)).status === 200,
+    'automatic capture settlement',
+  );
   const captured = await fetch(`${paymentsUrl}/captures/${id}`);
   assert.equal(captured.status, 200);
   const capture = await captured.json() as any;
   assert.equal(capture.amountMinor, quote.body.fare.minor);
   assert.equal(capture.currency, quote.body.fare.currency);
+
+  const receipt = await get(`/api/rider/trips/${id}/receipt`);
+  assert.equal(receipt.status, 200);
+  assert.equal(receipt.body.payment.status, 'captured');
+  assert.equal(receipt.body.payment.message, 'Payment captured.');
+
+  const receiptPage = await page(RIDER, `/trips/${id}/receipt`);
+  assert.equal(receiptPage.status, 200);
+  assert.equal(receiptPage.html.includes('Payment captured.'), true);
+
+  await waitFor(async () => {
+    const response = await fetch(`${analyticsUrl}/activity/trips/${id}`);
+    if (response.status !== 200) return false;
+    const activity = await response.json() as any;
+    return activity.version === 4 && activity.state === 'completed';
+  }, 'completed analytics projection');
+  const summaryAfter = await (await fetch(`${analyticsUrl}/activity/summary`)).json() as any;
+  const completedAfter = summaryAfter.states
+    .find((entry: any) => entry.state === 'completed')?.trips ?? 0;
+  assert.equal(summaryAfter.totalTrips, summaryBefore.totalTrips + 1);
+  assert.equal(completedAfter, completedBefore + 1);
 });
 
 test('the stack is reachable', () => {
   assert.ok(trip);
   assert.ok(pricing);
   assert.ok(payments);
+  assert.ok(analytics);
   assert.ok(riderWeb);
   assert.ok(driverWeb);
 });

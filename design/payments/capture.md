@@ -13,21 +13,28 @@ flow. An advisory lock was rejected: it protects the writers that take it.
 ## Requirement: capture-on-completion
 Enforcement: choke-point
 Binding: dotnet-symbol:Trips.Features.Trips.TransitionTrip.RequestHandler.Handle
+Enforcement: choke-point
+Binding: dotnet-symbol:Payments.Features.Captures.CaptureSettlementWorker.ExecuteAsync
+Enforcement: constraint
+Binding: dotnet-symbol:Common.Messaging.TripEventTopology.DeclareAsync
+Enforcement: choke-point
+Binding: dotnet-symbol:Payments.Features.TripEvents.ConsumeTripStateChanged.RequestHandler.Handle
 
-A transactional outbox rather than a direct call. Calling the payment client inline from the
-completion handler is the single most-repeated mistake in the concern catalog (C16): it charges
-riders for transactions that roll back, and no behavioural test catches it because the failing case
-needs a rollback at one exact instant.
+A transactional lifecycle-event outbox rather than a direct call or shared handoff table. Calling
+the payment client inline from the completion handler is the single most-repeated mistake in the
+concern catalog (C16): it charges riders for transactions that roll back, and no behavioural test
+catches it because the failing case needs a rollback at one exact instant.
 
-The cost is that capture is asynchronous, so `no-capture-before-completion` is momentarily true
-after completion. That is deliberate and is why the claim is worded about the completed state rather
-than about elapsed time.
+The relay publishes through a durable broker binding. Payments records the event id and highest trip
+version before creating its local capture intent; the settlement worker drains that intent without
+an operator calling the dispatch endpoint. Capture remains asynchronous, and overdue intents plus
+broker backlog are exposed to external detectors rather than silently waiting.
 
 ## Requirement: capture-amount-matches-quote
 Enforcement: choke-point
 Binding: dotnet-symbol:Payments.Features.Captures.CaptureTrip.RequestHandler.Handle
 
-The outbox carries the immutable token rather than a second amount/currency pair. Payments does not
+The event carries the immutable token rather than a second amount/currency pair. Payments does not
 trust a forwarded total and does not call Pricing, so the quote-to-capture relation survives either
 service being unavailable after admission.
 

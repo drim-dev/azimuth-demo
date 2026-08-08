@@ -1,5 +1,12 @@
 # Judgments: pricing/quote
 
+Re-read 2026-08-08 after the composed surge path acquired a broker and Analytics consumer. The
+Pricing component bodies did not change; the e2e still carries one positive surge unchanged through
+the signed quote and now through the lifecycle-event handoff before capture.
+
+Rebased 2026-08-08 after criticality entered claim freshness. No level, evidence site, required
+form or verdict changed.
+
 Re-judged 2026-08-08 after design bindings and bound source entered the freshness fingerprint.
 `Money`, both token codec directions and the sole quote-construction handler were read directly;
 the existing verdict rationales remain applicable.
@@ -10,7 +17,7 @@ stale optional artifact look like a framework finding.
 
 ## Claim: quote-returned
 Verdict: sound
-Fingerprint: ee48bf6313ae6010
+Fingerprint: da9e540896c7c183
 Judged: 2026-08-08
 Judge: codex
 
@@ -21,7 +28,7 @@ Removing any required response field makes the test fail during assertion or des
 
 ## Claim: unserviceable-area
 Verdict: sound
-Fingerprint: cbf16aa279411543
+Fingerprint: ba9f4308e7bff274
 Judged: 2026-08-08
 Judge: codex
 
@@ -32,7 +39,7 @@ fails this evidence.
 
 ## Claim: quote-valid-before-expiry
 Verdict: sound
-Fingerprint: d44ba1d05c856200
+Fingerprint: 52faaafbaa4121ef
 Judged: 2026-08-08
 Judge: codex
 
@@ -42,7 +49,7 @@ instant prevents a permanently-valid implementation from passing the near side a
 
 ## Claim: quote-invalid-after-expiry
 Verdict: sound
-Fingerprint: 456e7fdce7add6ec
+Fingerprint: 850de0dc3db1a09f
 Judged: 2026-08-08
 Judge: codex
 
@@ -51,7 +58,7 @@ unchanged. A grace period, strict-`<` boundary or zeroing/recalculation on expir
 
 ## Claim: expired-quote-is-never-revalidated
 Verdict: sound
-Fingerprint: 0c5fe4bcae680702
+Fingerprint: ab11ae8bc8036c51
 Judged: 2026-08-08
 Judge: codex
 
@@ -61,7 +68,7 @@ the latest issuance fails.
 
 ## Claim: total-in-minor-units
 Verdict: sound
-Fingerprint: f1516e6299e55c21
+Fingerprint: f1bd5c143c727a30
 Judged: 2026-08-08
 Judge: codex
 
@@ -72,7 +79,7 @@ being presented as the proof.
 
 ## Claim: total-equals-components
 Verdict: sound
-Fingerprint: acacf230958068d4
+Fingerprint: 803c0c15b1b92c5b
 Judged: 2026-08-08
 Judge: codex
 
@@ -84,7 +91,7 @@ constant, or serializing a different total fails at least one independent relati
 
 ## Claim: current-pressure-selects-surge
 Verdict: sound
-Fingerprint: f3e67b1e5b38a248
+Fingerprint: 2a4b7572880cf649
 Judged: 2026-08-08
 Judge: codex
 
@@ -96,7 +103,7 @@ issues the quote.
 
 ## Claim: stale-pressure-does-not-select-surge
 Verdict: sound
-Fingerprint: fe8b97d103d98906
+Fingerprint: 6359e5c2a89f49f7
 Judged: 2026-08-08
 Judge: codex
 
@@ -107,7 +114,7 @@ strictly newer than the boundary.
 
 ## Claim: surge-is-a-quote-component
 Verdict: sound
-Fingerprint: 8f8367b32fbb0ad5
+Fingerprint: d534f848221e0c9b
 Judged: 2026-08-08
 Judge: codex
 

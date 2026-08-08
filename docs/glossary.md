@@ -106,6 +106,10 @@ scope; a monitor has a target.
 test is re-established every CI run; an attestation ages out; a monitor whose query broke has
 fired zero times for six months and is worse than no monitor, because it is carried on the books.
 
+**Evidence receipt** — an attributable result imported from a system of record. A manual receipt
+names the external case and run, outcome, observation instant, expiry, evidence form and immutable
+payload fingerprint. Only a current pass contributes coverage; failure and expiry are holes.
+
 **Detector test** — a test proving that a detection-strength item actually fires: that the
 reconciliation job flags an injected imbalance, that the deletion scan flags a planted record.
 Required for every detection item (D4.3). This is what makes liveness claims checkable before
@@ -136,8 +140,9 @@ every site, which is the design that leaks.
 `(spec-id, scenario-id)`. Required only for standard and critical claims. Absence opts an artifact
 out of Azimuth linkage; a routine claim owes no linkage.
 
-**`realizes`** — on production code: this site is on that claim's path. Carries no form; form is
-how a test checks, not a property of code.
+**`realizes`** — on a production mechanism: this site is on that claim's path. A site may be
+application code or declared delivery topology when routing is part of the behavior. It carries no
+form; form is how a test checks, not a property of production mechanism.
 
 **`covers`** — on a test: this test verifies that claim, at this *actual* scope and
 quantification. The required form lives in the verification plan; `covers` declares what the test
@@ -152,6 +157,11 @@ each member realizes.
 **Design binding** — a machine-addressable compiler or schema artifact named by a current design
 mechanism. Resolution establishes existence. Only properties emitted independently—currently index
 uniqueness, columns and predicates—can establish more.
+
+**Delivery topology** — the exchange, bindings, durable queues and dead-letter routes that connect
+a brokered producer to its consumers. It is a realization site because correct endpoint code with a
+missing binding does not realize delivery. Source declarations establish requested topology; a
+deployment-side enumerator is needed to establish what an environment actually deployed (D26).
 
 **Exemption** — a deliberate, attributable, reviewable opt-out from an obligation. Fine anywhere;
 a silent absence from an obligation is not. An untagged test asserts no Azimuth evidence, so it has

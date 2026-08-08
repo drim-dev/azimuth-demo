@@ -27,16 +27,36 @@ namespace Payments.Database.Migrations
                     table.PrimaryKey("PK_capture_failures", x => x.id);
                 });
 
-            // Trips owns the transactional outbox in the shared deployment. Payments still creates
-            // it when hosted alone, as in its component harness.
             migrationBuilder.Sql("""
                 CREATE TABLE IF NOT EXISTS capture_intents (
                     trip_id bigint PRIMARY KEY,
                     quote_token text NOT NULL,
+                    payment_method text NOT NULL,
                     written_at timestamp with time zone NOT NULL,
                     dispatched_at timestamp with time zone NULL
                 );
                 """);
+
+            migrationBuilder.CreateTable(
+                name: "payment_trip_event_cursors",
+                columns: table => new
+                {
+                    trip_id = table.Column<long>(type: "bigint", nullable: false),
+                    version = table.Column<long>(type: "bigint", nullable: false)
+                },
+                constraints: table => table.PrimaryKey("PK_payment_trip_event_cursors", x => x.trip_id));
+
+            migrationBuilder.CreateTable(
+                name: "payment_trip_event_inbox",
+                columns: table => new
+                {
+                    event_id = table.Column<Guid>(type: "uuid", nullable: false),
+                    trip_id = table.Column<long>(type: "bigint", nullable: false),
+                    version = table.Column<long>(type: "bigint", nullable: false),
+                    state = table.Column<string>(type: "text", nullable: false),
+                    received_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table => table.PrimaryKey("PK_payment_trip_event_inbox", x => x.event_id));
 
             migrationBuilder.CreateTable(
                 name: "captures",
@@ -71,6 +91,12 @@ namespace Payments.Database.Migrations
 
             migrationBuilder.DropTable(
                 name: "captures");
+
+            migrationBuilder.DropTable(
+                name: "payment_trip_event_cursors");
+
+            migrationBuilder.DropTable(
+                name: "payment_trip_event_inbox");
         }
     }
 }

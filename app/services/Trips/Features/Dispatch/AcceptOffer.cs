@@ -64,7 +64,8 @@ public static class AcceptOffer
                 .ExecuteUpdateAsync(
                     t => t
                         .SetProperty(x => x.AssignedDriverId, request.DriverId)
-                        .SetProperty(x => x.State, assignment.To),
+                        .SetProperty(x => x.State, assignment.To)
+                        .SetProperty(x => x.Version, x => x.Version + 1),
                     ct);
 
             if (claimed != 1)
@@ -79,6 +80,18 @@ public static class AcceptOffer
                 FromState = TripState.Requested,
                 ToState = assignment.To,
                 Actor = request.DriverId,
+                OccurredAt = clock.Now,
+            });
+
+            var trip = await db.Trips.AsNoTracking().SingleAsync(t => t.Id == id, ct);
+            db.TripEvents.Add(new TripEventOutbox
+            {
+                EventId = Guid.NewGuid(),
+                TripId = id,
+                Version = trip.Version,
+                State = assignment.To,
+                QuoteToken = trip.QuoteToken,
+                PaymentMethod = "default",
                 OccurredAt = clock.Now,
             });
 

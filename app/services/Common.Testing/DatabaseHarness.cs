@@ -1,6 +1,5 @@
 using System.Collections;
 using System.Linq.Expressions;
-using DotNet.Testcontainers.Builders;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
@@ -37,10 +36,7 @@ public sealed class DatabaseHarness<TProgram, TDbContext>(string databaseResourc
     {
         _factory = factory;
 
-        _postgres = new PostgreSqlBuilder()
-            .WithImage("postgres:17-alpine")
-            .WithWaitStrategy(Wait.ForUnixContainer().UntilPortIsAvailable(5432))
-            .Build();
+        _postgres = new PostgreSqlBuilder("postgres:17-alpine").Build();
 
         await _postgres.StartAsync(cancellation);
         _started = true;

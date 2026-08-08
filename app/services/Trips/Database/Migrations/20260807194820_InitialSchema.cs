@@ -12,17 +12,6 @@ namespace Trips.Database.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            // Payments can be the first process to migrate the shared deployment. The table is
-            // still Trips-owned: this migration drops it, while Payments' migration does not.
-            migrationBuilder.Sql("""
-                CREATE TABLE IF NOT EXISTS capture_intents (
-                    trip_id bigint PRIMARY KEY,
-                    quote_token text NOT NULL,
-                    written_at timestamp with time zone NOT NULL,
-                    dispatched_at timestamp with time zone NULL
-                );
-                """);
-
             migrationBuilder.CreateTable(
                 name: "drivers",
                 columns: table => new
@@ -46,6 +35,7 @@ namespace Trips.Database.Migrations
                     id = table.Column<long>(type: "bigint", nullable: false),
                     rider_id = table.Column<string>(type: "text", nullable: false),
                     assigned_driver_id = table.Column<string>(type: "text", nullable: true),
+                    version = table.Column<long>(type: "bigint", nullable: false),
                     state = table.Column<string>(type: "text", nullable: false),
                     fare_minor = table.Column<long>(type: "bigint", nullable: false),
                     currency = table.Column<string>(type: "text", nullable: false),
@@ -59,6 +49,21 @@ namespace Trips.Database.Migrations
                 {
                     table.PrimaryKey("PK_trips", x => x.id);
                 });
+
+            migrationBuilder.CreateTable(
+                name: "trip_events",
+                columns: table => new
+                {
+                    event_id = table.Column<Guid>(type: "uuid", nullable: false),
+                    trip_id = table.Column<long>(type: "bigint", nullable: false),
+                    version = table.Column<long>(type: "bigint", nullable: false),
+                    state = table.Column<string>(type: "text", nullable: false),
+                    quote_token = table.Column<string>(type: "text", nullable: false),
+                    payment_method = table.Column<string>(type: "text", nullable: false),
+                    occurred_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    published_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table => table.PrimaryKey("PK_trip_events", x => x.event_id));
 
             migrationBuilder.CreateTable(
                 name: "offers",
@@ -105,6 +110,17 @@ namespace Trips.Database.Migrations
                 });
 
             migrationBuilder.CreateIndex(
+                name: "ix_trip_events_pending",
+                table: "trip_events",
+                columns: new[] { "published_at", "occurred_at" });
+
+            migrationBuilder.CreateIndex(
+                name: "ux_trip_event_version",
+                table: "trip_events",
+                columns: new[] { "trip_id", "version" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "ix_trip_transitions_trip",
                 table: "trip_transitions",
                 columns: new[] { "trip_id", "id" });
@@ -127,9 +143,6 @@ namespace Trips.Database.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "capture_intents");
-
-            migrationBuilder.DropTable(
                 name: "drivers");
 
             migrationBuilder.DropTable(
@@ -137,6 +150,9 @@ namespace Trips.Database.Migrations
 
             migrationBuilder.DropTable(
                 name: "trip_transitions");
+
+            migrationBuilder.DropTable(
+                name: "trip_events");
 
             migrationBuilder.DropTable(
                 name: "trips");

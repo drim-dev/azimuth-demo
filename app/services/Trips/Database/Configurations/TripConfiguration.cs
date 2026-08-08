@@ -14,6 +14,7 @@ public sealed class TripConfiguration : IEntityTypeConfiguration<Trip>
         builder.Property(t => t.Id).HasColumnName("id").ValueGeneratedNever();
         builder.Property(t => t.RiderId).HasColumnName("rider_id").IsRequired();
         builder.Property(t => t.AssignedDriverId).HasColumnName("assigned_driver_id");
+        builder.Property(t => t.Version).HasColumnName("version").IsRequired();
         builder.Property(t => t.FareMinor).HasColumnName("fare_minor").IsRequired();
         builder.Property(t => t.Currency).HasColumnName("currency").IsRequired();
         builder.Property(t => t.QuoteId).HasColumnName("quote_id").IsRequired();

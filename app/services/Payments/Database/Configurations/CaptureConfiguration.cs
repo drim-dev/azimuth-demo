@@ -13,6 +13,7 @@ public sealed class CaptureIntentConfiguration : IEntityTypeConfiguration<Captur
 
         builder.Property(i => i.TripId).HasColumnName("trip_id").ValueGeneratedNever();
         builder.Property(i => i.QuoteToken).HasColumnName("quote_token").IsRequired();
+        builder.Property(i => i.PaymentMethod).HasColumnName("payment_method").IsRequired();
         builder.Property(i => i.WrittenAt).HasColumnName("written_at").IsRequired();
         builder.Property(i => i.DispatchedAt).HasColumnName("dispatched_at");
     }

@@ -117,6 +117,19 @@ export interface RiderReceipt {
   driver: { name: string; vehicle: string | null } | null;
   /** The rider's own pickup and dropoff, for the map thumbnail. */
   route: { pickup: string | null; dropoff: string | null };
+  payment: {
+    status: string;
+    amountMinor: number | null;
+    currency: string | null;
+    message: string;
+  };
+}
+
+export interface ServicePaymentStatus {
+  status: string;
+  amountMinor: number | null;
+  currency: string | null;
+  message: string;
 }
 
 /**
@@ -127,14 +140,20 @@ export interface RiderReceipt {
  * dropoff; an earlier version fetched the driver's last position for it, and the invariant caught
  * that a receipt is a rider-reachable site like any other.
  */
-export function riderReceipt(trip: ServiceTrip, driver: { display?: string } | null): RiderReceipt {
+export function riderReceipt(
+  trip: ServiceTrip,
+  driver: { display?: string } | null,
+  payment: ServicePaymentStatus,
+): RiderReceipt {
   realizes('trips/rider-view', 'driver-identity-remains-on-receipt');
   realizes('trips/rider-view', 'position-confined-to-live-phases');
+  realizes('payments/capture', 'receipt-explains-payment-state');
   return {
     id: trip.tripId,
     state: trip.state,
     fare: { minor: trip.fareMinor, currency: trip.currency },
     driver: trip.driverDisplay ? { name: trip.driverDisplay, vehicle: trip.vehicle } : null,
     route: { pickup: null, dropoff: null },
+    payment,
   };
 }

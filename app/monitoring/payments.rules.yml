@@ -1,0 +1,17 @@
+groups:
+  - name: payments-capture-settlement
+    rules:
+      - alert: PaymentsCaptureOverdue
+        expr: payments_capture_overdue_intents > 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: Capture intents exceeded the settlement deadline
+      - alert: PaymentsCaptureWorkerSilent
+        expr: payments_capture_worker_last_success_timestamp_seconds == 0 or time() - payments_capture_worker_last_success_timestamp_seconds > 30
+        for: 30s
+        labels:
+          severity: critical
+        annotations:
+          summary: Capture settlement worker has stopped reporting success

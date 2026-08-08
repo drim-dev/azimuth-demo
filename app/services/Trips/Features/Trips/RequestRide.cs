@@ -112,6 +112,7 @@ public static class RequestRide
                 Id = ids.Create(),
                 RiderId = request.RiderId,
                 State = TripState.Requested,
+                Version = 1,
                 FareMinor = quote.TotalMinor,
                 Currency = quote.Currency,
                 QuoteId = quote.QuoteId,
@@ -124,6 +125,16 @@ public static class RequestRide
             try
             {
                 db.Trips.Add(trip);
+                db.TripEvents.Add(new TripEventOutbox
+                {
+                    EventId = Guid.NewGuid(),
+                    TripId = trip.Id,
+                    Version = trip.Version,
+                    State = trip.State,
+                    QuoteToken = trip.QuoteToken,
+                    PaymentMethod = "default",
+                    OccurredAt = now,
+                });
                 await db.SaveChangesAsync(ct);
                 await transaction.CommitAsync(ct);
                 return trip;

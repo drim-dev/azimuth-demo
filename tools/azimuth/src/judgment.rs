@@ -9,9 +9,9 @@
 //! seam the machine tier cannot reach — the machine makes structure checkable, it does not make
 //! truth checkable, and a tag is only as honest as whoever wrote it.
 //!
-//! Freshness is a fingerprint over everything the judgment looked at. It over-invalidates rather
-//! than under-invalidates: a false stale costs a re-judgement, a false fresh is a lie carried on the
-//! books.
+//! Freshness is a fingerprint over everything the judgment looked at. Compiler-resolved evidence
+//! sites are isolated from unrelated edits in a shared file; inputs without a trustworthy site
+//! fingerprint retain the safe whole-file fallback.
 
 use crate::diag::{validate_id, Diag};
 use crate::labels::read_block;
@@ -69,6 +69,46 @@ pub struct Judgments {
     pub spec: String,
     pub path: String,
     pub entries: Vec<Judgment>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FingerprintInput {
+    pub identity: String,
+    pub file: String,
+    pub source_fingerprint: Option<String>,
+}
+
+impl FingerprintInput {
+    pub fn file(path: &str) -> Self {
+        Self {
+            identity: path.to_string(),
+            file: path.to_string(),
+            source_fingerprint: None,
+        }
+    }
+
+    pub fn site(site: &crate::model::Site) -> Self {
+        let form = format!(
+            "{:?}|{:?}|{}|{}|{}|{}|{:?}",
+            site.scope,
+            site.quantification,
+            site.oracle.as_deref().unwrap_or(""),
+            site.evidence_kind.as_deref().unwrap_or(""),
+            site.evidence_outcome.as_deref().unwrap_or(""),
+            site.observed_at.as_deref().unwrap_or(""),
+            site.expires_at
+        );
+        Self {
+            identity: format!("{}#{}|{}|{}", site.file, site.site, site.lang, form),
+            file: site.file.clone(),
+            source_fingerprint: (!site.source_fingerprint.is_empty())
+                .then(|| site.source_fingerprint.clone()),
+        }
+    }
+
+    pub fn display(&self) -> &str {
+        &self.identity
+    }
 }
 
 impl Judgments {
@@ -236,15 +276,12 @@ pub fn parse(path: &str, source: &str) -> Result<Judgments, Vec<Diag>> {
     }
 }
 
-/// A fingerprint over everything a judgment looked at: the claim's own text, and the content of
-/// every file carrying evidence for it.
-///
-/// File-level rather than site-level on purpose. It over-invalidates — an unrelated edit in a test
-/// file expires the judgment — and that is the safe direction. A false stale costs one re-judgement;
-/// a false fresh means a verdict about code that no longer exists is still being counted.
-pub fn fingerprint(claim_text: &str, mut evidence_files: Vec<String>) -> String {
-    evidence_files.sort();
-    evidence_files.dedup();
+/// A fingerprint over the claim and every source a judgment had to inspect. A site fingerprint is
+/// trusted only when a compiler-aware extractor supplied it; older manifests and unresolved sites
+/// continue to hash the complete file.
+pub fn fingerprint(claim_text: &str, mut inputs: Vec<FingerprintInput>) -> String {
+    inputs.sort_by(|a, b| a.identity.cmp(&b.identity));
+    inputs.dedup_by(|a, b| a.identity == b.identity);
 
     let mut hash: u64 = 0xcbf2_9ce4_8422_2325;
     let mut absorb = |bytes: &[u8]| {
@@ -255,16 +292,65 @@ pub fn fingerprint(claim_text: &str, mut evidence_files: Vec<String>) -> String 
     };
 
     absorb(claim_text.as_bytes());
-    for file in &evidence_files {
+    for input in &inputs {
         absorb(b"\x00");
-        absorb(file.as_bytes());
-        match fs::read(file) {
-            Ok(content) => absorb(&content),
-            // A file the checker cannot read is folded in as its own state: if it reappears, the
-            // fingerprint changes and the judgment expires, which is the safe direction.
-            Err(_) => absorb(b"<unreadable>"),
+        absorb(input.identity.as_bytes());
+        match &input.source_fingerprint {
+            Some(fingerprint) => absorb(fingerprint.as_bytes()),
+            None => match fs::read(&input.file) {
+                Ok(content) => absorb(&content),
+                // A file the checker cannot read is folded in as its own state: if it reappears,
+                // the fingerprint changes and the judgment expires, which is the safe direction.
+                Err(_) => absorb(b"<unreadable>"),
+            },
         }
     }
 
     format!("{hash:016x}")
+}
+
+#[cfg(test)]
+mod fingerprint_tests {
+    use super::*;
+    use std::sync::atomic::{AtomicU64, Ordering};
+
+    static NEXT_FILE: AtomicU64 = AtomicU64::new(0);
+
+    fn temporary_file() -> PathBuf {
+        std::env::temp_dir().join(format!(
+            "azimuth-judgment-{}-{}",
+            std::process::id(),
+            NEXT_FILE.fetch_add(1, Ordering::Relaxed)
+        ))
+    }
+
+    #[test]
+    fn a_site_fingerprint_ignores_unrelated_file_edits() {
+        let path = temporary_file();
+        fs::write(&path, "first").unwrap();
+        let input = FingerprintInput {
+            identity: format!("{}#test", path.display()),
+            file: path.display().to_string(),
+            source_fingerprint: Some("site-v1".into()),
+        };
+        let before = fingerprint("claim", vec![input.clone()]);
+
+        fs::write(&path, "unrelated edit").unwrap();
+
+        assert_eq!(before, fingerprint("claim", vec![input]));
+        fs::remove_file(path).unwrap();
+    }
+
+    #[test]
+    fn an_unresolved_site_falls_back_to_the_complete_file() {
+        let path = temporary_file();
+        fs::write(&path, "first").unwrap();
+        let input = FingerprintInput::file(&path.display().to_string());
+        let before = fingerprint("claim", vec![input.clone()]);
+
+        fs::write(&path, "changed").unwrap();
+
+        assert_ne!(before, fingerprint("claim", vec![input]));
+        fs::remove_file(path).unwrap();
+    }
 }

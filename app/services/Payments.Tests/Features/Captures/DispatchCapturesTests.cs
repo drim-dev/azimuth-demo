@@ -3,6 +3,7 @@ using Azimuth.Annotations;
 using Common.Testing;
 using FluentAssertions;
 using Payments.Domain;
+using Payments.Features.Captures;
 using Payments.Tests.Fixtures;
 using Xunit;
 
@@ -64,10 +65,65 @@ public sealed class DispatchCapturesTests(PaymentsTestFixture fixture) : IAsyncL
 
         var response = await client.Dispatch();
 
-        response.StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
-        (await response.Read<Problem>()).ErrorCode.Should().Be("payment:capture:create:invalid_quote");
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var dispatch = await response.Read<DispatchCaptures.Response>();
+        dispatch.Quarantined.Should().Be(1);
         fixture.Provider.Calls.Should().Be(0);
         (await CaptureCount(trip)).Should().Be(0);
+        (await client.Failures(trip)).Should().Equal("payment:capture:create:invalid_quote");
+    }
+
+    [Fact]
+    [Covers("payments/capture", "malformed-intent-does-not-starve-batch", Scope.Component,
+        Quantification.Example, Oracle.Direct)]
+    public async Task A_malformed_intent_is_quarantined_without_starving_valid_intents()
+    {
+        var client = fixture.HttpClient.CreateClient();
+        var malformedTrip = TripId();
+        var firstValidTrip = TripId();
+        var secondValidTrip = TripId();
+        var malformed = Api.CompletedTrip(malformedTrip, 1800);
+        malformed.QuoteToken = "not-a-signed-quote";
+        await fixture.Database.Save(
+            malformed,
+            Api.CompletedTrip(firstValidTrip, 1900),
+            Api.CompletedTrip(secondValidTrip, 2000));
+
+        var response = await client.Dispatch();
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var dispatch = await response.Read<DispatchCaptures.Response>();
+        dispatch.Should().Be(new DispatchCaptures.Response(Captured: 2, Quarantined: 1, Deferred: 0));
+        (await CaptureCount(malformedTrip)).Should().Be(0);
+        (await client.Failures(malformedTrip)).Should().Equal("payment:capture:create:invalid_quote");
+        (await CaptureCount(firstValidTrip)).Should().Be(1);
+        (await CaptureCount(secondValidTrip)).Should().Be(1);
+
+        var replay = await (await client.Dispatch()).Read<DispatchCaptures.Response>();
+        replay.Should().Be(new DispatchCaptures.Response(Captured: 0, Quarantined: 0, Deferred: 0));
+    }
+
+    [Fact]
+    public async Task A_transient_failure_stays_pending_without_starving_valid_intents()
+    {
+        var client = fixture.HttpClient.CreateClient();
+        var deferredTrip = TripId();
+        var validTrip = TripId();
+        fixture.Provider.FailOnCalls(1);
+        await fixture.Database.Save(
+            Api.CompletedTrip(deferredTrip, 1800),
+            Api.CompletedTrip(validTrip, 1900));
+
+        var first = await (await client.Dispatch()).Read<DispatchCaptures.Response>();
+
+        first.Should().Be(new DispatchCaptures.Response(Captured: 1, Quarantined: 0, Deferred: 1));
+        (await CaptureCount(deferredTrip)).Should().Be(0);
+        (await CaptureCount(validTrip)).Should().Be(1);
+
+        fixture.Provider.FailOnCalls();
+        var replay = await (await client.Dispatch()).Read<DispatchCaptures.Response>();
+        replay.Should().Be(new DispatchCaptures.Response(Captured: 1, Quarantined: 0, Deferred: 0));
+        (await CaptureCount(deferredTrip)).Should().Be(1);
     }
 
     /// <summary>
@@ -244,26 +300,6 @@ public sealed class DispatchCapturesTests(PaymentsTestFixture fixture) : IAsyncL
 
         (await client.Capture(trip)).Should().BeNull();
         (await client.Failures(trip)).Should().Equal("declined");
-    }
-
-    [Fact]
-    [Covers("payments/capture", "declined-capture-is-retryable", Scope.Component, Quantification.Example)]
-    public async Task A_declined_capture_may_be_retried_and_still_lands_at_most_once()
-    {
-        var client = fixture.HttpClient.CreateClient();
-        fixture.Provider.Script(ProviderOutcome.Declined, ProviderOutcome.Captured);
-
-        var trip = TripId();
-        await fixture.Database.Save(Api.CompletedTrip(trip, 1500));
-
-        await client.Dispatch();
-        (await client.Capture(trip)).Should().BeNull();
-
-        await client.Dispatch();
-        (await client.Capture(trip)).Should().NotBeNull();
-
-        (await CaptureCount(trip)).Should().Be(1);
-        (await client.Failures(trip)).Should().ContainSingle();
     }
 
     [Fact]

@@ -7,6 +7,7 @@
 use crate::check::{self, Hole};
 use crate::fingerprint::sha256;
 use crate::json::Json;
+use crate::labels::read_block;
 use crate::model::{Criticality, Model, StepKind};
 use crate::spec::parse_spec;
 use std::fs;
@@ -28,10 +29,22 @@ pub struct AddedScenario {
     pub steps: Vec<(StepKind, String)>,
 }
 
+#[derive(Debug, Clone)]
+pub struct CriticalityChange {
+    pub spec: String,
+    pub requirement: String,
+    pub from: Criticality,
+    pub to: Criticality,
+    pub because: String,
+    pub revisit: Option<String>,
+    pub applied: bool,
+}
+
 #[derive(Debug)]
 pub struct Report {
     pub id: String,
     pub additions: Vec<Addition>,
+    pub criticality_changes: Vec<CriticalityChange>,
     pub incomplete_plan_items: usize,
     pub current_claims: usize,
     pub target_claims: usize,
@@ -62,6 +75,7 @@ pub fn inspect(root: &Path, model: &Model) -> Result<Report, Vec<String>> {
         .count();
 
     let mut additions = Vec::new();
+    let mut criticality_changes = Vec::new();
     let specs = root.join("specs");
     if specs.exists() {
         let mut files = Vec::new();
@@ -69,7 +83,14 @@ pub fn inspect(root: &Path, model: &Model) -> Result<Report, Vec<String>> {
         files.sort();
         for file in files {
             match fs::read_to_string(&file) {
-                Ok(source) => parse_delta(&file, &source, model, &mut additions, &mut errors),
+                Ok(source) => parse_delta(
+                    &file,
+                    &source,
+                    model,
+                    &mut additions,
+                    &mut criticality_changes,
+                    &mut errors,
+                ),
                 Err(error) => errors.push(format!("cannot read {}: {error}", file.display())),
             }
         }
@@ -86,6 +107,7 @@ pub fn inspect(root: &Path, model: &Model) -> Result<Report, Vec<String>> {
     Ok(Report {
         id,
         additions,
+        criticality_changes,
         incomplete_plan_items,
         current_claims: model.scenario_count(),
         target_claims: model.scenario_count() + unapplied_claims,
@@ -115,11 +137,12 @@ fn parse_delta(
     source: &str,
     model: &Model,
     additions: &mut Vec<Addition>,
+    criticality_changes: &mut Vec<CriticalityChange>,
     errors: &mut Vec<String>,
 ) {
     let mut normalized = String::new();
-    let mut lines = source.lines();
-    let Some(first) = lines.next() else {
+    let lines: Vec<&str> = source.lines().collect();
+    let Some(first) = lines.first() else {
         errors.push(format!(
             "{}: expected `# Intent delta: <spec-id>`",
             path.display()
@@ -137,28 +160,50 @@ fn parse_delta(
     normalized.push_str(spec);
     normalized.push('\n');
 
-    for (offset, line) in lines.enumerate() {
+    let mut has_addition = false;
+    let mut index = 1;
+    while index < lines.len() {
+        let line = lines[index];
         let trimmed = line.trim();
         if let Some(requirement) = trimmed.strip_prefix("## Add requirement:") {
             normalized.push_str("## Requirement:");
             normalized.push_str(requirement);
+            has_addition = true;
         } else if let Some(scenario) = trimmed.strip_prefix("### Add scenario:") {
             normalized.push_str("### Scenario:");
             normalized.push_str(scenario);
+        } else if let Some(requirement) = trimmed.strip_prefix("## Change criticality:") {
+            let (block, next) =
+                read_block(&lines, index + 1, &["From", "To", "Because", "Revisit"]);
+            parse_criticality_change(
+                path,
+                index + 1,
+                spec,
+                requirement.trim(),
+                &block,
+                model,
+                criticality_changes,
+                errors,
+            );
+            index = next;
+            continue;
         } else if trimmed.starts_with("## ") || trimmed.starts_with("### ") {
             errors.push(format!(
-                "{}:{}: unsupported delta operation `{trimmed}`; only additions are machine-projected",
+                "{}:{}: unsupported delta operation `{trimmed}`; additions and criticality changes are machine-projected",
                 path.display(),
-                offset + 2,
+                index + 1,
             ));
-            continue;
         } else {
             normalized.push_str(line);
         }
         normalized.push('\n');
+        index += 1;
     }
 
     if !errors.is_empty() {
+        return;
+    }
+    if !has_addition {
         return;
     }
     let parsed = match parse_spec(&path.display().to_string(), &normalized) {
@@ -228,10 +273,148 @@ fn parse_delta(
     }
 }
 
+fn parse_criticality_change(
+    path: &Path,
+    line: usize,
+    spec: &str,
+    requirement: &str,
+    block: &crate::labels::Block,
+    model: &Model,
+    changes: &mut Vec<CriticalityChange>,
+    errors: &mut Vec<String>,
+) {
+    for duplicate in block.duplicates() {
+        errors.push(format!(
+            "{}:{}: `{}` is declared twice",
+            path.display(),
+            duplicate.line,
+            duplicate.key
+        ));
+    }
+    for (text, source_line) in &block.stray {
+        errors.push(format!(
+            "{}:{}: unrecognized line `{text}`; expected From, To, Because or Revisit",
+            path.display(),
+            source_line
+        ));
+    }
+    if !block.prose.is_empty() {
+        errors.push(format!(
+            "{}:{line}: criticality rationale belongs in `Because:` and the lowering condition in `Revisit:`",
+            path.display()
+        ));
+    }
+
+    let parse_level = |label: &str, errors: &mut Vec<String>| -> Option<Criticality> {
+        let Some(value) = block.value(label) else {
+            errors.push(format!(
+                "{}:{line}: criticality change is missing `{label}:`",
+                path.display()
+            ));
+            return None;
+        };
+        match Criticality::parse(value) {
+            Some(level) => Some(level),
+            None => {
+                errors.push(format!(
+                    "{}:{line}: unknown criticality `{value}` in `{label}:`",
+                    path.display()
+                ));
+                None
+            }
+        }
+    };
+    let from = parse_level("From", errors);
+    let to = parse_level("To", errors);
+    let because = block.value("Because").unwrap_or_default().trim();
+    if because.is_empty() {
+        errors.push(format!(
+            "{}:{line}: criticality change is missing `Because:`",
+            path.display()
+        ));
+    }
+    let (Some(from), Some(to)) = (from, to) else {
+        return;
+    };
+    if from == to {
+        errors.push(format!(
+            "{}:{line}: criticality change keeps `{requirement}` at `{}`",
+            path.display(),
+            from.name()
+        ));
+    }
+    let revisit = block
+        .value("Revisit")
+        .map(str::trim)
+        .filter(|value| !value.is_empty());
+    if to < from && revisit.is_none() {
+        errors.push(format!(
+            "{}:{line}: lowering `{requirement}` requires `Revisit:` with the condition that raises it again",
+            path.display()
+        ));
+    }
+    if changes
+        .iter()
+        .any(|change| change.spec == spec && change.requirement == requirement)
+    {
+        errors.push(format!(
+            "{}:{line}: criticality for `{spec}#{requirement}` changes more than once",
+            path.display()
+        ));
+        return;
+    }
+
+    let current = model
+        .specs
+        .iter()
+        .find(|candidate| candidate.id == spec)
+        .and_then(|candidate| {
+            candidate
+                .requirements
+                .iter()
+                .find(|candidate| candidate.id == requirement)
+        });
+    let Some(current) = current else {
+        errors.push(format!(
+            "{}:{line}: `{spec}#{requirement}` does not exist in current intent",
+            path.display()
+        ));
+        return;
+    };
+    let Some(current_level) = current.criticality else {
+        errors.push(format!(
+            "{}:{line}: `{spec}#{requirement}` is unclassified and cannot match `From:`",
+            path.display()
+        ));
+        return;
+    };
+    if current_level != from && current_level != to {
+        errors.push(format!(
+            "{}:{line}: `{spec}#{requirement}` is `{}`, not declared `From: {}` or `To: {}`",
+            path.display(),
+            current_level.name(),
+            from.name(),
+            to.name()
+        ));
+        return;
+    }
+    if from != to && !because.is_empty() {
+        changes.push(CriticalityChange {
+            spec: spec.to_string(),
+            requirement: requirement.to_string(),
+            from,
+            to,
+            because: because.to_string(),
+            revisit: revisit.map(str::to_string),
+            applied: current_level == to,
+        });
+    }
+}
+
 pub fn completion_issues(root: &Path, report: &Report) -> Vec<String> {
     let mut issues = Vec::new();
-    if report.additions.is_empty() {
-        issues.push("change declares no additive intent delta".into());
+    if report.additions.is_empty() && report.criticality_changes.is_empty() {
+        issues.push("change declares no supported intent delta".into());
     }
     if report.incomplete_plan_items > 0 {
         issues.push(format!(
@@ -244,6 +427,17 @@ pub fn completion_issues(root: &Path, report: &Report) -> Vec<String> {
             issues.push(format!(
                 "{}#{} has not been applied to current specs",
                 addition.spec, addition.requirement
+            ));
+        }
+    }
+    for change in &report.criticality_changes {
+        if !change.applied {
+            issues.push(format!(
+                "{}#{} criticality has not changed from {} to {}",
+                change.spec,
+                change.requirement,
+                change.from.name(),
+                change.to.name()
             ));
         }
     }
@@ -296,7 +490,9 @@ pub fn finalization(model: &Model, holes: &[Hole]) -> (String, String) {
 mod tests {
     use super::*;
     use crate::spec::parse_spec;
-    use std::time::{SystemTime, UNIX_EPOCH};
+    use std::sync::atomic::{AtomicU64, Ordering};
+
+    static NEXT_CHANGE: AtomicU64 = AtomicU64::new(1);
 
     #[test]
     fn additions_project_until_the_current_facet_contains_them() {
@@ -370,17 +566,113 @@ mod tests {
 
         assert_eq!(
             completion_issues(&root, &report),
-            vec!["change declares no additive intent delta"]
+            vec!["change declares no supported intent delta"]
         );
         fs::remove_dir_all(root).unwrap();
     }
 
+    #[test]
+    fn a_criticality_raise_projects_without_changing_claim_identity() {
+        let root = transition_change(
+            "## Change criticality: existing\nFrom: routine\nTo: standard\nBecause: riders now rely on this value\n",
+        );
+        let model = model_at(Criticality::Routine);
+
+        let report = inspect(&root, &model).unwrap();
+
+        assert_eq!(report.current_claims, 1);
+        assert_eq!(report.target_claims, 1);
+        assert_eq!(report.criticality_changes.len(), 1);
+        assert!(!report.criticality_changes[0].applied);
+        assert_eq!(report.criticality_changes[0].to, Criticality::Standard);
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn a_criticality_transition_is_applied_only_at_the_declared_target() {
+        let root = transition_change(
+            "## Change criticality: existing\nFrom: routine\nTo: standard\nBecause: riders now rely on this value\n",
+        );
+
+        let report = inspect(&root, &model_at(Criticality::Standard)).unwrap();
+
+        assert!(report.criticality_changes[0].applied);
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn lowering_criticality_requires_the_condition_that_raises_it_again() {
+        let root = transition_change(
+            "## Change criticality: existing\nFrom: critical\nTo: routine\nBecause: the value is no longer user-visible\n",
+        );
+
+        let errors = inspect(&root, &model_at(Criticality::Critical)).unwrap_err();
+
+        assert!(errors
+            .iter()
+            .any(|error| error.contains("requires `Revisit:`")));
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn a_stale_from_level_fails_instead_of_reinterpreting_the_transition() {
+        let root = transition_change(
+            "## Change criticality: existing\nFrom: routine\nTo: standard\nBecause: riders now rely on this value\n",
+        );
+
+        let errors = inspect(&root, &model_at(Criticality::Critical)).unwrap_err();
+
+        assert!(errors
+            .iter()
+            .any(|error| error.contains("not declared `From:")));
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn criticality_is_part_of_judgment_freshness() {
+        let routine = model_at(Criticality::Routine);
+        let standard = model_at(Criticality::Standard);
+        let routine_claim = routine.claims().next().unwrap();
+        let standard_claim = standard.claims().next().unwrap();
+
+        assert_ne!(
+            routine.claim_text(&routine_claim),
+            standard.claim_text(&standard_claim)
+        );
+    }
+
+    fn transition_change(delta: &str) -> PathBuf {
+        let root = temp_change();
+        fs::create_dir_all(root.join("specs")).unwrap();
+        fs::write(root.join("proposal.md"), "# Change: x\n\nStatus: active\n").unwrap();
+        fs::write(root.join("plan.md"), "- [ ] Apply it.\n").unwrap();
+        fs::write(
+            root.join("specs/alpha.md"),
+            format!("# Intent delta: alpha\n\n{delta}"),
+        )
+        .unwrap();
+        root
+    }
+
+    fn model_at(criticality: Criticality) -> Model {
+        let current = parse_spec(
+            "alpha.md",
+            &format!(
+                "# Spec: alpha\n\n## Requirement: existing\nCriticality: {}\n\nOld.\n\n### Scenario: visible\nWHEN x\nTHEN y\n",
+                criticality.name()
+            ),
+        )
+        .unwrap();
+        Model {
+            specs: vec![current],
+            ..Default::default()
+        }
+    }
+
     fn temp_change() -> PathBuf {
-        let nonce = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_nanos();
-        let root = std::env::temp_dir().join(format!("azimuth-change-{nonce}"));
+        let nonce = NEXT_CHANGE.fetch_add(1, Ordering::Relaxed);
+        let root =
+            std::env::temp_dir().join(format!("azimuth-change-{}-{nonce}", std::process::id()));
         fs::create_dir_all(&root).unwrap();
         root
     }

@@ -25,9 +25,11 @@ const CLAIM_LABELS: &[&str] = &[
     "Oracle",
     "Strength",
     "Evidence",
+    "Binding",
     "Re-established",
     "Dies silently",
     "Detector test",
+    "Detector binding",
     "Residual",
     "Accepted",
 ];
@@ -43,6 +45,8 @@ pub struct EvidenceItem {
     pub re_established: Option<String>,
     pub dies_silently: Option<String>,
     pub detector_test: Option<String>,
+    pub bindings: Vec<String>,
+    pub detector_bindings: Vec<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -567,6 +571,8 @@ fn claim_entry(
             let re_established = block.value("Re-established").map(str::to_string);
             let dies_silently = block.value("Dies silently").map(str::to_string);
             let detector_test = block.value("Detector test").map(str::to_string);
+            let bindings = binding_list(block.value("Binding"));
+            let detector_bindings = binding_list(block.value("Detector binding"));
 
             // D4.3: a monitor that can no longer fire is worse than no monitor, because it is
             // carried on the books as evidence. The detector test is what makes it checkable
@@ -586,6 +592,19 @@ fn claim_entry(
                         ));
                     }
                 }
+                for (bindings, want) in [
+                    (&bindings, "Binding:"),
+                    (&detector_bindings, "Detector binding:"),
+                ] {
+                    if bindings.is_empty() {
+                        errors.push(Diag::expecting(
+                            path,
+                            line,
+                            format!("detection evidence for `{id}` has no machine binding"),
+                            format!("{want} — required for every detection item"),
+                        ));
+                    }
+                }
             }
             Some(EvidenceItem {
                 description: description.to_string(),
@@ -593,6 +612,8 @@ fn claim_entry(
                 re_established,
                 dies_silently,
                 detector_test,
+                bindings,
+                detector_bindings,
             })
         }
         (Some(_), None) => {
@@ -614,7 +635,17 @@ fn claim_entry(
             ));
             None
         }
-        (None, None) => None,
+        (None, None) => {
+            if block.value("Binding").is_some() || block.value("Detector binding").is_some() {
+                errors.push(Diag::expecting(
+                    path,
+                    line,
+                    format!("bindings on `{id}` without evidence"),
+                    "an `Evidence:` and `Strength:` declaration",
+                ));
+            }
+            None
+        }
     };
 
     let residual = block.value("Residual").map(str::to_string);
@@ -649,4 +680,14 @@ fn claim_entry(
         accepted,
         line,
     })
+}
+
+fn binding_list(value: Option<&str>) -> Vec<String> {
+    value
+        .into_iter()
+        .flat_map(|value| value.split(','))
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(str::to_string)
+        .collect()
 }

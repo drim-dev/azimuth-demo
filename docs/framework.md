@@ -146,7 +146,7 @@ Evidence carries **strength**, and the ladder is `detection < demonstration < pr
   wider sample is still a sample.
 - **Detection** — we would learn if it stopped holding. A claim about the *detector*, never about
   the property, and every detection item needs a detector test proving it fires on an injected
-  violation (D4.3).
+  violation. Detector and detector test both bind to emitted artifacts (D4.3, D25).
 
 **Scope** is `unit | component | e2e`, defined by what must be *real* rather than by how much runs
 (D15). It applies to demonstration-strength evidence only: a static rule executes nothing and has
@@ -233,9 +233,10 @@ Two tiers produce findings:
 - The **machine tier** is deterministic. It finds structural holes, cannot be argued with, and
   cannot establish truth.
 - The **agent tier** judges what the machine cannot: whether a test is toothy, whether a tag is
-  honest, whether a required behaviour is missing from the spec. Its outputs are evidence items at
-  demonstration strength, never proof, with freshness re-established when the subgraph they judged
-  changes (D14, revised by D18). A judgment whose evidence has changed is reported as
+  honest, whether a required behaviour is missing from the spec. Its outputs are evidence *about*
+  evidence and can withdraw trust; they never cover a claim (D14, revised by D18). Freshness follows
+  compiler-resolved evidence sites and conservatively falls back to complete files. A judgment whose
+  evidence has changed is reported as
   `stale-judgment` rather than silently trusted — which is why a refactor invalidates prior
   verification by fingerprint rather than by anyone remembering.
 
@@ -270,6 +271,12 @@ symbol. Non-test evidence remains trusted at its declared strength; that is the 
 Crediting a choke point still needs call-graph analysis in the extractor (D10.1), so
 `invariant-breach` verifies only the weakest rung of the ladder — a guard at every site.
 
+**Broker boundary.** Delivery topology is a realization site when behavior crosses a broker (D26).
+The machine can resolve the exchange, bindings, queues and dead-letter declarations present in
+compiled code. A real-broker composed-stack test proves that those declarations compose. Neither
+proves that an independently managed environment deployed the requested topology unchanged; that
+requires a deployment-side enumerator.
+
 ---
 
 ## Decided, proposed, open
@@ -283,12 +290,11 @@ manual lifecycle observations. Other delta operations and rejected/abandoned arc
 remain absent. A general typed realization graph remains a proposal: the route experiment showed
 that derived surface membership does not imply semantic requirement discovery.
 
-**Open.** Six of the seven questions recorded in `decisions.md` remain open — question 3 was closed
-by D15 — and they are open because they need evidence from the fixture, not more argument: id
-semantics under split and merge; what realizes a scenario across a message broker; what `realizes`
-means for a rule with no site; what is tagged when enforcement is a DB constraint; whether the
-six-domain set is right and should stay closed (D13.3); how a generated check judges a domain whose
-members discharge differently.
+**Open.** Five of the seven questions recorded in `decisions.md` remain open — question 2 was closed
+by D26 and question 3 by D15 — and they are open because they need evidence from the fixture, not
+more argument: id semantics under split and merge; what `realizes` means for a rule with no site;
+what is tagged when enforcement is a DB constraint; whether the six-domain set is right and should
+stay closed (D13.3); how a generated check judges a domain whose members discharge differently.
 
 **Explicit non-goals for this phase** include backward compatibility, migrations and semver;
 dashboards as deliverables (the export seam is the deliverable); and a configuration language for
@@ -327,6 +333,6 @@ unmeasured.
 ## What is not claimed
 
 Nothing here establishes truth. The predicate is prose, `proof` means only that violation is
-unrepresentable, and the agent tier is a judgment pass whose output is demonstration-strength at
-best. The framework's output is a structured account of what is claimed, what holds it up and how
-it is known — together with a machine-checkable list of the places that account is incomplete.
+unrepresentable, and the agent tier judges the evidence without becoming evidence itself. The
+framework's output is a structured account of what is claimed, what holds it up and how it is
+known — together with a machine-checkable list of the places that account is incomplete.
