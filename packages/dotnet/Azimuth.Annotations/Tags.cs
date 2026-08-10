@@ -42,6 +42,36 @@ namespace Azimuth.Annotations
         public string Scenario { get; }
     }
 
+    /// <summary>Declares that a production artifact implements a named design mechanism.</summary>
+    /// <remarks>
+    /// The design owns the mechanism's identity, enforcement kind and rationale. The compiler
+    /// extractor derives the concrete symbol binding from the attributed type or method, so a code
+    /// rename cannot leave a hand-written symbol path behind. Removing the attribute leaves the
+    /// independent design declaration unresolved.
+    /// </remarks>
+    [AttributeUsage(
+        AttributeTargets.Class
+        | AttributeTargets.Struct
+        | AttributeTargets.Interface
+        | AttributeTargets.Enum
+        | AttributeTargets.Method,
+        AllowMultiple = true)]
+    public sealed class ImplementsMechanismAttribute : Attribute
+    {
+        /// <summary>Links the attributed symbol to a design mechanism.</summary>
+        public ImplementsMechanismAttribute(string spec, string mechanism)
+        {
+            Spec = spec;
+            Mechanism = mechanism;
+        }
+
+        /// <summary>Stable id of the design's spec.</summary>
+        public string Spec { get; }
+
+        /// <summary>Stable mechanism id within the design.</summary>
+        public string Mechanism { get; }
+    }
+
     /// <summary>
     /// Declares that a test verifies a claim, at the form the test <em>actually</em> has.
     /// </summary>
@@ -76,6 +106,46 @@ namespace Azimuth.Annotations
 
         /// <summary>Stable scenario id, unique within the spec.</summary>
         public string Scenario { get; }
+
+        /// <summary>How much of the real system this test actually runs against.</summary>
+        public Scope Scope { get; }
+
+        /// <summary>Whether this test checks one case or ranges over all of them.</summary>
+        public Quantification Quantification { get; }
+
+        /// <summary>How the expected result was obtained. Descriptive, never gated.</summary>
+        public Oracle Oracle { get; }
+    }
+
+    /// <summary>Declares evidence about a named design mechanism's contract.</summary>
+    /// <remarks>
+    /// Mechanism evidence is reusable evidence about the control itself. It does not cover every
+    /// claim that depends on the mechanism; application enumeration and semantic sufficiency remain
+    /// separate obligations.
+    /// </remarks>
+    [AttributeUsage(AttributeTargets.Method, AllowMultiple = true)]
+    public sealed class CoversMechanismAttribute : Attribute
+    {
+        /// <summary>Tags a test as verifying a mechanism at the given actual form.</summary>
+        public CoversMechanismAttribute(
+            string spec,
+            string mechanism,
+            Scope scope,
+            Quantification quantification,
+            Oracle oracle = Oracle.Direct)
+        {
+            Spec = spec;
+            Mechanism = mechanism;
+            Scope = scope;
+            Quantification = quantification;
+            Oracle = oracle;
+        }
+
+        /// <summary>Stable id of the design's spec.</summary>
+        public string Spec { get; }
+
+        /// <summary>Stable mechanism id within the design.</summary>
+        public string Mechanism { get; }
 
         /// <summary>How much of the real system this test actually runs against.</summary>
         public Scope Scope { get; }

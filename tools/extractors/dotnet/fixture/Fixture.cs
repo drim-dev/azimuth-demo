@@ -16,6 +16,7 @@ namespace Azimuth.Fixture
         /// A site may realize several claims — branches of one method.
         [Realizes("alpha", "first-branch")]
         [Realizes("alpha", "second-branch")]
+        [ImplementsMechanism("alpha", "branch-selection")]
         public void Branching()
         {
         }
@@ -59,6 +60,12 @@ namespace Azimuth.Fixture.Traced
 
         [Fact]
         [Covers("alpha", "first-branch", Scope.E2e, Quantification.Example, Oracle.ModelBased)]
+        [CoversMechanism(
+            "alpha",
+            "branch-selection",
+            Scope.Component,
+            Quantification.Universal,
+            Oracle.ModelBased)]
         public void CoveredWithOracle()
         {
         }

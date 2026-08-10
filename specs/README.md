@@ -83,6 +83,23 @@ A spec is always a single file. If one outgrows its file, split it into two spec
 rather than inventing a multi-file spec — no id changes and no tag breaks, because ids are
 declared.
 
+### Site-domain invariants and `Over:`
+
+An invariant may replace scenarios with a site domain:
+
+```markdown
+## Invariant: position-confined-to-live-phases
+Criticality: critical
+Over: trips/rider-view
+```
+
+The last line currently names one existing **spec id**, not an informal business domain. Its member
+set is the union of tagged production sites realizing behavioral claims in that spec and
+extractor-emitted `class_members` whose class is that same id. The check also requires a successful
+enumerator witness; tags alone cannot prove the class complete. An invariant in one spec may range
+over another spec this way, but one `Over:` cannot yet union several specs or name an independently
+declared reusable domain. That extension remains open pending a real cross-cutting mechanism.
+
 ## Style
 
 - **An id is a compressed proposition** — a subject plus what must hold of it. If an id cannot be

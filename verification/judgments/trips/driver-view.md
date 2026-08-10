@@ -1,5 +1,9 @@
 # Judgments: trips/driver-view
 
+Revalidated 2026-08-10 after D27 added stable mechanism ids. The semantic diff changed no
+enforcement, binding, expectation, rationale, claim, evidence form or source; the prior verdict
+rationales therefore remain applicable and only their freshness fingerprints moved.
+
 Rebased 2026-08-08 after criticality entered claim freshness. No level, evidence site, required
 form or verdict changed.
 
@@ -20,8 +24,8 @@ entries.
 
 ## Claim: rider-contact-confined-to-held-trips
 Verdict: sound
-Fingerprint: b8b8c3e11732d0ef
-Judged: 2026-08-08
+Fingerprint: b945a0ab396b313d
+Judged: 2026-08-10
 Judge: codex
 
 The driver-side invariant, and the class is now derived: `invariant-breach` takes membership from
@@ -40,8 +44,8 @@ the trip was held by someone, the first two assertions pass and that one fails.
 
 ## Claim: pickup-shown-on-offer
 Verdict: sound
-Fingerprint: bf93505a8ee701bc
-Judged: 2026-08-08
+Fingerprint: 971b626b5c3c846a
+Judged: 2026-08-10
 Judge: codex
 
 `an offer shows the pickup and no rider` asserts the pickup area is `downtown` and that the fare is
@@ -59,8 +63,8 @@ market repeatedly. That is the deviation path used deliberately rather than an o
 
 ## Claim: rider-contact-hidden-on-offer
 Verdict: sound
-Fingerprint: 7f4213e987aa4b59
-Judged: 2026-08-08
+Fingerprint: e7007312fbb2589f
+Judged: 2026-08-10
 Judge: codex
 
 The e2e asserts the rider's identifier appears nowhere in the offer payload and that the string

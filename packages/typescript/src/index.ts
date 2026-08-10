@@ -44,3 +44,34 @@ export function covers(
   void quantification;
   void oracle;
 }
+
+/**
+ * Marks a production symbol as the implementation of a design-owned mechanism identity.
+ *
+ * The emitter derives the symbol binding. If the symbol or marker disappears while the design
+ * remains, Azimuth reports the mechanism as unresolved.
+ */
+export function implementsMechanism(spec: string, mechanism: string): void {
+  void spec;
+  void mechanism;
+}
+
+/**
+ * Marks a test as evidence for a mechanism's own contract.
+ *
+ * This does not automatically cover every business claim that depends on the mechanism; that
+ * composition needs an explicit, reviewable relation.
+ */
+export function coversMechanism(
+  spec: string,
+  mechanism: string,
+  scope: Scope,
+  quantification: Quantification,
+  oracle?: Oracle,
+): void {
+  void spec;
+  void mechanism;
+  void scope;
+  void quantification;
+  void oracle;
+}

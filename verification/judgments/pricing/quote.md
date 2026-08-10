@@ -1,5 +1,14 @@
 # Judgments: pricing/quote
 
+Revalidated 2026-08-10 after token integrity became a reusable security concern and canonical
+base64url decoding was enforced. Every stale covering body and bound source was re-read. The new
+decoder check only narrows accepted encodings; component-sum validation, money representation and
+the pressure policy are unchanged, so the existing soundness rationales still apply.
+
+Revalidated 2026-08-10 after D27 added stable mechanism ids. The semantic diff changed no
+enforcement, binding, expectation, rationale, claim, evidence form or source; the prior verdict
+rationales therefore remain applicable and only their freshness fingerprints moved.
+
 Re-read 2026-08-08 after the composed surge path acquired a broker and Analytics consumer. The
 Pricing component bodies did not change; the e2e still carries one positive surge unchanged through
 the signed quote and now through the lifecycle-event handoff before capture.
@@ -68,8 +77,8 @@ the latest issuance fails.
 
 ## Claim: total-in-minor-units
 Verdict: sound
-Fingerprint: f1bd5c143c727a30
-Judged: 2026-08-08
+Fingerprint: e2de40c9a3e17df7
+Judged: 2026-08-10
 Judge: codex
 
 The design site exists: `Money` exposes only `long MinorUnits`, has no floating-point constructor or
@@ -79,8 +88,8 @@ being presented as the proof.
 
 ## Claim: total-equals-components
 Verdict: sound
-Fingerprint: 803c0c15b1b92c5b
-Judged: 2026-08-08
+Fingerprint: 9c8490acf3f98fcc
+Judged: 2026-08-10
 Judge: codex
 
 One test generates 500 variable-length component sets and checks both an independent sum and a
@@ -91,8 +100,8 @@ constant, or serializing a different total fails at least one independent relati
 
 ## Claim: current-pressure-selects-surge
 Verdict: sound
-Fingerprint: 2a4b7572880cf649
-Judged: 2026-08-08
+Fingerprint: 8e0396226f329454
+Judged: 2026-08-10
 Judge: codex
 
 The component evidence covers the policy's complete relation partition: below, equal to and above
@@ -103,8 +112,8 @@ issues the quote.
 
 ## Claim: stale-pressure-does-not-select-surge
 Verdict: sound
-Fingerprint: 6359e5c2a89f49f7
-Judged: 2026-08-08
+Fingerprint: c44c476f6af551ba
+Judged: 2026-08-10
 Judge: codex
 
 Against a real stored high-pressure observation, the test proves positive surge one tick before the
@@ -114,8 +123,8 @@ strictly newer than the boundary.
 
 ## Claim: surge-is-a-quote-component
 Verdict: sound
-Fingerprint: d534f848221e0c9b
-Judged: 2026-08-08
+Fingerprint: d755e6e012d7bcfe
+Judged: 2026-08-10
 Judge: codex
 
 The component evidence asserts the exact ordered labels `base`, `distance`, `surge` over currencies,

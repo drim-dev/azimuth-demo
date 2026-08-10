@@ -1,6 +1,7 @@
 # Design: trips/driver-view
 
 ## Requirement: offer-shows-pickup-not-rider
+Mechanism: offer-projection
 Enforcement: guard
 Binding: dotnet-symbol:Trips.Domain.DriverProjection.Offer
 
@@ -10,6 +11,7 @@ rider's contact only *while holding* — and a shared projection with a directio
 conditional away from returning the wrong side's data.
 
 ## Requirement: rider-contact-confined-to-held-trips
+Mechanism: driver-trip-projection
 Enforcement: guard
 Binding: dotnet-symbol:Trips.Domain.DriverProjection.For
 

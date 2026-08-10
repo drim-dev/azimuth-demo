@@ -56,6 +56,10 @@ presence generates the whole taxonomy has been partially falsified.
 
 **Mechanism** — what makes it true, and how strongly. Recorded in the design artifact.
 
+**Mechanism identity** — a stable, design-owned id for one atomic enforcement mechanism. It is
+independent of a code symbol, so deletion can leave an unresolved declaration rather than erasing
+both sides of the relation.
+
 **Evidence** — how we know it is true, and how freshly. Recorded in the verification plan.
 
 **Residue** — everything that belongs to no claim: orientation, danger zones, deliberately broken
@@ -136,9 +140,10 @@ every site, which is the design that leaks.
 
 ## Linkage
 
-**Tag** — a machine-readable annotation on code or a test, naming the claim it relates to by
-`(spec-id, scenario-id)`. Required only for standard and critical claims. Absence opts an artifact
-out of Azimuth linkage; a routine claim owes no linkage.
+**Tag** — a machine-readable annotation on code or a test. Claim tags name
+`(spec-id, scenario-id)`; mechanism tags name `(design-spec-id, mechanism-id)`. Claim linkage is
+required only for standard and critical claims. Absence opts an artifact out of claim linkage; a
+routine claim owes no linkage.
 
 **`realizes`** — on a production mechanism: this site is on that claim's path. A site may be
 application code or declared delivery topology when routing is part of the behavior. It carries no
@@ -148,14 +153,23 @@ form; form is how a test checks, not a property of production mechanism.
 quantification. The required form lives in the verification plan; `covers` declares what the test
 really is, and the comparison is what produces `wrong-form`.
 
+**`implements-mechanism`** — on production code: the enclosing compiler-resolved symbol implements
+the named design mechanism. This derives a binding; it does not replace the independent design
+declaration.
+
+**`covers-mechanism`** — on a test: evidence about a named mechanism's own contract. It carries the
+same actual evidence form as `covers`, but does not by itself cover business scenarios that use the
+mechanism.
+
 **Enumerator** — what produces the member set for a claim ranging over a set of sites. Must be
 derived from the same source the system is built from — the route table, the DI container, the
 type graph. A hand-listed surface is worse than no rule, because it reproduces the very bug the
 rule prevents and reports green (D13.1). It enumerates domain members, not the semantic requirements
 each member realizes.
 
-**Design binding** — a machine-addressable compiler or schema artifact named by a current design
-mechanism. Resolution establishes existence. Only properties emitted independently—currently index
+**Design binding** — the single machine-addressable artifact resolved for a current design
+mechanism. It is either explicit for a non-code artifact or derived from one implementation tag.
+Resolution establishes existence. Only properties emitted independently—currently index
 uniqueness, columns and predicates—can establish more.
 
 **Delivery topology** — the exchange, bindings, durable queues and dead-letter routes that connect

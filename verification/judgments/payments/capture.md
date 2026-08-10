@@ -1,5 +1,9 @@
 # Judgments: payments/capture
 
+Revalidated 2026-08-10 after D27 added stable mechanism ids. The semantic diff changed no
+enforcement, binding, expectation, rationale, claim, evidence form or source; the prior verdict
+rationales therefore remain applicable and only their freshness fingerprints moved.
+
 Re-judged 2026-08-08 after completion crossed a real broker. The producer transaction, declared
 topology, Payments inbox and automatic settlement were read as separate mechanisms. Broker
 redelivery evidence replaced the former shared-table assertion for `duplicate-completion-event`;
@@ -19,8 +23,8 @@ was not evidence of cancellation. Both claims now run through real Trips and Pay
 
 ## Claim: capture-created-on-completion
 Verdict: sound
-Fingerprint: 41c60ba61c717689
-Judged: 2026-08-08
+Fingerprint: 3a09e7b075d27dca
+Judged: 2026-08-10
 Judge: codex
 
 The e2e moves a real trip through accept, start and complete, then waits without calling the dispatch
@@ -31,8 +35,8 @@ universal floor accepted in the verification plan.
 
 ## Claim: no-capture-before-completion
 Verdict: sound
-Fingerprint: c275c97aac03f1d2
-Judged: 2026-08-08
+Fingerprint: f3c850ea769f7799
+Judged: 2026-08-10
 Judge: codex
 
 The same real-process test dispatches Payments immediately after admission and observes 404 for that
@@ -41,8 +45,8 @@ all trips fails. The one-state sample is recorded rather than disguised as unive
 
 ## Claim: no-capture-on-cancellation-without-fee
 Verdict: sound
-Fingerprint: c357d03546ef09f2
-Judged: 2026-08-08
+Fingerprint: ce088e71a86be5b9
+Judged: 2026-08-10
 Judge: codex
 
 The e2e now actually cancels through Trips, dispatches Payments and observes no capture. This
@@ -51,8 +55,8 @@ on the no-fee cancellation branch fails the new evidence.
 
 ## Claim: duplicate-completion-event
 Verdict: sound
-Fingerprint: 1dbc71e358269f48
-Judged: 2026-08-08
+Fingerprint: 27f2125fedd0480f
+Judged: 2026-08-10
 Judge: codex
 
 The Payments component test sends one completion event seven times through real RabbitMQ, followed
@@ -62,8 +66,8 @@ breaks a distinct assertion. The capture constraint remains separate evidence fo
 
 ## Claim: concurrent-completion-processing
 Verdict: sound
-Fingerprint: 1f178f62642207bf
-Judged: 2026-08-08
+Fingerprint: f61212ea41285e10
+Judged: 2026-08-10
 Judge: codex
 
 Eight workers dispatch one pending intent concurrently against real PostgreSQL for five trials; all
@@ -72,8 +76,8 @@ one row and fails the count. Distinct workers, rather than sequential repeats, e
 
 ## Claim: retry-after-transport-failure
 Verdict: sound
-Fingerprint: 96257254ffa78513
-Judged: 2026-08-08
+Fingerprint: 61bcc8ce054c2cb4
+Judged: 2026-08-10
 Judge: codex
 
 The provider seam returns `Unobserved` followed by `Captured`, five dispatch retries are made, and
@@ -83,8 +87,8 @@ the asserted count at zero. Provider reconciliation remains a design residue.
 
 ## Claim: capture-equals-trip-fare
 Verdict: sound
-Fingerprint: 69a741ea18b2d3e7
-Judged: 2026-08-08
+Fingerprint: ff0d82242a960218
+Judged: 2026-08-10
 Judge: codex
 
 Component evidence ranges over amounts and currencies encoded as multi-component signed quotes,
@@ -95,8 +99,8 @@ on the intent anymore. `CaptureTrip` was checked and decodes before provider I/O
 
 ## Claim: adjusted-capture-records-reason
 Verdict: sound
-Fingerprint: 345e5f107c7aecd4
-Judged: 2026-08-08
+Fingerprint: 599045066d2f3c5b
+Judged: 2026-08-10
 Judge: codex
 
 For four reasons and 24 generated cases, the test keeps the signed quote total separate from a

@@ -203,6 +203,34 @@ fn realizes_cannot_carry_a_form() {
 }
 
 #[test]
+fn mechanism_relations_parse_in_the_normalized_manifest() {
+    let root = json::parse(
+        r#"{
+          "mechanism_implementations": [{
+            "spec":"alpha","mechanism":"guard","binding":"dotnet-symbol:Alpha.Guard",
+            "file":"a.cs","lang":"csharp","source_fingerprint":"abc"
+          }],
+          "mechanism_covers": [{
+            "spec":"alpha","mechanism":"guard","site":"Tests.Guard","file":"t.cs",
+            "lang":"csharp","source_fingerprint":"def","scope":"component",
+            "quantification":"universal","oracle":"model-based"
+          }]
+        }"#,
+    )
+    .unwrap();
+    let manifest = manifest::parse("m.json", &root).expect("manifest parses");
+    assert_eq!(manifest.mechanism_implementations[0].mechanism, "guard");
+    assert_eq!(
+        manifest.mechanism_implementations[0].binding,
+        "dotnet-symbol:Alpha.Guard"
+    );
+    assert_eq!(
+        manifest.mechanism_covers[0].quantification.unwrap().name(),
+        "universal"
+    );
+}
+
+#[test]
 fn unknown_form_values_are_rejected() {
     let root = json::parse(
         r#"{"covers":[{"spec":"alpha","scenario":"guarded","site":"X","file":"t.cs",

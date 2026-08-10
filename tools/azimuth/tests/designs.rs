@@ -2,7 +2,7 @@
 
 use azimuth::check::{rtm, HoleKind};
 use azimuth::design::{parse_design, Enforcement, Target};
-use azimuth::model::{Artifact, Model};
+use azimuth::model::{Artifact, MechanismCover, MechanismImplementation, Model};
 use azimuth::plan::{parse_plan, parse_standards};
 use azimuth::spec::parse_spec;
 
@@ -72,18 +72,20 @@ fn model(design_source: &str, plan_source: &str) -> Model {
             .entries
             .iter()
             .flat_map(|entry| &entry.mechanisms)
-            .map(|mechanism| Artifact {
-                id: mechanism.binding.clone(),
-                kind: match mechanism.kind {
-                    Enforcement::Type => "dotnet-type",
-                    Enforcement::Constraint => "database-index",
-                    _ => "dotnet-method",
-                }
-                .into(),
-                file: "subject.cs".into(),
-                unique: (mechanism.kind == Enforcement::Constraint).then_some(true),
-                columns: vec![],
-                predicate: None,
+            .filter_map(|mechanism| {
+                mechanism.binding.as_ref().map(|binding| Artifact {
+                    id: binding.clone(),
+                    kind: match mechanism.kind {
+                        Enforcement::Type => "dotnet-type",
+                        Enforcement::Constraint => "database-index",
+                        _ => "dotnet-method",
+                    }
+                    .into(),
+                    file: "subject.cs".into(),
+                    unique: (mechanism.kind == Enforcement::Constraint).then_some(true),
+                    columns: vec![],
+                    predicate: None,
+                })
             })
             .collect();
     }
@@ -104,6 +106,7 @@ const DESIGN: &str = "\
 # Design: alpha
 
 ## Requirement: matters
+Mechanism: concurrent-insert-constraint
 Enforcement: constraint
 Binding: `ux_alpha_thing` — partial unique index on `things(alpha_id)`
 
@@ -122,8 +125,13 @@ fn parses_a_design() {
     let entry = &d.entries[0];
     assert_eq!(entry.target, Target::Requirement("matters".into()));
     assert_eq!(entry.mechanisms.len(), 1);
+    assert_eq!(entry.mechanisms[0].id, "concurrent-insert-constraint");
     assert_eq!(entry.mechanisms[0].kind, Enforcement::Constraint);
-    assert!(entry.mechanisms[0].binding.contains("ux_alpha_thing"));
+    assert!(entry.mechanisms[0]
+        .binding
+        .as_deref()
+        .unwrap()
+        .contains("ux_alpha_thing"));
     assert!(d.residue.contains("optimistically"));
 }
 
@@ -136,7 +144,10 @@ Expect: unique=true; columns=alpha_id; predicate=active",
     );
     let design = parse_design("d.md", &source).expect("parses");
     let mechanism = &design.entries[0].mechanisms[0];
-    assert_eq!(mechanism.binding, "postgres-index:things.ux_alpha_thing");
+    assert_eq!(
+        mechanism.binding.as_deref(),
+        Some("postgres-index:things.ux_alpha_thing")
+    );
     assert_eq!(mechanism.expected_unique, Some(true));
     assert_eq!(mechanism.expected_columns, ["alpha_id"]);
     assert_eq!(mechanism.expected_predicate.as_deref(), Some("active"));
@@ -150,8 +161,10 @@ fn a_requirement_may_carry_several_mechanisms() {
 # Design: alpha
 
 ## Requirement: matters
+Mechanism: transition-writer
 Enforcement: choke-point
 Binding: `Alpha.Transition` is the only writer
+Mechanism: current-state-constraint
 Enforcement: constraint
 Binding: conditional update predicated on current state
 
@@ -165,13 +178,10 @@ The choke point alone does not survive concurrency.
 }
 
 #[test]
-fn every_enforcement_needs_a_binding() {
-    let source = DESIGN.replace(
-        "Binding: `ux_alpha_thing` — partial unique index on `things(alpha_id)`\n",
-        "",
-    );
+fn every_mechanism_needs_an_enforcement() {
+    let source = DESIGN.replace("Enforcement: constraint\n", "");
     let text = design_err(&source);
-    assert!(text.contains("names no binding"), "{text}");
+    assert!(text.contains("has no enforcement"), "{text}");
 }
 
 #[test]
@@ -217,6 +227,7 @@ fn an_entry_needs_a_reason() {
 # Design: alpha
 
 ## Requirement: matters
+Mechanism: constraint
 Enforcement: constraint
 Binding: an index
 ";
@@ -228,11 +239,105 @@ Binding: an index
 #[test]
 fn strength_is_never_written_in_a_design_entry() {
     let source = DESIGN.replace(
-        "Enforcement: constraint",
-        "Strength: proof\nEnforcement: constraint",
+        "Mechanism: concurrent-insert-constraint",
+        "Strength: proof\nMechanism: concurrent-insert-constraint",
     );
     let text = design_err(&source);
     assert!(text.contains("unrecognized line"), "{text}");
+}
+
+#[test]
+fn a_code_mechanism_may_derive_its_binding_from_an_implementation_tag() {
+    let source = DESIGN.replace(
+        "Binding: `ux_alpha_thing` — partial unique index on `things(alpha_id)`\n",
+        "",
+    );
+    let mut m = model(&source, "");
+    m.mechanism_implementations.push(MechanismImplementation {
+        spec: "alpha".into(),
+        mechanism: "concurrent-insert-constraint".into(),
+        binding: "dotnet-symbol:Alpha.Insert".into(),
+        file: "alpha.cs".into(),
+        lang: "csharp".into(),
+        source_fingerprint: "abc".into(),
+    });
+    m.artifacts.push(Artifact {
+        id: "dotnet-symbol:Alpha.Insert".into(),
+        kind: "dotnet-method".into(),
+        file: "alpha.cs".into(),
+        unique: None,
+        columns: vec![],
+        predicate: None,
+    });
+
+    assert!(!kinds(&m)
+        .iter()
+        .any(|(kind, _)| *kind == HoleKind::UnresolvedDesignBinding));
+
+    m.mechanism_implementations.clear();
+    assert!(kinds(&m).contains(&(HoleKind::UnresolvedDesignBinding, "alpha#matters".into())));
+}
+
+#[test]
+fn a_mechanism_must_resolve_to_one_atomic_implementation() {
+    let mut m = model(DESIGN, "");
+    m.mechanism_implementations.push(MechanismImplementation {
+        spec: "alpha".into(),
+        mechanism: "concurrent-insert-constraint".into(),
+        binding: "dotnet-symbol:Alpha.Insert".into(),
+        file: "alpha.cs".into(),
+        lang: "csharp".into(),
+        source_fingerprint: "abc".into(),
+    });
+    let hole = rtm(&m)
+        .into_iter()
+        .find(|hole| hole.kind == HoleKind::UnresolvedDesignBinding)
+        .expect("explicit plus derived is ambiguous");
+    assert!(
+        hole.detail.contains("resolves to 2 bindings"),
+        "{}",
+        hole.detail
+    );
+}
+
+#[test]
+fn mechanism_ids_are_unique_across_the_design() {
+    let source = format!(
+        "{DESIGN}\n## Requirement: lesser\nMechanism: concurrent-insert-constraint\n\
+         Enforcement: guard\nBinding: another guard\n\nA reason.\n"
+    );
+    let text = design_err(&source);
+    assert!(text.contains("declared twice"), "{text}");
+}
+
+#[test]
+fn mechanism_links_to_an_unknown_design_identity_are_dangling() {
+    let mut m = model(DESIGN, "");
+    m.mechanism_implementations.push(MechanismImplementation {
+        spec: "alpha".into(),
+        mechanism: "ghost".into(),
+        binding: "dotnet-symbol:Alpha.Ghost".into(),
+        file: "alpha.cs".into(),
+        lang: "csharp".into(),
+        source_fingerprint: "abc".into(),
+    });
+    m.mechanism_covers.push(MechanismCover {
+        spec: "alpha".into(),
+        mechanism: "ghost".into(),
+        site: "ghost test".into(),
+        file: "alpha.test.cs".into(),
+        lang: "csharp".into(),
+        source_fingerprint: "def".into(),
+        scope: None,
+        quantification: None,
+        oracle: None,
+    });
+    let found = kinds(&m);
+    assert!(found.contains(&(
+        HoleKind::DanglingMechanismImplementation,
+        "alpha#ghost".into()
+    )));
+    assert!(found.contains(&(HoleKind::DanglingMechanismCover, "alpha#ghost".into())));
 }
 
 /// The residue attaches to no claim, participates in no check, and is the one part the machine
@@ -243,6 +348,7 @@ fn the_residue_is_never_parsed() {
 # Design: alpha
 
 ## Requirement: matters
+Mechanism: per-handler-check
 Enforcement: guard
 Binding: every handler checks
 
@@ -265,7 +371,7 @@ Binding: so is this one.
 #[test]
 fn a_critical_requirement_without_a_design_entry_is_a_hole() {
     let elsewhere =
-        "# Design: beta\n\n## Requirement: other\nEnforcement: guard\nBinding: x\n\nA reason.\n";
+        "# Design: beta\n\n## Requirement: other\nMechanism: guard\nEnforcement: guard\nBinding: x\n\nA reason.\n";
     let mut m = model("", "");
     m.designs = vec![azimuth::design::parse_design("beta.md", elsewhere).unwrap()];
     let holes = kinds(&m);
@@ -292,6 +398,7 @@ fn a_scenario_keyed_entry_also_satisfies_the_requirement() {
 # Design: alpha
 
 ## Claim: concurrent-thing
+Mechanism: concurrent-index
 Enforcement: constraint
 Binding: an index
 
@@ -309,6 +416,7 @@ fn a_design_entry_for_no_requirement_is_dangling() {
 # Design: alpha
 
 ## Requirement: ghost
+Mechanism: ghost-index
 Enforcement: constraint
 Binding: an index
 
@@ -336,6 +444,7 @@ Asserted without a mechanism.
 # Design: alpha
 
 ## Requirement: matters
+Mechanism: per-handler-guard
 Enforcement: guard
 Binding: every handler checks
 

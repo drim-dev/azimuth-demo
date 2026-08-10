@@ -58,6 +58,8 @@ export function importManualResults(value: unknown): Manifest {
       scope: result.scope,
       quantification: result.quantification,
     })),
+    mechanism_implementations: [],
+    mechanism_covers: [],
     class_members: [],
     enumerations: [],
     artifacts: [],

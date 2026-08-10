@@ -1,10 +1,13 @@
 # Design: analytics/trip-activity
 
 ## Requirement: trip-activity-reflects-lifecycle
+Mechanism: transactional-event-relay
 Enforcement: choke-point
 Binding: dotnet-symbol:Trips.Features.Events.TripEventRelay.RelayPending
+Mechanism: durable-broker-topology
 Enforcement: constraint
 Binding: dotnet-symbol:Common.Messaging.TripEventTopology.DeclareAsync
+Mechanism: idempotent-activity-consumer
 Enforcement: choke-point
 Binding: dotnet-symbol:Analytics.Features.TripActivity.ConsumeTripStateChanged.RequestHandler.Handle
 
@@ -19,8 +22,10 @@ those rows rather than incrementing mutable counters, so duplicates and old vers
 compensating arithmetic.
 
 ## Requirement: invalid-lifecycle-events-are-visible
+Mechanism: dead-letter-topology
 Enforcement: constraint
 Binding: dotnet-symbol:Common.Messaging.TripEventTopology.DeclareAsync
+Mechanism: invalid-event-dead-lettering
 Enforcement: choke-point
 Binding: dotnet-symbol:Analytics.Features.TripActivity.TripLifecycleConsumer.ExecuteAsync
 

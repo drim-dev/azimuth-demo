@@ -1,5 +1,9 @@
 # Judgments: trips/dispatch
 
+Revalidated 2026-08-10 after D27 added stable mechanism ids. The semantic diff changed no
+enforcement, binding, expectation, rationale, claim, evidence form or source; the prior verdict
+rationales therefore remain applicable and only their freshness fingerprints moved.
+
 Re-judged 2026-08-08 after assignment began writing a versioned lifecycle event. The conditional
 assignment, offer outcomes and refusal assertions remain unchanged; the winning transaction now
 also increments the aggregate version and commits one outbox event, while losing transactions write
@@ -66,8 +70,8 @@ against the store, but it is the half a rider actually experiences.
 
 ## Claim: first-acceptance-assigns
 Verdict: sound
-Fingerprint: 27aec30ab719174d
-Judged: 2026-08-08
+Fingerprint: 9dcfe21a3c5d4641
+Judged: 2026-08-10
 Judge: codex
 
 `Exactly_one_driver_is_assigned_however_many_accept_together` fires six acceptances at once, five
@@ -80,8 +84,8 @@ many accept and the test ranges over it.
 
 ## Claim: concurrent-acceptances-yield-one-assignment
 Verdict: sound
-Fingerprint: bd025692946de75e
-Judged: 2026-08-08
+Fingerprint: 3b57617226eb253a
+Judged: 2026-08-10
 Judge: codex
 
 The same test read as the claim states it: *any number of drivers accepting concurrently* yields
@@ -94,8 +98,8 @@ corpus, and is stated rather than hidden.
 
 ## Claim: late-acceptance-rejected
 Verdict: sound
-Fingerprint: c8742e187668e3b7
-Judged: 2026-08-08
+Fingerprint: 0523830f5f3dac43
+Judged: 2026-08-10
 Judge: codex
 
 The claim says *any further driver*, and the test now ranges over that. It seeds five drivers, lets

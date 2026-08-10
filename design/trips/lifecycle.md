@@ -1,6 +1,7 @@
 # Design: trips/lifecycle
 
 ## Requirement: transitions-follow-state-machine
+Mechanism: transition-state-machine
 Enforcement: choke-point
 Binding: dotnet-symbol:Trips.Domain.TripStateMachine.Next
 
@@ -17,8 +18,10 @@ compiler, so `unpermitted-transition-rejected` carries a model-based oracle rath
 vacuous.
 
 ## Requirement: terminal-states-are-final
+Mechanism: terminal-transition-state-machine
 Enforcement: choke-point
 Binding: dotnet-symbol:Trips.Domain.TripStateMachine.Next
+Mechanism: optimistic-state-update
 Enforcement: constraint
 Binding: dotnet-symbol:Trips.Features.Trips.TransitionTrip.RequestHandler.Handle
 

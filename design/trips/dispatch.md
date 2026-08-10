@@ -1,6 +1,7 @@
 # Design: trips/dispatch
 
 ## Requirement: single-acceptance
+Mechanism: conditional-offer-acceptance
 Enforcement: constraint
 Binding: dotnet-symbol:Trips.Features.Dispatch.AcceptOffer.RequestHandler.Handle
 

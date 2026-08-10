@@ -28,6 +28,13 @@ plan here would turn change history into design fiction.
 
 One file per spec, declaring the spec id. Path is convention, id is identity.
 
+A mechanism specific to one business rule lives with that rule's design. A reusable control such
+as authentication, rate limiting or circuit breaking belongs in a concern-oriented spec/design
+(`security/authentication`, `resilience/dependency-failures`), not copied into each consuming
+feature. How such a mechanism proves its application across several specs is intentionally still
+open; D27 requires the next real adoption to establish that relation before the framework adds a
+catalog or composition syntax.
+
 ## Entries key on the requirement, not the scenario
 
 Verification entries key on scenarios because the scenario is the unit of coverage. Mechanism
@@ -42,17 +49,18 @@ true.** An entry may key on a scenario where the mechanism genuinely differs per
 
 ```markdown
 ## Requirement: <requirement-id>
+Mechanism: <stable-mechanism-id>
 Enforcement: <kind>
-Binding: <machine-addressable artifact id emitted by a compiler or schema extractor>
+Binding: <optional machine-addressable artifact id emitted by an extractor>
 Expect: <optional derived properties that must match, such as uniqueness, columns or predicate>
 
 Prose: why this mechanism, what was rejected and why, and what breaks if it changes. Required.
 An entry that states a mechanism without a reason records a fact the code already knows.
 ```
 
-A requirement may carry several `Enforcement`/`Binding` pairs, in order, where more than one
-mechanism holds it up. C2 in the concern catalog is the worked example: a choke point *and* a
-representation constraint, for one rule.
+A requirement may carry several named mechanisms, in order, where more than one holds it up. Each
+mechanism id is stable and unique within its design. C2 in the concern catalog is the worked
+example: a choke point *and* a representation constraint, for one rule.
 
 ### Enforcement kinds
 
@@ -71,7 +79,19 @@ The closed set, ordered by D7's ladder:
 proof-strength evidence, which is why a claim enforced at rung 1 or 2 can carry a weaker evidence
 requirement without that being a bargain. Writing it would duplicate a derivable fact.
 
-### What `Binding` must be
+### Identity and binding
+
+`Mechanism:` is the independent conceptual anchor. Production code refers to it with
+`ImplementsMechanism(spec, mechanism)`; the extractor derives the exact symbol binding. Removing
+the marker or its code then leaves the design declaration unresolved. A rename with the marker
+intact changes the derived binding and expires judgments that read that source instead of leaving
+stale symbol prose.
+
+`Binding:` remains available for non-code artifacts, such as an index emitted from migration
+metadata. It is also accepted for code during incremental adoption. Exactly one binding must
+resolve: either one explicit binding or one extractor-derived implementation. Zero is an
+`unresolved-design-binding`; two or more are ambiguous, so a mechanism spanning two atomic sites
+must be declared as two mechanisms.
 
 `Binding:` is structural and exact; the paragraph below it carries the human explanation. A
 symbol binding establishes that the symbol exists, not that words such as “only” or “every” are
@@ -79,6 +99,7 @@ true. A schema binding may additionally carry an `Expect:` line because uniquene
 predicate are derivable from migration metadata and can therefore be compared exactly.
 
 ```markdown
+Mechanism: unique-quote-consumption
 Enforcement: constraint
 Binding: postgres-index:trips.ux_trip_quote
 Expect: unique=true; columns=quote_id
@@ -100,6 +121,16 @@ Symbol existence prevents fiction and some category errors; it does not establis
 absence of an escape hatch, complete middleware coverage or correct guard logic. Those assertions
 remain part of the agent judgment until a purpose-built analyzer can derive them. Middleware and
 guard coverage also need a sound enumerator (D13.1); a hand-listed set is worse than no check.
+
+### Mechanism evidence
+
+`CoversMechanism(spec, mechanism, scope, quantification, oracle)` marks evidence about the
+mechanism's own contract—for example, a circuit breaker's state transitions. It is separate from
+`Covers(spec, scenario, ...)`, which supports a business claim. A shared mechanism test is not
+duplicated for every dependent scenario, but it also does not automatically cover those scenarios:
+the relation proving that a mechanism is applied to every relevant domain member is not yet in the
+model. The next real mechanism change is intended to validate that composition before it becomes
+syntax.
 
 ## Residue
 

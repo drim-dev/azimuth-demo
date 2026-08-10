@@ -38,16 +38,17 @@ rather than from the check (D9.2).
 - **`manifest.rs`** reads linkage manifests, keyed on the pair `(spec, scenario)` (D2.2). The
   alpha's triple is rejected with an explanation rather than silently accepted, so a stale emitter
   cannot produce tags that look fine and are not. Manifests also carry derived enumeration
-  witnesses and compiler/schema artifacts.
+  witnesses, compiler/schema artifacts, mechanism implementations and mechanism evidence.
 - **`plan.rs`** parses `verification/standards.md` and the plans. Entries are deviations only — a
   claim with no entry is not unplanned, the standard applies. `Scope`/`Quantification`/`Oracle`
   state the *required* form; `Evidence` and its `Strength` declare a *provided* item, and
   `Strength` alone is an error because it reads as either.
 - **`design.rs`** parses the mechanism facet. Entries key on the requirement — one index makes all
   three `captured-once` scenarios true, and recording it three times would be duplication. A
-  requirement may carry several `Enforcement`/`Binding` pairs. A binding must resolve against an
-  emitted artifact; `Expect:` can compare derived index properties. Strength is never written: it
-  derives from the enforcement kind (D7). The `## Residue` section is read and never parsed.
+  requirement may carry several stable mechanism ids. Each resolves to exactly one emitted
+  artifact through an explicit binding or one extractor-derived implementation site; `Expect:` can
+  compare derived index properties. Strength is never written: it derives from the enforcement
+  kind (D7). The `## Residue` section is read and never parsed.
 - **`judgment.rs`** reads the agent tier's verdicts — `sound`, `toothless`, `dishonest-tag`,
   `spec-gap` — each carrying a fingerprint over everything the judgment looked at.
 - **`check.rs`** runs `rtm`.
@@ -71,7 +72,7 @@ Four behaviours worth knowing:
 
 ### Hole kinds
 
-Twenty-five, in seven groups.
+Twenty-seven, in seven groups.
 
 **Missing-facet** (D3's central structural claim — the facet is simply absent):
 
@@ -92,6 +93,8 @@ kinds and the two site-class kinds are not missing-facet combinations either. Se
 
 **Cross-facet consistency:** `unbacked-proof`, `unresolved-design-binding`,
 `unresolved-evidence-binding`, `unresolved-detector-binding`, `enforcement-mismatch`.
+
+**Mechanism linkage:** `dangling-mechanism-implementation`, `dangling-mechanism-cover`.
 
 **Agent tier** — findings the machine tier structurally cannot reach, because a tag is only as
 honest as whoever wrote it: `toothless-evidence`, `dishonest-tag-judged`, `spec-gap`,

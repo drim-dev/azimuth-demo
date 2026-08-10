@@ -1,5 +1,15 @@
 # Judgments: trips/request
 
+Revalidated 2026-08-10 after quote validation moved from a feature-local design entry to the
+reusable `security/quote-tokens` concern. Every stale covering body, the admission handler and both
+index definitions were re-read. The handler still invokes the same decoder before writing, and the
+new canonical decoding check narrows malformed input, so the existing verdict rationales remain
+applicable while the design ownership becomes more accurate.
+
+Revalidated 2026-08-10 after D27 added stable mechanism ids. The semantic diff changed no
+enforcement, binding, expectation, rationale, claim, evidence form or source; the prior verdict
+rationales therefore remain applicable and only their freshness fingerprints moved.
+
 Re-judged 2026-08-08 after admission acquired aggregate version one and an atomic requested-event
 outbox write. All admission evidence passed against the expanded real schema. The new unique
 `(trip_id, version)` event constraint cannot satisfy either existing trip uniqueness rule on their
@@ -28,8 +38,8 @@ longer describes the system.
 
 ## Claim: request-admitted-with-valid-quote
 Verdict: sound
-Fingerprint: ea8420e64999d346
-Judged: 2026-08-08
+Fingerprint: 96cabee9ac177e9f
+Judged: 2026-08-10
 Judge: codex
 
 *(supersedes `dishonest-tag` — "two covering tests, both declaring `invariant`, both scripting a
@@ -54,8 +64,8 @@ quote that has not expired", and the near side of that boundary is exercised by
 
 ## Claim: request-rejected-with-expired-quote
 Verdict: sound
-Fingerprint: 2bd16daba889d570
-Judged: 2026-08-08
+Fingerprint: 9a479865bab37eab
+Judged: 2026-08-10
 Judge: codex
 
 *(supersedes `dishonest-tag` — "probes exactly one point: one minute past expiry")*
@@ -72,8 +82,8 @@ window still passes.
 
 ## Claim: request-rejected-with-unknown-quote
 Verdict: sound
-Fingerprint: cb7c039840bca1a5
-Judged: 2026-08-08
+Fingerprint: d76a17d9fb784c32
+Judged: 2026-08-10
 Judge: codex
 
 *(supersedes `dishonest-tag` — "declares an oracle the test does not use, about a boundary that does
@@ -89,8 +99,8 @@ altered case; treating malformed input as a server error fails the response asse
 
 ## Claim: quote-consumed-once
 Verdict: sound
-Fingerprint: 225b7310623cec61
-Judged: 2026-08-08
+Fingerprint: d2d88733e28fb90e
+Judged: 2026-08-10
 Judge: codex
 
 Re-judged unchanged after the file was rewritten; the test itself was not modified. Eight concurrent
@@ -141,8 +151,8 @@ and the verdict stands.
 
 ## Claim: second-request-rejected-while-active
 Verdict: sound
-Fingerprint: 41ef91971a4d7bed
-Judged: 2026-08-08
+Fingerprint: c02decf99c14c1bf
+Judged: 2026-08-10
 Judge: codex
 
 Re-judged after a strengthening the first pass asked for. Eight concurrent requests for one rider
@@ -155,8 +165,8 @@ entire mechanism; without it all eight insert and the count fails. Verified by r
 
 ## Claim: request-admitted-after-terminal
 Verdict: sound
-Fingerprint: da97be16d910d593
-Judged: 2026-08-08
+Fingerprint: a0039f6e281bf3f5
+Judged: 2026-08-10
 Judge: codex
 
 *(supersedes `toothless` — "there are two terminal states and the test exercises one… drop

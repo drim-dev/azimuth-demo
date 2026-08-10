@@ -1,5 +1,9 @@
 # Judgments: trips/lifecycle
 
+Revalidated 2026-08-10 after D27 added stable mechanism ids. The semantic diff changed no
+enforcement, binding, expectation, rationale, claim, evidence form or source; the prior verdict
+rationales therefore remain applicable and only their freshness fingerprints moved.
+
 Re-judged 2026-08-08 after transitions began incrementing aggregate version and committing lifecycle
 events. The event write shares the locked state transaction. Replay evidence now also observes four
 outbox rows for request, assignment, start and completion, so replay cannot silently duplicate the
@@ -30,8 +34,8 @@ system; the expected answer comes from a model that can disagree with it. That i
 
 ## Claim: assigned-to-in-progress
 Verdict: sound
-Fingerprint: a54716eb5a41ac72
-Judged: 2026-08-08
+Fingerprint: dbf916de7d686389
+Judged: 2026-08-10
 Judge: codex
 
 Covered by `Exactly_the_permitted_pairs_are_accepted`, which walks every state–event pair and
@@ -44,8 +48,8 @@ started trip moves to in-progress cannot notice that the same event is wrongly a
 
 ## Claim: in-progress-to-completed
 Verdict: sound
-Fingerprint: 05f2ac73187a3b8b
-Judged: 2026-08-08
+Fingerprint: 69a63289be7841d4
+Judged: 2026-08-10
 Judge: codex
 
 The same table, the cell `(InProgress, Complete)`. Same reasoning, and the component tests exercise
@@ -54,8 +58,8 @@ transition is not only modelled but executed.
 
 ## Claim: unpermitted-transition-rejected
 Verdict: sound
-Fingerprint: d72f502ea290b523
-Judged: 2026-08-08
+Fingerprint: 1c480de32387f7bc
+Judged: 2026-08-10
 Judge: codex
 
 The claim quantifies over "a trip in any state" and "a transition not permitted from that state",
@@ -72,8 +76,8 @@ derived, which is the part D13.1 constrains.
 
 ## Claim: no-transition-out-of-terminal
 Verdict: sound
-Fingerprint: b7e321609426970b
-Judged: 2026-08-08
+Fingerprint: 4fce8fee1888bf54
+Judged: 2026-08-10
 Judge: codex
 
 Two tests, at two scopes, and both are needed.
@@ -91,8 +95,8 @@ the component test is what excludes that.
 
 ## Claim: replayed-transition-is-inert
 Verdict: sound
-Fingerprint: 6cbfd948bfd0dd16
-Judged: 2026-08-08
+Fingerprint: 35b9d35b451d44f5
+Judged: 2026-08-10
 Judge: codex
 
 `A_replayed_transition_changes_nothing_however_many_times_it_arrives` completes a trip, then fires

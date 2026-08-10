@@ -37,6 +37,8 @@ public sealed class QuoteTokenCodec
         _key = Encoding.UTF8.GetBytes(key);
     }
 
+    [ImplementsMechanism("security/quote-tokens", "quote-token-issuance")]
+    [Realizes("security/quote-tokens", "issued-token-round-trips")]
     public string Encode(QuotePayload payload)
     {
         Validate(payload);
@@ -47,6 +49,10 @@ public sealed class QuoteTokenCodec
 
     [Realizes("pricing/quote", "total-equals-components")]
     [Realizes("pricing/quote", "surge-is-a-quote-component")]
+    [ImplementsMechanism("security/quote-tokens", "quote-token-validation")]
+    [Realizes("security/quote-tokens", "issued-token-round-trips")]
+    [Realizes("security/quote-tokens", "altered-token-rejected")]
+    [Realizes("security/quote-tokens", "foreign-signature-rejected")]
     public QuotePayload Decode(string token)
     {
         var parts = token.Split('.');
@@ -140,6 +146,11 @@ public sealed class QuoteTokenCodec
             0 => "",
             _ => throw new FormatException(),
         };
-        return Convert.FromBase64String(padded);
+        var decoded = Convert.FromBase64String(padded);
+        if (!string.Equals(Base64Url(decoded), value, StringComparison.Ordinal))
+        {
+            throw new FormatException();
+        }
+        return decoded;
     }
 }

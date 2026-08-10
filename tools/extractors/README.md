@@ -22,6 +22,15 @@ what makes splitting or merging a requirement free, since no tag moves.
                  "scope": "unit|component|e2e",
                  "quantification": "example|universal",
                  "oracle": "direct|golden|metamorphic|model-based|contract" }],
+  "mechanism_implementations": [
+    { "spec": "", "mechanism": "", "binding": "", "file": "", "lang": "",
+      "source_fingerprint": "" }
+  ],
+  "mechanism_covers": [
+    { "spec": "", "mechanism": "", "site": "", "file": "", "lang": "",
+      "source_fingerprint": "", "scope": "unit|component|e2e",
+      "quantification": "example|universal", "oracle": "direct|golden|metamorphic|model-based|contract" }
+  ],
   "enumerations": [{ "class": "", "kind": "", "source": "",
                      "source_fingerprint": "" }],
   "class_members": [{ "class": "", "site": "", "file": "", "lang": "" }],
@@ -40,6 +49,10 @@ when an extractor cannot resolve a site, the core conservatively hashes the comp
 An enumeration witness says where a class came from independently of linkage tags. Its members are
 authoritative only when the source was read completely; a missing build output or unresolved member
 fails emission. Artifacts are exact binding targets for current design entries.
+
+`mechanism_implementations` derives a concrete binding from a tag referring to an independent
+design mechanism id. `mechanism_covers` records tests of that mechanism's contract. Neither array
+is claim linkage, and mechanism evidence is never promoted automatically into `covers`.
 
 ## dotnet
 
@@ -104,11 +117,13 @@ The importer preserves failures, result attribution, observation time, expiry an
 fingerprint. A failed or expired receipt is a hole and does not count as coverage. A charter or test
 case without an executed result emits nothing.
 
-## Evidence opt-in
+## Linkage opt-in
 
 `covers` opts a test into the evidence model. An untagged test emits nothing: it may exercise
 routine behavior, infrastructure or a project rule that no Azimuth claim names. `uncovered` is
 derived in the other direction, from a standard or critical claim with no sufficient evidence.
+Likewise, mechanism markers participate only when a design declares the named identity; orphaned
+implementation or evidence markers are dangling holes.
 
 ## Tests
 

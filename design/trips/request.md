@@ -1,22 +1,24 @@
 # Design: trips/request
 
 ## Requirement: valid-quote-required
+Mechanism: ride-request-handler
 Enforcement: choke-point
 Binding: dotnet-symbol:Trips.Features.Trips.RequestRide.RequestHandler.Handle
-Enforcement: guard
-Binding: dotnet-symbol:Pricing.QuoteTokenCodec.Decode
+Mechanism: unique-quote-consumption
 Enforcement: constraint
 Binding: postgres-index:trips.ux_trip_quote
 Expect: unique=true; columns=quote_id
 
 One admission path rather than validation spread across the BFF and the service. Pricing is not
 called at admission: token authenticity and internal consistency are local, so a Pricing outage
-cannot turn a live quote into an unknown one.
+cannot turn a live quote into an unknown one. The reusable issuance and validation controls live in
+`security/quote-tokens`; this handler is their current trip-admission application.
 
 The token supplies quote identity across the process boundary. The index records consumption on the
 trip and settles concurrent requests without writing Pricing's store.
 
 ## Requirement: one-active-trip-per-rider
+Mechanism: unique-active-trip
 Enforcement: constraint
 Binding: postgres-index:trips.ux_trip_rider_active
 Expect: unique=true; columns=rider_id; predicate=state NOT IN ('completed', 'cancelled')
@@ -31,5 +33,6 @@ currently catches that.
 
 ## Residue
 
-Trips and Pricing share a signing key. A compromised consumer can therefore mint quotes; asymmetric
-signing would narrow that authority but adds key lifecycle work this fixture does not exercise.
+The machine can resolve the admission handler and the reusable verifier independently, but it does
+not derive the call between them. `security/quote-tokens` records the application-enumeration gap;
+repeating a hand-written consumer list here would not close it.

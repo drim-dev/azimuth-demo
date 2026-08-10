@@ -14,14 +14,17 @@ components and total with HMAC-SHA256. Trips and Payments share the codec and va
 neither calls Pricing while consuming a quote. Each validates the token and its component sum.
 
 ## Requirement: money-representation
+Mechanism: decimal-money-type
 Enforcement: type
 Binding: dotnet-symbol:Pricing.Money
 
 Violation is unrepresentable within .NET. Currency agreement remains a runtime check.
 
 ## Requirement: quote-components-sum-to-total
+Mechanism: quote-token-encoder
 Enforcement: choke-point
 Binding: dotnet-symbol:Pricing.QuoteTokenCodec.Encode
+Mechanism: quote-token-decoder
 Enforcement: guard
 Binding: dotnet-symbol:Pricing.QuoteTokenCodec.Decode
 
@@ -30,6 +33,7 @@ internally inconsistent payload is still unusable, rather than treating possessi
 permission to violate quote structure.
 
 ## Requirement: surge-policy-applied
+Mechanism: quote-issuance-handler
 Enforcement: choke-point
 Binding: dotnet-symbol:Pricing.Service.Features.Quotes.IssueQuote.RequestHandler.Handle
 
@@ -42,9 +46,6 @@ boundary. Missing and stale pressure select zero surge rather than preventing qu
 derivation from trip and driver events are absent. Tests establish freshness and policy mapping,
 not that the observation represents production reality. Revisit when a second behavior consumes
 market pressure.
-
-**The signing key is shared by three services in configuration.** Distribution, rotation and
-compromise recovery are not exercised by this fixture.
 
 **The type protects each language separately.** The rider app carries minor units as JavaScript
 numbers. A mobile or high-value boundary could lose integer precision; contract evidence must be

@@ -115,6 +115,27 @@ public sealed class CollectorTests
     }
 
     [Fact]
+    public void A_mechanism_implementation_derives_its_symbol_binding()
+    {
+        var entry = Assert.Single(
+            Collect().MechanismImplementations,
+            item => item.Mechanism == "branch-selection");
+        Assert.Equal("alpha", entry.Spec);
+        Assert.Equal("dotnet-symbol:Azimuth.Fixture.Production.Branching", entry.Binding);
+    }
+
+    [Fact]
+    public void Mechanism_evidence_carries_its_actual_form()
+    {
+        var entry = Assert.Single(
+            Collect().MechanismCovers,
+            item => item.Mechanism == "branch-selection");
+        Assert.Equal("component", entry.Scope);
+        Assert.Equal("universal", entry.Quantification);
+        Assert.Equal("model-based", entry.Oracle);
+    }
+
+    [Fact]
     public void An_omitted_oracle_takes_its_default()
     {
         var entry = Assert.Single(
@@ -179,6 +200,8 @@ public sealed class CollectorTests
         Assert.False(realizes.TryGetProperty("scope", out _));
 
         Assert.NotEmpty(root.GetProperty("covers").EnumerateArray());
+        Assert.NotEmpty(root.GetProperty("mechanism_implementations").EnumerateArray());
+        Assert.NotEmpty(root.GetProperty("mechanism_covers").EnumerateArray());
         Assert.NotEmpty(root.GetProperty("artifacts").EnumerateArray());
         Assert.False(root.TryGetProperty("untraced_tests", out _));
     }

@@ -117,6 +117,10 @@ pub fn load(
             Ok(m) => {
                 model.realizes.extend(m.realizes);
                 model.covers.extend(m.covers);
+                model
+                    .mechanism_implementations
+                    .extend(m.mechanism_implementations);
+                model.mechanism_covers.extend(m.mechanism_covers);
                 model.class_members.extend(m.class_members);
                 model.enumerations.extend(m.enumerations);
                 model.artifacts.extend(m.artifacts);
@@ -134,6 +138,12 @@ pub fn load(
             .retain(|s| only.iter().any(|p| selects(p, &s.spec)));
         model
             .covers
+            .retain(|s| only.iter().any(|p| selects(p, &s.spec)));
+        model
+            .mechanism_implementations
+            .retain(|s| only.iter().any(|p| selects(p, &s.spec)));
+        model
+            .mechanism_covers
             .retain(|s| only.iter().any(|p| selects(p, &s.spec)));
     }
 

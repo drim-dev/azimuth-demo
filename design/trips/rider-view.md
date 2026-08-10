@@ -1,6 +1,7 @@
 # Design: trips/rider-view
 
 ## Requirement: driver-hidden-before-assignment
+Mechanism: pre-assignment-rider-projection
 Enforcement: guard
 Binding: dotnet-symbol:Trips.Domain.RiderProjection.For
 
@@ -13,6 +14,7 @@ driver service directly. The projection protects one path, not the class of all 
 paths. That gap is the point of the residual in `verification/trips/rider-view.md`.
 
 ## Requirement: driver-hidden-after-terminal
+Mechanism: terminal-rider-projection
 Enforcement: choke-point
 Binding: dotnet-symbol:Trips.Domain.RiderProjection.For
 
@@ -28,8 +30,10 @@ cannot have, and the agent tier cited it as evidence for two `spec-gap` verdicts
 checked the code against it.)*
 
 ## Requirement: position-confined-to-live-phases
+Mechanism: live-position-projection
 Enforcement: guard
 Binding: dotnet-symbol:Trips.Domain.RiderProjection.For
+Mechanism: driver-position-query
 Enforcement: choke-point
 Binding: dotnet-symbol:Trips.Features.Trips.GetTripDriver.RequestHandler.Handle
 

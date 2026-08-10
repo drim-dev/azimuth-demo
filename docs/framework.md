@@ -37,7 +37,8 @@ Everything else is structure layered over these, and D8 requires each layer to b
 breaking the core (§0.1 of `decisions.md`):
 
 1. **Claims** — stable ids, criticality, the domain they range over (D13), and three facets (D3).
-2. **Tags** — `realizes` and `covers`, binding code and tests to standard and critical claims.
+2. **Tags** — claim linkage (`realizes`, `covers`) and mechanism linkage
+   (`implements-mechanism`, `covers-mechanism`).
 3. **Evidence** — carrying strength and freshness (D4).
 4. **The derived model** over the above, exported (D10).
 5. **Changes** — the unit in which all of it moves (D11).
@@ -65,12 +66,11 @@ than per requirement, which is what makes splitting or merging a requirement fre
 between parents without touching a tag. Ids are declared in headings and never derived from paths,
 so moving a file breaks nothing (`specs/README.md`).
 
-**Mechanism.** An entry names a specific artifact — an index, a type, a choke point — and asserts
-that it is what holds the claim up. Nothing structural is written, because anything a machine could
-derive from the code and the tags does not belong there. This is what makes a design document
-checkable instead of believable: when the code stops matching, that is a hole rather than stale
-prose (`design/README.md`). Entries key on the requirement because one index typically makes every
-scenario under it true at once.
+**Mechanism.** An entry declares a stable mechanism identity, enforcement kind and rationale, then
+resolves it to exactly one current artifact. A non-code artifact may be bound explicitly; a code
+annotation normally lets its native extractor derive the binding. This is what makes deletion
+visible: the design identity survives while the implementation edge disappears. Entries key on the
+requirement because one index typically makes every scenario under it true at once.
 
 **Evidence.** A plan records what *would be sufficient* to believe a claim, never what currently
 exists — existing evidence is derived from `covers` tags, and hand-listing it would create a second
@@ -108,7 +108,7 @@ must use it before the parser or archive command is designed (D21.3).
 
 ## Linkage
 
-Two tags, both keyed on the pair `(spec-id, scenario-id)`:
+Claim linkage has two tags, both keyed on `(spec-id, scenario-id)`:
 
 - **`realizes`**, on production code: this site is on that claim's path. Carries no form, because
   form is how a test checks and not a property of code.
@@ -123,6 +123,17 @@ Azimuth's evidence model, not an exemption and not a hole (D20.1).
 **Fan-out** — one claim realized at several sites, across components and languages — is the reason
 specs are organized by domain area rather than by service. Mirroring services would duplicate every
 cross-component claim.
+
+Mechanism linkage is symmetric but has a different target:
+
+- **`implements-mechanism`**, on production code, binds a compiler-resolved symbol to the stable
+  `(design spec, mechanism id)` declaration. The design may instead carry an explicit `Binding:`
+  for an extractor-resolved non-code artifact.
+- **`covers-mechanism`**, on a test, records evidence for the mechanism's contract and actual form.
+
+Mechanism evidence does not automatically fan out into claim coverage. A circuit-breaker state
+machine may need one strong test suite, while each business claim still needs an honest account of
+whether the breaker is applied over the relevant surface and whether that establishes the claim.
 
 **Exemption** is a deliberate, attributable, reviewable opt-out from an obligation. An untagged
 test claims no Azimuth evidence and therefore needs no exemption (D6.3, D20.1).
@@ -288,13 +299,17 @@ transition around the three current-state facets.
 **Experimental.** Additive changes are projected and accepted archives are automated after two
 manual lifecycle observations. Other delta operations and rejected/abandoned archive automation
 remain absent. A general typed realization graph remains a proposal: the route experiment showed
-that derived surface membership does not imply semantic requirement discovery.
+that derived surface membership does not imply semantic requirement discovery. D27's mechanism
+identity and two linkage relations are implemented synthetically but have not yet been used by a
+product change.
 
 **Open.** Five of the seven questions recorded in `decisions.md` remain open — question 2 was closed
 by D26 and question 3 by D15 — and they are open because they need evidence from the fixture, not
 more argument: id semantics under split and merge; what `realizes` means for a rule with no site;
 what is tagged when enforcement is a DB constraint; whether the six-domain set is right and should
 stay closed (D13.3); how a generated check judges a domain whose members discharge differently.
+The next mechanism experiment also asks whether cross-spec application needs reusable domain ids,
+a mechanism catalog, or neither.
 
 **Explicit non-goals for this phase** include backward compatibility, migrations and semver;
 dashboards as deliverables (the export seam is the deliverable); and a configuration language for

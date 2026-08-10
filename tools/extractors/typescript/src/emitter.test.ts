@@ -88,6 +88,48 @@ test('an oracle is carried when given', () => {
   assert.equal(result.covers[0].oracle, 'model-based');
 });
 
+test('a mechanism implementation derives a symbol binding', () => {
+  const result = scanText(
+    `export function selectBranch() { implementsMechanism('alpha', 'branch-selection'); }`,
+    'src/branch.ts',
+  );
+  assert.deepEqual(result.mechanismImplementations[0], {
+    spec: 'alpha',
+    mechanism: 'branch-selection',
+    binding: 'typescript-symbol:src/branch.ts#selectBranch',
+    file: 'src/branch.ts',
+    lang: 'typescript',
+    source_fingerprint: result.mechanismImplementations[0].source_fingerprint,
+  });
+});
+
+test('mechanism evidence carries the checking form', () => {
+  const result = scanText(
+    `test('all branches', () => {
+       coversMechanism('alpha', 'branch-selection', 'unit', 'universal', 'model-based');
+     });`,
+    'src/branch.test.ts',
+  );
+  assert.deepEqual(
+    {
+      spec: result.mechanismCovers[0].spec,
+      mechanism: result.mechanismCovers[0].mechanism,
+      site: result.mechanismCovers[0].site,
+      scope: result.mechanismCovers[0].scope,
+      quantification: result.mechanismCovers[0].quantification,
+      oracle: result.mechanismCovers[0].oracle,
+    },
+    {
+      spec: 'alpha',
+      mechanism: 'branch-selection',
+      site: 'all branches',
+      scope: 'unit',
+      quantification: 'universal',
+      oracle: 'model-based',
+    },
+  );
+});
+
 // Form is how a test checks, not a property of code — so realizes never carries one, and the
 // emitter has no way to attach one.
 test('realizes carries no form', () => {
@@ -136,7 +178,13 @@ test('an untagged test is outside the evidence model', () => {
      test('bare', () => { const x = 1; });`,
     'a.test.ts',
   );
-  assert.deepEqual(Object.keys(result).sort(), ['covers', 'realizes', 'warnings']);
+  assert.deepEqual(Object.keys(result).sort(), [
+    'covers',
+    'mechanismCovers',
+    'mechanismImplementations',
+    'realizes',
+    'warnings',
+  ]);
 });
 
 test('tsx parses', () => {

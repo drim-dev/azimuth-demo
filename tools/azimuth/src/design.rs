@@ -12,7 +12,7 @@ use crate::labels::read_block;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-const ENTRY_LABELS: &[&str] = &["Enforcement", "Binding", "Expect"];
+const ENTRY_LABELS: &[&str] = &["Mechanism", "Enforcement", "Binding", "Expect"];
 
 /// D7's ladder, strongest first. Strength is never written in an entry: it is derived from the
 /// kind, and writing it would duplicate a derivable fact.
@@ -75,8 +75,13 @@ impl Enforcement {
 
 #[derive(Debug, Clone)]
 pub struct Mechanism {
+    /// Stable identity owned by the design. Implementation and evidence tags refer to this id;
+    /// neither a symbol rename nor a test name becomes the conceptual identity by accident.
+    pub id: String,
     pub kind: Enforcement,
-    pub binding: String,
+    /// Explicit for non-code artifacts. Code extractors normally derive this from an
+    /// `ImplementsMechanism` site instead.
+    pub binding: Option<String>,
     pub expected_unique: Option<bool>,
     pub expected_columns: Vec<String>,
     pub expected_predicate: Option<String>,
@@ -201,6 +206,7 @@ pub fn parse_design(path: &str, source: &str) -> Result<Design, Vec<Diag>> {
     let mut spec: Option<String> = None;
     let mut entries: Vec<DesignEntry> = Vec::new();
     let mut residue = String::new();
+    let mut declared_mechanisms: Vec<String> = Vec::new();
     let mut fenced = false;
     let mut i = 0;
 
@@ -278,76 +284,109 @@ pub fn parse_design(path: &str, source: &str) -> Result<Design, Vec<Diag>> {
                     path,
                     *sl,
                     format!("unrecognized line `{text}` under `{id}`"),
-                    "`Enforcement:` and `Binding:`, in pairs",
+                    "a `Mechanism:` followed by `Enforcement:`, optional `Binding:` and `Expect:`",
                 ));
             }
 
-            // Pairs, in order: each `Enforcement` opens a mechanism and the `Binding` after it closes
-            // one. C2 in the concern catalog is the worked example — a choke point *and* a
-            // representation constraint, for one rule.
             let mut mechanisms: Vec<Mechanism> = Vec::new();
-            let mut pending: Option<(Enforcement, usize)> = None;
+            let mut pending: Option<MechanismDraft> = None;
             for label in &block.labels {
                 match label.key.as_str() {
-                    "Enforcement" => {
-                        if let Some((kind, line)) = pending.take() {
-                            errors.push(Diag::expecting(
-                                path,
-                                line,
-                                format!("`{}` names no binding", kind.name()),
-                                "a `Binding:` line after every `Enforcement:`",
-                            ));
-                        }
-                        match Enforcement::parse(&label.value) {
-                            Some(kind) => pending = Some((kind, label.line)),
-                            None => errors.push(Diag::expecting(
+                    "Mechanism" => {
+                        finish_mechanism(path, pending.take(), &mut mechanisms, &mut errors);
+                        if let Err(why) = validate_id(&label.value, false) {
+                            errors.push(Diag::at(
                                 path,
                                 label.line,
-                                format!("unknown enforcement `{}`", label.value),
-                                "type, schema, constraint, choke-point, middleware or guard",
-                            )),
+                                format!("invalid mechanism id: {why}"),
+                            ));
                         }
+                        if declared_mechanisms.contains(&label.value) {
+                            errors.push(Diag::at(
+                                path,
+                                label.line,
+                                format!("mechanism `{}` is declared twice", label.value),
+                            ));
+                        }
+                        declared_mechanisms.push(label.value.clone());
+                        pending = Some(MechanismDraft {
+                            id: label.value.clone(),
+                            line: label.line,
+                            kind: None,
+                            binding: None,
+                            expected_unique: None,
+                            expected_columns: Vec::new(),
+                            expected_predicate: None,
+                        });
                     }
-                    "Binding" => match pending.take() {
-                        Some((kind, _)) => {
+                    "Enforcement" => match pending.as_mut() {
+                        Some(draft) if draft.kind.is_none() => {
+                            match Enforcement::parse(&label.value) {
+                                Some(kind) => draft.kind = Some(kind),
+                                None => errors.push(Diag::expecting(
+                                    path,
+                                    label.line,
+                                    format!("unknown enforcement `{}`", label.value),
+                                    "type, schema, constraint, choke-point, middleware or guard",
+                                )),
+                            }
+                        }
+                        Some(_) => errors.push(Diag::at(
+                            path,
+                            label.line,
+                            "a mechanism declares enforcement twice",
+                        )),
+                        None => errors.push(Diag::expecting(
+                            path,
+                            label.line,
+                            "`Enforcement:` with no mechanism",
+                            "a `Mechanism:` line before it",
+                        )),
+                    },
+                    "Binding" => match pending.as_mut() {
+                        Some(draft) if draft.kind.is_some() && draft.binding.is_none() => {
                             if label.value.is_empty() {
                                 errors.push(Diag::at(path, label.line, "`Binding:` is empty"));
                             }
-                            mechanisms.push(Mechanism {
-                                kind,
-                                binding: label.value.clone(),
-                                expected_unique: None,
-                                expected_columns: Vec::new(),
-                                expected_predicate: None,
-                                line: label.line,
-                            });
+                            draft.binding = Some(label.value.clone());
                         }
-                        None => errors.push(Diag::expecting(
+                        Some(draft) if draft.kind.is_none() => errors.push(Diag::expecting(
                             path,
                             label.line,
                             "`Binding:` with no enforcement",
                             "an `Enforcement:` line before it",
                         )),
+                        Some(_) => errors.push(Diag::at(
+                            path,
+                            label.line,
+                            "a mechanism declares a binding twice",
+                        )),
+                        None => errors.push(Diag::expecting(
+                            path,
+                            label.line,
+                            "`Binding:` with no mechanism",
+                            "a `Mechanism:` and `Enforcement:` before it",
+                        )),
                     },
                     "Expect" => {
-                        if pending.is_some() {
+                        let Some(draft) = pending.as_mut() else {
                             errors.push(Diag::expecting(
                                 path,
                                 label.line,
-                                "`Expect:` before its binding",
-                                "a `Binding:` line before it",
-                            ));
-                            continue;
-                        }
-                        let Some(mechanism) = mechanisms.last_mut() else {
-                            errors.push(Diag::expecting(
-                                path,
-                                label.line,
-                                "`Expect:` with no binding",
-                                "a `Binding:` line before it",
+                                "`Expect:` with no mechanism",
+                                "a `Mechanism:` and `Enforcement:` before it",
                             ));
                             continue;
                         };
+                        if draft.kind.is_none() {
+                            errors.push(Diag::expecting(
+                                path,
+                                label.line,
+                                "`Expect:` before enforcement",
+                                "an `Enforcement:` line before it",
+                            ));
+                            continue;
+                        }
                         for part in label
                             .value
                             .split(';')
@@ -364,8 +403,8 @@ pub fn parse_design(path: &str, source: &str) -> Result<Design, Vec<Diag>> {
                             };
                             match key.trim() {
                                 "unique" => match value.trim() {
-                                    "true" => mechanism.expected_unique = Some(true),
-                                    "false" => mechanism.expected_unique = Some(false),
+                                    "true" => draft.expected_unique = Some(true),
+                                    "false" => draft.expected_unique = Some(false),
                                     other => errors.push(Diag::at(
                                         path,
                                         label.line,
@@ -373,7 +412,7 @@ pub fn parse_design(path: &str, source: &str) -> Result<Design, Vec<Diag>> {
                                     )),
                                 },
                                 "columns" => {
-                                    mechanism.expected_columns = value
+                                    draft.expected_columns = value
                                         .split(',')
                                         .map(str::trim)
                                         .filter(|column| !column.is_empty())
@@ -381,7 +420,7 @@ pub fn parse_design(path: &str, source: &str) -> Result<Design, Vec<Diag>> {
                                         .collect();
                                 }
                                 "predicate" => {
-                                    mechanism.expected_predicate = Some(value.trim().to_string())
+                                    draft.expected_predicate = Some(value.trim().to_string())
                                 }
                                 other => errors.push(Diag::at(
                                     path,
@@ -394,21 +433,14 @@ pub fn parse_design(path: &str, source: &str) -> Result<Design, Vec<Diag>> {
                     _ => unreachable!("labels are restricted at read time"),
                 }
             }
-            if let Some((kind, line)) = pending {
-                errors.push(Diag::expecting(
-                    path,
-                    line,
-                    format!("`{}` names no binding", kind.name()),
-                    "a `Binding:` line after every `Enforcement:`",
-                ));
-            }
+            finish_mechanism(path, pending, &mut mechanisms, &mut errors);
 
             if mechanisms.is_empty() {
                 errors.push(Diag::expecting(
                     path,
                     ln,
                     format!("`{id}` declares no mechanism"),
-                    "an `Enforcement:` and `Binding:` pair",
+                    "a `Mechanism:` and `Enforcement:` pair",
                 ));
             }
             // Without a reason, an entry records a fact the code already knows.
@@ -460,4 +492,41 @@ pub fn parse_design(path: &str, source: &str) -> Result<Design, Vec<Diag>> {
     } else {
         Err(errors)
     }
+}
+
+struct MechanismDraft {
+    id: String,
+    line: usize,
+    kind: Option<Enforcement>,
+    binding: Option<String>,
+    expected_unique: Option<bool>,
+    expected_columns: Vec<String>,
+    expected_predicate: Option<String>,
+}
+
+fn finish_mechanism(
+    path: &str,
+    draft: Option<MechanismDraft>,
+    mechanisms: &mut Vec<Mechanism>,
+    errors: &mut Vec<Diag>,
+) {
+    let Some(draft) = draft else { return };
+    let Some(kind) = draft.kind else {
+        errors.push(Diag::expecting(
+            path,
+            draft.line,
+            format!("mechanism `{}` has no enforcement", draft.id),
+            "an `Enforcement:` line after every `Mechanism:`",
+        ));
+        return;
+    };
+    mechanisms.push(Mechanism {
+        id: draft.id,
+        kind,
+        binding: draft.binding,
+        expected_unique: draft.expected_unique,
+        expected_columns: draft.expected_columns,
+        expected_predicate: draft.expected_predicate,
+        line: draft.line,
+    });
 }

@@ -1,6 +1,7 @@
 # Design: payments/capture
 
 ## Requirement: captured-once
+Mechanism: unique-active-capture
 Enforcement: constraint
 Binding: postgres-index:captures.ux_capture_trip
 Expect: unique=true; columns=trip_id; predicate=NOT voided
@@ -11,12 +12,16 @@ exist when it was written — a support-issued charge, a reconciliation retry, a
 flow. An advisory lock was rejected: it protects the writers that take it.
 
 ## Requirement: capture-on-completion
+Mechanism: completion-event-production
 Enforcement: choke-point
 Binding: dotnet-symbol:Trips.Features.Trips.TransitionTrip.RequestHandler.Handle
+Mechanism: capture-settlement-worker
 Enforcement: choke-point
 Binding: dotnet-symbol:Payments.Features.Captures.CaptureSettlementWorker.ExecuteAsync
+Mechanism: durable-broker-topology
 Enforcement: constraint
 Binding: dotnet-symbol:Common.Messaging.TripEventTopology.DeclareAsync
+Mechanism: completion-event-consumer
 Enforcement: choke-point
 Binding: dotnet-symbol:Payments.Features.TripEvents.ConsumeTripStateChanged.RequestHandler.Handle
 
@@ -31,6 +36,7 @@ an operator calling the dispatch endpoint. Capture remains asynchronous, and ove
 broker backlog are exposed to external detectors rather than silently waiting.
 
 ## Requirement: capture-amount-matches-quote
+Mechanism: authoritative-capture-handler
 Enforcement: choke-point
 Binding: dotnet-symbol:Payments.Features.Captures.CaptureTrip.RequestHandler.Handle
 

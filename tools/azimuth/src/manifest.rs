@@ -9,7 +9,10 @@
 
 use crate::diag::Diag;
 use crate::json::{self, Json};
-use crate::model::{Artifact, ClassMember, Enumeration, Quantification, Scope, Site};
+use crate::model::{
+    Artifact, ClassMember, Enumeration, MechanismCover, MechanismImplementation, Quantification,
+    Scope, Site,
+};
 use std::fs;
 use std::path::Path;
 
@@ -17,6 +20,8 @@ use std::path::Path;
 pub struct Manifest {
     pub realizes: Vec<Site>,
     pub covers: Vec<Site>,
+    pub mechanism_implementations: Vec<MechanismImplementation>,
+    pub mechanism_covers: Vec<MechanismCover>,
     pub class_members: Vec<ClassMember>,
     pub enumerations: Vec<Enumeration>,
     pub artifacts: Vec<Artifact>,
@@ -35,12 +40,20 @@ pub fn parse(path: &str, root: &Json) -> Result<Manifest, Vec<Diag>> {
     let mut out = Manifest::default();
     let mut errors = Vec::new();
 
-    if root.get("realizes").is_none() && root.get("covers").is_none() {
+    if [
+        "realizes",
+        "covers",
+        "mechanism_implementations",
+        "mechanism_covers",
+    ]
+    .iter()
+    .all(|key| root.get(key).is_none())
+    {
         errors.push(Diag::expecting(
             path,
             0,
-            "manifest declares neither realizes nor covers",
-            "at least one of `realizes` or `covers`",
+            "manifest declares no linkage relations",
+            "at least one claim or mechanism linkage array",
         ));
     }
 
@@ -66,6 +79,90 @@ pub fn parse(path: &str, root: &Json) -> Result<Manifest, Vec<Diag>> {
                 }
                 Err(mut d) => errors.append(&mut d),
             }
+        }
+    }
+
+    if let Some(value) = root.get("mechanism_implementations") {
+        let Some(items) = value.as_array() else {
+            errors.push(Diag::expecting(
+                path,
+                0,
+                "`mechanism_implementations` is not an array",
+                "an array",
+            ));
+            return Err(errors);
+        };
+        for (index, item) in items.iter().enumerate() {
+            let where_ = format!("mechanism_implementations[{index}]");
+            let spec = string_field(path, &where_, item, "spec", &mut errors);
+            let mechanism = string_field(path, &where_, item, "mechanism", &mut errors);
+            let binding = string_field(path, &where_, item, "binding", &mut errors);
+            let file = string_field(path, &where_, item, "file", &mut errors);
+            let lang = string_field(path, &where_, item, "lang", &mut errors);
+            let source_fingerprint =
+                optional_string_field(path, &where_, item, "source_fingerprint", &mut errors)
+                    .unwrap_or_default();
+            out.mechanism_implementations.push(MechanismImplementation {
+                spec: spec.unwrap_or_default(),
+                mechanism: mechanism.unwrap_or_default(),
+                binding: binding.unwrap_or_default(),
+                file: file.unwrap_or_default(),
+                lang: lang.unwrap_or_default(),
+                source_fingerprint,
+            });
+        }
+    }
+
+    if let Some(value) = root.get("mechanism_covers") {
+        let Some(items) = value.as_array() else {
+            errors.push(Diag::expecting(
+                path,
+                0,
+                "`mechanism_covers` is not an array",
+                "an array",
+            ));
+            return Err(errors);
+        };
+        for (index, item) in items.iter().enumerate() {
+            let where_ = format!("mechanism_covers[{index}]");
+            let spec = string_field(path, &where_, item, "spec", &mut errors);
+            let mechanism = string_field(path, &where_, item, "mechanism", &mut errors);
+            let site = string_field(path, &where_, item, "site", &mut errors);
+            let file = string_field(path, &where_, item, "file", &mut errors);
+            let lang = string_field(path, &where_, item, "lang", &mut errors);
+            let source_fingerprint =
+                optional_string_field(path, &where_, item, "source_fingerprint", &mut errors)
+                    .unwrap_or_default();
+            let scope = enum_field(
+                path,
+                &where_,
+                item,
+                "scope",
+                Scope::parse,
+                "unit, component or e2e",
+                &mut errors,
+            );
+            let quantification = enum_field(
+                path,
+                &where_,
+                item,
+                "quantification",
+                Quantification::parse,
+                "example or universal",
+                &mut errors,
+            );
+            let oracle = optional_string_field(path, &where_, item, "oracle", &mut errors);
+            out.mechanism_covers.push(MechanismCover {
+                spec: spec.unwrap_or_default(),
+                mechanism: mechanism.unwrap_or_default(),
+                site: site.unwrap_or_default(),
+                file: file.unwrap_or_default(),
+                lang: lang.unwrap_or_default(),
+                source_fingerprint,
+                scope,
+                quantification,
+                oracle,
+            });
         }
     }
 
@@ -414,5 +511,37 @@ fn optional_string_field(
             }
         },
         None => None,
+    }
+}
+
+fn enum_field<T>(
+    path: &str,
+    where_: &str,
+    item: &Json,
+    key: &str,
+    parse: impl Fn(&str) -> Option<T>,
+    expected: &str,
+    errors: &mut Vec<Diag>,
+) -> Option<T> {
+    let Some(value) = item.get(key).and_then(Json::as_str) else {
+        errors.push(Diag::expecting(
+            path,
+            0,
+            format!("{where_} is missing `{key}`"),
+            expected,
+        ));
+        return None;
+    };
+    match parse(value) {
+        Some(value) => Some(value),
+        None => {
+            errors.push(Diag::expecting(
+                path,
+                0,
+                format!("{where_} has unknown {key} `{value}`"),
+                expected,
+            ));
+            None
+        }
     }
 }

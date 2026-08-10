@@ -1,7 +1,7 @@
 /**
  * Static-scan emitter for TypeScript.
  *
- * Reads sources, finds `realizes(...)` / `covers(...)` calls, resolves each
+ * Reads sources, finds linkage marker calls, resolves each
  * call's enclosing named symbol as the site, and writes the language-neutral manifest the core
  * reads. Each ecosystem emits the manifest natively; the core only ever reads manifests, which is
  * why adding a language is a day's work rather than a fork of the core.
@@ -59,9 +59,32 @@ export interface Artifact {
   file: string;
 }
 
+export interface MechanismImplementation {
+  spec: string;
+  mechanism: string;
+  binding: string;
+  file: string;
+  lang: string;
+  source_fingerprint: string;
+}
+
+export interface MechanismCover {
+  spec: string;
+  mechanism: string;
+  site: string;
+  file: string;
+  lang: string;
+  source_fingerprint: string;
+  scope: string;
+  quantification: string;
+  oracle?: string;
+}
+
 export interface Manifest {
   realizes: Entry[];
   covers: Entry[];
+  mechanism_implementations: MechanismImplementation[];
+  mechanism_covers: MechanismCover[];
   class_members: ClassMember[];
   enumerations: Enumeration[];
   artifacts: Artifact[];
@@ -76,11 +99,19 @@ export interface Warning {
 export interface ScanResult {
   realizes: Entry[];
   covers: Entry[];
+  mechanismImplementations: MechanismImplementation[];
+  mechanismCovers: MechanismCover[];
   warnings: Warning[];
 }
 
 export function scanText(text: string, file: string): ScanResult {
-  const result: ScanResult = { realizes: [], covers: [], warnings: [] };
+  const result: ScanResult = {
+    realizes: [],
+    covers: [],
+    mechanismImplementations: [],
+    mechanismCovers: [],
+    warnings: [],
+  };
   const source = ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true, scriptKind(file));
 
   visit(source, (node) => {
@@ -137,10 +168,77 @@ export function scanText(text: string, file: string): ScanResult {
         quantification,
         ...(oracle === undefined ? {} : { oracle }),
       });
+      return;
+    }
+
+    if (isMarkerCall(node, 'implementsMechanism')) {
+      const args = stringArgs(node);
+      if (args.length < 2) {
+        result.warnings.push(
+          warn(node, source, file, 'implementsMechanism needs a spec and a mechanism id'),
+        );
+        return;
+      }
+      const site = resolveSite(node, source);
+      result.mechanismImplementations.push({
+        spec: args[0],
+        mechanism: args[1],
+        binding: typescriptBinding(file, site.name),
+        file,
+        lang: LANG,
+        source_fingerprint: site.fingerprint,
+      });
+      return;
+    }
+
+    if (isMarkerCall(node, 'coversMechanism')) {
+      const args = stringArgs(node);
+      if (args.length < 4) {
+        result.warnings.push(
+          warn(
+            node,
+            source,
+            file,
+            'coversMechanism needs a spec, a mechanism id, a scope and a quantification',
+          ),
+        );
+        return;
+      }
+      const [spec, mechanism, scope, quantification, oracle] = args;
+      if (!member(scope, SCOPES)) {
+        result.warnings.push(warn(node, source, file, `unknown scope \`${scope}\``));
+        return;
+      }
+      if (!member(quantification, QUANTIFICATIONS)) {
+        result.warnings.push(
+          warn(node, source, file, `unknown quantification \`${quantification}\``),
+        );
+        return;
+      }
+      if (oracle !== undefined && !member(oracle, ORACLES)) {
+        result.warnings.push(warn(node, source, file, `unknown oracle \`${oracle}\``));
+        return;
+      }
+      const site = resolveSite(node, source);
+      result.mechanismCovers.push({
+        spec,
+        mechanism,
+        site: site.name,
+        file,
+        lang: LANG,
+        source_fingerprint: site.fingerprint,
+        scope,
+        quantification,
+        ...(oracle === undefined ? {} : { oracle }),
+      });
     }
   });
 
   return result;
+}
+
+function typescriptBinding(file: string, site: string): string {
+  return `typescript-symbol:${file}#${site}`;
 }
 
 function visit(node: ts.Node, fn: (node: ts.Node) => void): void {
@@ -252,6 +350,8 @@ export function emit(roots: string[], repoRoot: string): { manifest: Manifest; w
   const manifest: Manifest = {
     realizes: [],
     covers: [],
+    mechanism_implementations: [],
+    mechanism_covers: [],
     class_members: [],
     enumerations: [],
     artifacts: [],
@@ -271,11 +371,26 @@ export function emit(roots: string[], repoRoot: string): { manifest: Manifest; w
     const result = scanText(fs.readFileSync(file, 'utf8'), relative);
     manifest.realizes.push(...result.realizes);
     manifest.covers.push(...result.covers);
+    manifest.mechanism_implementations.push(...result.mechanismImplementations);
+    manifest.mechanism_covers.push(...result.mechanismCovers);
+    manifest.artifacts.push(
+      ...result.mechanismImplementations.map((entry) => ({
+        id: entry.binding,
+        kind: 'typescript-symbol',
+        file: entry.file,
+      })),
+    );
     warnings.push(...result.warnings);
   }
 
   manifest.realizes.sort(compare);
   manifest.covers.sort(compare);
+  manifest.mechanism_implementations.sort(compareMechanism);
+  manifest.mechanism_covers.sort(compareMechanism);
+  manifest.artifacts.sort((a, b) => a.id.localeCompare(b.id));
+  manifest.artifacts = manifest.artifacts.filter(
+    (artifact, index, all) => index === 0 || artifact.id !== all[index - 1].id,
+  );
   return { manifest, warnings };
 }
 
@@ -284,6 +399,19 @@ function compare(a: Entry, b: Entry): number {
     a.spec.localeCompare(b.spec) ||
     a.scenario.localeCompare(b.scenario) ||
     a.site.localeCompare(b.site)
+  );
+}
+
+function compareMechanism(
+  a: MechanismImplementation | MechanismCover,
+  b: MechanismImplementation | MechanismCover,
+): number {
+  const aSite = 'binding' in a ? a.binding : a.site;
+  const bSite = 'binding' in b ? b.binding : b.site;
+  return (
+    a.spec.localeCompare(b.spec) ||
+    a.mechanism.localeCompare(b.mechanism) ||
+    aSite.localeCompare(bSite)
   );
 }
 

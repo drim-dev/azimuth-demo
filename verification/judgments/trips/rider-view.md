@@ -1,5 +1,9 @@
 # Judgments: trips/rider-view
 
+Revalidated 2026-08-10 after D27 added stable mechanism ids. The semantic diff changed no
+enforcement, binding, expectation, rationale, claim, evidence form or source; the prior verdict
+rationales therefore remain applicable and only their freshness fingerprints moved.
+
 Rebased 2026-08-08 after criticality entered claim freshness. No level, evidence site, required
 form or verdict changed.
 
@@ -32,8 +36,8 @@ hashes whole files, which D19.1 records.
 
 ## Claim: position-confined-to-live-phases
 Verdict: sound
-Fingerprint: e6f8be7063dfaf9d
-Judged: 2026-08-08
+Fingerprint: 57719f2df66f28f5
+Judged: 2026-08-10
 Judge: codex
 
 *(supersedes `dishonest-tag` — "declares `universal` over the site class while the test hand-lists
@@ -54,8 +58,8 @@ because the evidence tag and plan no longer claim the type proof that the code c
 
 ## Claim: no-driver-identity-before-assignment
 Verdict: sound
-Fingerprint: 006d2db7b3655b2c
-Judged: 2026-08-08
+Fingerprint: 4971d6d697d4a856
+Judged: 2026-08-10
 Judge: codex
 
 Unchanged from the first pass and re-judged only because the file moved. `Before_assignment_no
@@ -69,8 +73,8 @@ The doc comment above it, which claimed derivation this body does not do, is sti
 
 ## Claim: no-driver-position-before-assignment
 Verdict: sound
-Fingerprint: 8383a73f39ecf6ac
-Judged: 2026-08-08
+Fingerprint: 3f071bd27f464ad6
+Judged: 2026-08-10
 Judge: codex
 
 Same two tests, same reasoning, and the plan's `e2e` scope is met by evidence that exercises the
@@ -79,8 +83,8 @@ test fails on the null assertion and the e2e on both the field and the substring
 
 ## Claim: supply-density-shown-before-assignment
 Verdict: sound
-Fingerprint: 3c9f89ad7f44116e
-Judged: 2026-08-08
+Fingerprint: c51d7c006810cf38
+Judged: 2026-08-10
 Judge: codex
 
 *(supersedes `toothless` — and part of that verdict was simply wrong)*
@@ -137,8 +141,8 @@ and the claim does not say the driver moves via an endpoint.
 
 ## Claim: no-position-after-completion
 Verdict: sound
-Fingerprint: 94631c10512cd206
-Judged: 2026-08-08
+Fingerprint: 1055d57850cf3780
+Judged: 2026-08-10
 Judge: codex
 
 *(supersedes `spec-gap` — which was the judge's error)*
@@ -160,8 +164,8 @@ asserts the position is gone.
 
 ## Claim: no-position-after-cancellation
 Verdict: sound
-Fingerprint: 412c42364e940ee7
-Judged: 2026-08-08
+Fingerprint: a0620090ace3a3ff
+Judged: 2026-08-10
 Judge: codex
 
 *(supersedes `spec-gap`, for the same reason as its sibling: the gap was in the design, not the
@@ -174,8 +178,8 @@ removed this claim would have no evidence that constructs the failure case.
 
 ## Claim: driver-identity-remains-on-receipt
 Verdict: sound
-Fingerprint: 2e43b77f78cc502d
-Judged: 2026-08-08
+Fingerprint: 189f3baca6b973e5
+Judged: 2026-08-10
 Judge: codex
 
 Unchanged. The positive half of the terminal rule, and what stops the requirement being satisfiable

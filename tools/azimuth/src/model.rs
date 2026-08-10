@@ -206,6 +206,32 @@ pub struct Site {
     pub oracle: Option<String>,
 }
 
+/// A compiler-resolved site that implements a design-owned mechanism identity.
+#[derive(Debug, Clone)]
+pub struct MechanismImplementation {
+    pub spec: String,
+    pub mechanism: String,
+    pub binding: String,
+    pub file: String,
+    pub lang: String,
+    pub source_fingerprint: String,
+}
+
+/// Evidence about a mechanism's own contract. It is deliberately not claim evidence: whether a
+/// mechanism establishes a particular business claim is a separate composition judgment.
+#[derive(Debug, Clone)]
+pub struct MechanismCover {
+    pub spec: String,
+    pub mechanism: String,
+    pub site: String,
+    pub file: String,
+    pub lang: String,
+    pub source_fingerprint: String,
+    pub scope: Option<Scope>,
+    pub quantification: Option<Quantification>,
+    pub oracle: Option<String>,
+}
+
 /// A member of a class, enumerated by the project's extractor from what the build produced —
 /// a route table, a container, a manifest — rather than from a tag.
 ///
@@ -247,6 +273,8 @@ pub struct Model {
     pub specs: Vec<Spec>,
     pub realizes: Vec<Site>,
     pub covers: Vec<Site>,
+    pub mechanism_implementations: Vec<MechanismImplementation>,
+    pub mechanism_covers: Vec<MechanismCover>,
     /// Class members enumerated by an extractor. Empty when no project emits them, in which case
     /// a class is only as wide as its tags.
     pub class_members: Vec<ClassMember>,
@@ -327,7 +355,8 @@ impl Model {
     }
 
     /// Every source the agent-tier rubric requires for a verdict. Compiler-resolved evidence sites
-    /// carry their own fingerprint; prose and bound mechanisms remain deliberately file-scoped.
+    /// carry their own fingerprint; prose and explicitly bound non-code mechanisms remain
+    /// deliberately file-scoped.
     pub fn judgment_inputs(
         &self,
         spec: &str,
@@ -369,15 +398,27 @@ impl Model {
             for entry in entries {
                 has_entry = true;
                 for mechanism in &entry.mechanisms {
-                    if let Some(artifact) = self
-                        .artifacts
-                        .iter()
-                        .find(|artifact| artifact.id == mechanism.binding)
-                    {
-                        if !artifact.file.is_empty() {
-                            inputs.push(crate::judgment::FingerprintInput::file(&artifact.file));
+                    if let Some(binding) = mechanism.binding.as_deref() {
+                        if let Some(artifact) = self
+                            .artifacts
+                            .iter()
+                            .find(|artifact| artifact.id == binding)
+                        {
+                            if !artifact.file.is_empty() {
+                                inputs
+                                    .push(crate::judgment::FingerprintInput::file(&artifact.file));
+                            }
                         }
                     }
+                    inputs.extend(
+                        self.mechanism_implementations
+                            .iter()
+                            .filter(|implementation| {
+                                implementation.spec == spec
+                                    && implementation.mechanism == mechanism.id
+                            })
+                            .map(crate::judgment::FingerprintInput::mechanism),
+                    );
                 }
             }
             if has_entry {
@@ -411,6 +452,26 @@ impl Model {
 
     pub fn design_for(&self, spec: &str) -> Option<&crate::design::Design> {
         self.designs.iter().find(|d| d.spec == spec)
+    }
+
+    pub fn mechanism_bindings<'a>(
+        &'a self,
+        spec: &str,
+        mechanism: &'a crate::design::Mechanism,
+    ) -> Vec<&'a str> {
+        let mut bindings = Vec::new();
+        if let Some(binding) = mechanism.binding.as_deref() {
+            bindings.push(binding);
+        }
+        bindings.extend(
+            self.mechanism_implementations
+                .iter()
+                .filter(|implementation| {
+                    implementation.spec == spec && implementation.mechanism == mechanism.id
+                })
+                .map(|implementation| implementation.binding.as_str()),
+        );
+        bindings
     }
 
     pub fn plan_for(&self, spec: &str) -> Option<&crate::plan::Plan> {
@@ -505,6 +566,24 @@ impl Model {
                 Json::Arr(self.covers.iter().map(site_json).collect()),
             ),
             (
+                "mechanism_implementations",
+                Json::Arr(
+                    self.mechanism_implementations
+                        .iter()
+                        .map(mechanism_implementation_json)
+                        .collect(),
+                ),
+            ),
+            (
+                "mechanism_covers",
+                Json::Arr(
+                    self.mechanism_covers
+                        .iter()
+                        .map(mechanism_cover_json)
+                        .collect(),
+                ),
+            ),
+            (
                 "enumerations",
                 Json::Arr(
                     self.enumerations
@@ -563,6 +642,7 @@ impl Model {
         for design in &self.designs {
             for entry in &design.entries {
                 for m in &entry.mechanisms {
+                    let bindings = self.mechanism_bindings(&design.spec, m);
                     out.push(Json::obj(vec![
                         ("spec", Json::str(&design.spec)),
                         (
@@ -573,9 +653,15 @@ impl Model {
                             }),
                         ),
                         ("target", Json::str(entry.target.id())),
+                        ("id", Json::str(&m.id)),
                         ("enforcement", Json::str(m.kind.name())),
                         ("rung", Json::Num(m.kind.rung() as f64)),
-                        ("binding", Json::str(&m.binding)),
+                        (
+                            "binding",
+                            (bindings.len() == 1)
+                                .then(|| Json::str(bindings[0]))
+                                .unwrap_or(Json::Null),
+                        ),
                         (
                             "expected_unique",
                             m.expected_unique.map(Json::Bool).unwrap_or(Json::Null),
@@ -635,4 +721,42 @@ fn site_json(s: &Site) -> Json {
         pairs.push(("oracle".to_string(), Json::str(o)));
     }
     Json::Obj(pairs)
+}
+
+fn mechanism_implementation_json(item: &MechanismImplementation) -> Json {
+    Json::obj(vec![
+        ("spec", Json::str(&item.spec)),
+        ("mechanism", Json::str(&item.mechanism)),
+        ("binding", Json::str(&item.binding)),
+        ("file", Json::str(&item.file)),
+        ("lang", Json::str(&item.lang)),
+        ("source_fingerprint", Json::str(&item.source_fingerprint)),
+    ])
+}
+
+fn mechanism_cover_json(item: &MechanismCover) -> Json {
+    let mut fields = vec![
+        ("spec".to_string(), Json::str(&item.spec)),
+        ("mechanism".to_string(), Json::str(&item.mechanism)),
+        ("site".to_string(), Json::str(&item.site)),
+        ("file".to_string(), Json::str(&item.file)),
+        ("lang".to_string(), Json::str(&item.lang)),
+        (
+            "source_fingerprint".to_string(),
+            Json::str(&item.source_fingerprint),
+        ),
+    ];
+    if let Some(scope) = item.scope {
+        fields.push(("scope".to_string(), Json::str(scope.name())));
+    }
+    if let Some(quantification) = item.quantification {
+        fields.push((
+            "quantification".to_string(),
+            Json::str(quantification.name()),
+        ));
+    }
+    if let Some(oracle) = &item.oracle {
+        fields.push(("oracle".to_string(), Json::str(oracle)));
+    }
+    Json::Obj(fields)
 }

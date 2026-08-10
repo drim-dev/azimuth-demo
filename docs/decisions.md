@@ -1217,6 +1217,81 @@ domain consequence correct.
 
 ---
 
+## D27 — Mechanisms have independent identities and linkage *(decided 2026-08-10)*
+
+**Decision.** Every current design mechanism declares a stable id, enforcement kind and rationale.
+It resolves to exactly one artifact through either an explicit `Binding:` or one
+extractor-derived `ImplementsMechanism(spec, mechanism)` site. The two sources are alternatives,
+not aliases: zero resolved artifacts is an unresolved mechanism; two or more means the mechanism
+was not made atomic enough.
+
+The independence is what makes deletion observable. If the code and its implementation marker are
+deleted, the design declaration remains and the machine reports the missing edge. If a tagged
+symbol is renamed, the extractor emits its new binding and judgment freshness follows the changed
+site. A code attribute cannot detect its own deletion; the design declaration on the other side of
+the relation does.
+
+**Non-code implementations.** `Binding:` remains first-class for artifacts whose native extractor
+already supplies identity, such as a Postgres index. A future infrastructure or policy extractor
+can emit `mechanism_implementations` into the same normalized model; the core does not require the
+implementation to be source code or a .NET/TypeScript symbol.
+
+**Evidence.** `CoversMechanism(spec, mechanism, form...)` records evidence for the mechanism's own
+contract. It is distinct from `Covers(spec, scenario, form...)`. This avoids duplicating the same
+auth middleware, circuit-breaker or rate-limiter test for every business scenario, while refusing
+the unsafe opposite shortcut: mechanism evidence does not automatically fan out into claim
+coverage. Whether the control is applied to every relevant site and whether its contract
+establishes a given claim remain separate obligations.
+
+**Naming.** The public concepts are `Realizes`, `Covers`, `ImplementsMechanism` and
+`CoversMechanism`. `RealizesScenario` was rejected because a scenario is the current claim syntax,
+not the full claim model; `RealizesMechanism` was rejected because production code implements a
+design mechanism rather than making that mechanism true. Existing claim tags keep their short
+names so routine use remains close to OpenSpec.
+
+**Placement.** A feature-specific mechanism stays in that feature's current design. A reusable
+cross-cutting mechanism belongs in a concern-oriented spec/design such as
+`security/authentication` or `resilience/dependency-failures`, not duplicated into arbitrary
+business designs. The current model still keys mechanism identity within one design spec. The next
+real adoption must test whether cross-spec application needs a shared mechanism catalog or a
+composition relation; neither is added from argument alone.
+
+**`Over:` boundary.** The implemented site domain remains spec-keyed. `Over: trips/rider-view`
+means: enumerate the production sites that realize behavioral claims in that spec, union them with
+extractor-emitted class members carrying that same spec id, and require an independent successful
+enumerator witness. It does not mean “all code in the trips domain,” and the final line does not
+introduce a separately declared domain. Reusable domain ids and enumerating across several specs
+remain a proposal for the next cross-cutting mechanism experiment.
+
+**Validation status.** Parser, core and both language extractors have synthetic coverage for
+identity, derived bindings, deletion holes and mechanism evidence. Existing designs were assigned
+ids without changing their explicit bindings. No product mechanism uses the new linkage yet, so
+application composition and the annotation-cost claim are deliberately unvalidated.
+
+**Falsifier for the next change.** If an existing shared control cannot be made explicit without
+duplicating its tests per business claim, hand-listing its application surface, or inventing a
+catalog before a second mechanism needs one, this relation is incomplete or too ceremonial.
+
+**Product validation result, 2026-08-10.** `Pricing.QuoteTokenCodec` now supplies the first real
+implementation and evidence relations: separate issuance and validation mechanisms resolve from
+their annotated methods, while three concern claims and four mechanism-evidence edges share one
+generated test suite. No mechanism tag was copied onto Pricing, Trips or Payments scenarios, no
+catalog was needed, and the missing-implementation test continues to fail closed over the same
+normalized relation.
+
+The application question did not disappear. The machine knows the verifier exists and that its
+contract has evidence; it does not derive every business path that must call it. The experiment
+therefore validates D27's separation rather than validating application completeness. That gap is
+recorded as verification residue instead of a hand-written consumer list.
+
+The experiment also found a product defect: .NET's base64 decoder accepted textual aliases created
+by changing unused padding bits in the final signature character. Position-complete mechanism
+evidence failed until token decoding required canonical base64url. This is stronger validation than
+the synthetic tests because the new relation caused evidence about an existing control to change
+product code.
+
+---
+
 ## Method
 
 **Concern catalog first, notation last.** No mechanism enters the model until **≥2 structurally

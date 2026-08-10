@@ -99,7 +99,9 @@ function main(argv: string[]): number {
   fs.mkdirSync(path.dirname(path.resolve(output)), { recursive: true });
   fs.writeFileSync(output, `${JSON.stringify(manifest, null, 2)}\n`);
   console.error(
-    `${manifest.realizes.length} realizes, ${manifest.covers.length} covers → ${output}`,
+    `${manifest.realizes.length} realizes, ${manifest.covers.length} covers, ` +
+      `${manifest.mechanism_implementations.length} mechanism implementations, ` +
+      `${manifest.mechanism_covers.length} mechanism covers → ${output}`,
   );
   return 0;
 }

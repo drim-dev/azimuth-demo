@@ -106,6 +106,21 @@ impl FingerprintInput {
         }
     }
 
+    pub fn mechanism(implementation: &crate::model::MechanismImplementation) -> Self {
+        Self {
+            identity: format!(
+                "{}#{}|{}|{}",
+                implementation.file,
+                implementation.binding,
+                implementation.lang,
+                implementation.mechanism
+            ),
+            file: implementation.file.clone(),
+            source_fingerprint: (!implementation.source_fingerprint.is_empty())
+                .then(|| implementation.source_fingerprint.clone()),
+        }
+    }
+
     pub fn display(&self) -> &str {
         &self.identity
     }

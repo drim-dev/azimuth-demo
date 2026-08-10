@@ -87,6 +87,10 @@ pub enum HoleKind {
     UnresolvedDetectorBinding,
     /// An invariant naming a class no spec defines.
     DanglingClass,
+    /// An implementation tag names no design-owned mechanism.
+    DanglingMechanismImplementation,
+    /// Mechanism evidence names no design-owned mechanism.
+    DanglingMechanismCover,
 }
 
 impl HoleKind {
@@ -117,6 +121,8 @@ impl HoleKind {
             HoleKind::UnresolvedEvidenceBinding => "unresolved-evidence-binding",
             HoleKind::UnresolvedDetectorBinding => "unresolved-detector-binding",
             HoleKind::DanglingClass => "dangling-class",
+            HoleKind::DanglingMechanismImplementation => "dangling-mechanism-implementation",
+            HoleKind::DanglingMechanismCover => "dangling-mechanism-cover",
         }
     }
 }
@@ -310,10 +316,55 @@ pub fn rtm(model: &Model) -> Vec<Hole> {
         }
     }
 
+    for implementation in &model.mechanism_implementations {
+        if !has_mechanism(model, &implementation.spec, &implementation.mechanism) {
+            holes.push(Hole {
+                kind: HoleKind::DanglingMechanismImplementation,
+                severity: Severity::Error,
+                claim: Some(format!(
+                    "{}#{}",
+                    implementation.spec, implementation.mechanism
+                )),
+                criticality: None,
+                path: implementation.file.clone(),
+                line: 0,
+                detail: format!(
+                    "`{}` implements a mechanism the design does not declare",
+                    implementation.binding
+                ),
+            });
+        }
+    }
+    for cover in &model.mechanism_covers {
+        if !has_mechanism(model, &cover.spec, &cover.mechanism) {
+            holes.push(Hole {
+                kind: HoleKind::DanglingMechanismCover,
+                severity: Severity::Error,
+                claim: Some(format!("{}#{}", cover.spec, cover.mechanism)),
+                criticality: None,
+                path: cover.file.clone(),
+                line: 0,
+                detail: format!(
+                    "`{}` covers a mechanism the design does not declare",
+                    cover.site
+                ),
+            });
+        }
+    }
+
     holes.sort_by(|a, b| {
         (a.path.clone(), a.line, a.kind.name()).cmp(&(b.path.clone(), b.line, b.kind.name()))
     });
     holes
+}
+
+fn has_mechanism(model: &Model, spec: &str, id: &str) -> bool {
+    model.design_for(spec).is_some_and(|design| {
+        design
+            .entries
+            .iter()
+            .any(|entry| entry.mechanisms.iter().any(|mechanism| mechanism.id == id))
+    })
 }
 
 fn current_unix_seconds() -> u64 {
@@ -545,8 +596,32 @@ fn design_holes(model: &Model) -> Vec<Hole> {
             }
 
             for mechanism in &entry.mechanisms {
-                let Some(artifact) = model.artifacts.iter().find(|a| a.id == mechanism.binding)
-                else {
+                let bindings = model.mechanism_bindings(&design.spec, mechanism);
+                if bindings.len() != 1 {
+                    holes.push(Hole {
+                        kind: HoleKind::UnresolvedDesignBinding,
+                        severity: Severity::Error,
+                        claim: Some(format!("{}#{}", design.spec, id)),
+                        criticality: None,
+                        path: design.path.clone(),
+                        line: mechanism.line,
+                        detail: if bindings.is_empty() {
+                            format!(
+                                "mechanism `{}` has neither an explicit artifact binding nor one extractor-resolved implementation",
+                                mechanism.id
+                            )
+                        } else {
+                            format!(
+                                "mechanism `{}` resolves to {} bindings; declare one atomic mechanism per implementation site",
+                                mechanism.id,
+                                bindings.len()
+                            )
+                        },
+                    });
+                    continue;
+                }
+                let binding = bindings[0];
+                let Some(artifact) = model.artifacts.iter().find(|a| a.id == binding) else {
                     holes.push(Hole {
                         kind: HoleKind::UnresolvedDesignBinding,
                         severity: Severity::Error,
@@ -555,8 +630,7 @@ fn design_holes(model: &Model) -> Vec<Hole> {
                         path: design.path.clone(),
                         line: mechanism.line,
                         detail: format!(
-                            "binding `{}` was not emitted by any compiler or schema extractor",
-                            mechanism.binding
+                            "binding `{binding}` was not emitted by any compiler or schema extractor"
                         ),
                     });
                     continue;
@@ -619,11 +693,7 @@ fn design_holes(model: &Model) -> Vec<Hole> {
                         criticality: None,
                         path: design.path.clone(),
                         line: mechanism.line,
-                        detail: format!(
-                            "binding `{}`: {}",
-                            mechanism.binding,
-                            mismatches.join("; ")
-                        ),
+                        detail: format!("binding `{}`: {}", binding, mismatches.join("; ")),
                     });
                 }
             }

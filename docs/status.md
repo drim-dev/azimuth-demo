@@ -295,3 +295,58 @@ environment topology discovery, schema-evolution exercise or Alertmanager delive
 The criticality falsifier remains fired but moved in the right direction: **15 of 30 requirements
 (50%) are critical**. Ceremony cost remains unmeasured because the autonomous run did not record
 authoring minutes.
+
+## Update after mechanism-linkage design *(2026-08-10)*
+
+D27 makes current mechanisms independently addressable. Every design entry now declares a stable
+mechanism id. .NET and TypeScript can emit extractor-derived implementation bindings and separate
+mechanism evidence; the core rejects missing, ambiguous and dangling relations and exports both.
+Explicit bindings remain for the currently accepted product designs, so this migration changes no
+claim about what the fixture implements.
+
+Synthetic tests establish the key deletion property: removing the implementation edge while
+leaving the design declaration produces `unresolved-design-binding`. This is tooling validation,
+not product validation. No existing product mechanism has yet adopted `ImplementsMechanism` or
+`CoversMechanism`, and no cross-spec application relation has been demonstrated. The next change
+must select an existing shared mechanism if one is suitable, or build one only if none exists, and
+measure whether the new distinction avoids duplicated claim evidence without hiding application
+gaps.
+
+Repository inspection found a suitable existing mechanism, so the next change should not invent
+one: `Pricing.QuoteTokenCodec` signs and validates the same quote contract in Pricing, Trips and
+Payments. It already has a universal tamper-rejection test, while its application spans service
+registration and two consuming business paths. That makes it a sharper experiment than a local
+state machine: it can validate `ImplementsMechanism` and `CoversMechanism`, and it forces the still
+open question of how one concern-oriented design proves cross-spec application. The likely atomic
+split is quote-token issuance (`Encode`) and quote-token validation (`Decode`); the change should
+decide their design home and application domain from evidence rather than pre-installing a general
+catalog.
+
+## Update after the first explicit product mechanism *(2026-08-10)*
+
+The accepted model now contains **71 claims in nine specs** and reports zero holes. Quote-token
+issuance and validation live in the concern-oriented `security/quote-tokens` design, resolve from
+two `ImplementsMechanism` sites and carry four reusable `CoversMechanism` edges. The evidence was
+not copied onto dependent Pricing, Trips or Payments scenarios, so the first product adoption
+supports D27's intended separation.
+
+The integrated run is green across **215 tests**: 98 core, 42 extractor, 65 service/component and
+10 composed-stack e2e tests, plus five Prometheus rule-test cases.
+
+The experiment found one real product defect. A mutation of the final base64url signature
+character could change only unused padding bits, decode to the original HMAC bytes and remain
+valid. The generated test failed before the implementation was changed; decoding now rejects any
+non-canonical encoding. This is the first mechanism-linkage result that changed existing product
+code rather than only tooling or its synthetic fixtures.
+
+Application completeness remains explicitly unresolved. Existing business evidence demonstrates
+validation in Trips and Payments, but the machine cannot enumerate all paths that ought to call the
+guard. A hand-written catalog was rejected because it can omit the same new consumer as the code.
+The next useful experiment should seek a compiler-visible application boundary or a second shared
+mechanism whose application domain has a different derivation shape; neither should be generalized
+from this one case.
+
+Criticality remains top-heavy: the current corpus contains **17 of 33 requirements/invariants
+(52%) at critical**. The result improves
+mechanism credibility but does not close the ceremony falsifier: authoring minutes were still not
+measured, and this small concern added substantial current-state and transition prose.
