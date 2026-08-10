@@ -18,20 +18,26 @@ Your output is a judgment per claim, recorded in `verification/judgments/<spec-i
 azimuth judge --manifest <each manifest>
 ```
 
-Each line is `spec  scenario  criticality  fingerprint  state`, followed by the evidence files a
-judgment must look at. Judge everything `unjudged` or `stale`; a `stale` judgment means the claim
-or its evidence changed since the verdict, so the verdict no longer applies even if it still reads
-true.
+Each line is `spec  scenario  criticality  fingerprint  state`, followed by role-labelled inputs a
+judgment must inspect: `realization`, `evidence`, `mechanism` and `context`. Judge everything
+`unjudged` or `stale`; a `stale` judgment means the claim or one of those inputs changed since the
+verdict, so the verdict no longer applies even if it still reads true.
 
 ## What to examine, per claim
 
 1. **Read the claim** in `specs/`, and the required form in `verification/`.
-2. **Read every covering test** in the evidence files. Not the name — the body.
-2b. **Check the design entry against the source.** A `Site:` is prose and nothing parses it, so it
+2. **Read every realization site.** For each `Realizes` relation, state which part of the claim
+   predicate the site establishes. Participation in the call path, transport of arbitrary data or
+   use of a related mechanism is insufficient. A site that establishes no part of the predicate is
+   a **dishonest-realization**.
+3. **Read every covering test** in the evidence files. Not the name — the body.
+4. **Check the design entry against the source.** A `Site:` is prose and nothing parses it, so it
    can name a type nobody wrote. Open the file it names before believing it. Three entries in this
    corpus described mechanisms that do not exist, and two verdicts were wrong because a judge cited
    one of them as evidence of a gap.
-3. **Ask, in order:**
+5. **Ask, in order:**
+   - *Does every realization site establish part of this predicate?* If not, it is a
+     **dishonest-realization**, even when another site makes the overall claim true.
    - *Would this test fail against a plausible wrong implementation?* Construct one mentally: delete
      the guard, drop the constraint, return a constant. If the test still passes, it is
      **toothless**.
@@ -40,7 +46,7 @@ true.
      touches the real store.
    - *Does the claim describe the behaviour that matters?* If the code is right, the test is toothy,
      and a reader would still be surprised by something the spec never says, that is a **spec-gap**.
-4. Only if none of those fire is the verdict **sound**.
+6. Only if none of those fire is the verdict **sound**.
 
 ## Traps
 
@@ -49,8 +55,10 @@ true.
   consequence is usually toothless.
 - **A test that never constructs the failure case is toothless**, even when the claim is true. A
   cancellation claim verified without ever cancelling anything is the common shape.
-- **Do not judge the implementation.** A correct implementation with a toothless test is still
-  toothless: the verdict is about the evidence, not the code.
+- **Do not turn realization review into general code review.** Judge whether the annotated site
+  establishes the named predicate, not whether the implementation is otherwise correct. A correct
+  implementation with a toothless test is still toothless; a true claim with an unrelated
+  realization site still has a dishonest realization.
 - **Do not soften a verdict because the code is yours.** The pass exists precisely for the case
   where the same author wrote the claim, the code, the test and the tag.
 
@@ -60,7 +68,7 @@ true.
 # Judgments: <spec-id>
 
 ## Claim: <scenario-id>
-Verdict: sound | toothless | dishonest-tag | spec-gap
+Verdict: sound | toothless | dishonest-tag | dishonest-realization | spec-gap
 Fingerprint: <the fingerprint from `azimuth judge`, verbatim>
 Judged: <YYYY-MM-DD>
 Judge: <model or person>
@@ -69,10 +77,11 @@ What you examined, the wrong implementation you tried it against, and why the ve
 without that is an opinion the next reader cannot check.
 ```
 
-The fingerprint covers the claim's text, effective verification requirements, covering evidence,
-the applicable design file and the source files of its machine bindings. Copy it exactly: it is
-what makes the verdict expire when what the judge examined changes, and a judgment that cannot
-expire is worse than none.
+The fingerprint covers the claim's text, effective verification requirements, realization and
+covering sites, the applicable design file and the source files of its machine bindings. Copy it
+exactly: it is what makes the verdict expire when a relation is added, removed or moved, when an
+examined source changes, or when the rest of the account changes. A judgment that cannot expire is
+worse than none.
 
 `sound` is not a pass mark to be handed out. If you find yourself writing `sound` for everything,
 you are reading names rather than bodies.

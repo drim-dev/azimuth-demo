@@ -1,6 +1,5 @@
 using System.Globalization;
 using System.Text;
-using Azimuth.Annotations;
 using Common.Http;
 using Common.Time;
 using MediatR;
@@ -30,7 +29,6 @@ public static class GetCaptureSettlementMetrics
         IOptions<CaptureSettlementOptions> options,
         CaptureSettlementState state) : IRequestHandler<Request, string>
     {
-        [Realizes("payments/capture", "capture-created-on-completion")]
         public async Task<string> Handle(Request request, CancellationToken ct)
         {
             var now = clock.Now;

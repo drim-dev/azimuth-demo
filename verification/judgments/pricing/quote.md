@@ -1,5 +1,11 @@
 # Judgments: pricing/quote
 
+Re-judged 2026-08-10 after D28 added every realization source to the generated worklist. The two
+invalid issuance relations on `QuoteTokenCodec.Decode` were removed. `IssueQuote` establishes quote
+construction, component composition and pressure selection; `Money` establishes minor-unit and sum
+semantics; `GetQuote` establishes expiry observations; the validator and rider projection establish
+their respective refusal and returned-view predicates. Every remaining relation is justified.
+
 Revalidated 2026-08-10 after token integrity became a reusable security concern and canonical
 base64url decoding was enforced. Every stale covering body and bound source was re-read. The new
 decoder check only narrows accepted encodings; component-sum validation, money representation and
@@ -26,7 +32,7 @@ stale optional artifact look like a framework finding.
 
 ## Claim: quote-returned
 Verdict: sound
-Fingerprint: da9e540896c7c183
+Fingerprint: 2781eae629c2c561
 Judged: 2026-08-08
 Judge: codex
 
@@ -37,7 +43,7 @@ Removing any required response field makes the test fail during assertion or des
 
 ## Claim: unserviceable-area
 Verdict: sound
-Fingerprint: ba9f4308e7bff274
+Fingerprint: 0e93917db98a01f2
 Judged: 2026-08-08
 Judge: codex
 
@@ -48,7 +54,7 @@ fails this evidence.
 
 ## Claim: quote-valid-before-expiry
 Verdict: sound
-Fingerprint: 52faaafbaa4121ef
+Fingerprint: 8d249b548935e647
 Judged: 2026-08-08
 Judge: codex
 
@@ -58,7 +64,7 @@ instant prevents a permanently-valid implementation from passing the near side a
 
 ## Claim: quote-invalid-after-expiry
 Verdict: sound
-Fingerprint: 850de0dc3db1a09f
+Fingerprint: 8f8f95fba15637d7
 Judged: 2026-08-08
 Judge: codex
 
@@ -67,7 +73,7 @@ unchanged. A grace period, strict-`<` boundary or zeroing/recalculation on expir
 
 ## Claim: expired-quote-is-never-revalidated
 Verdict: sound
-Fingerprint: ab11ae8bc8036c51
+Fingerprint: c077f7a44461811d
 Judged: 2026-08-08
 Judge: codex
 
@@ -77,7 +83,7 @@ the latest issuance fails.
 
 ## Claim: total-in-minor-units
 Verdict: sound
-Fingerprint: e2de40c9a3e17df7
+Fingerprint: 320f698f15b76c95
 Judged: 2026-08-10
 Judge: codex
 
@@ -88,19 +94,22 @@ being presented as the proof.
 
 ## Claim: total-equals-components
 Verdict: sound
-Fingerprint: 9c8490acf3f98fcc
+Fingerprint: ff24f62814edc72d
 Judged: 2026-08-10
 Judge: codex
 
-One test generates 500 variable-length component sets and checks both an independent sum and a
-split/recombine metamorphic relation. The Pricing component test adds real HTTP serialization,
-three currencies and both surge branches, then decodes the token. Dropping a component, returning a
-constant, or serializing a different total fails at least one independent relation. The
-`QuoteTokenCodec` design site also exists and rejects mismatched totals on both encode and decode.
+The evidence is discriminating: one test generates 500 variable-length component sets and checks
+independent sum and split/recombine relations; the component test adds HTTP serialization, three
+currencies and both pressure branches. `IssueQuote.RequestHandler.Handle` constructs the issued
+total through `Money.Sum`, so those realization relations establish the predicate.
+
+The remaining realization sites are exact: `Money.Sum` establishes the arithmetic and currency
+relation, while `IssueQuote.RequestHandler.Handle` applies it to the components of the issued quote.
+Token decoding remains defense in depth but no longer claims to establish issuance correctness.
 
 ## Claim: current-pressure-selects-surge
 Verdict: sound
-Fingerprint: 8e0396226f329454
+Fingerprint: d93dedc2ff4c453c
 Judged: 2026-08-10
 Judge: codex
 
@@ -112,7 +121,7 @@ issues the quote.
 
 ## Claim: stale-pressure-does-not-select-surge
 Verdict: sound
-Fingerprint: c44c476f6af551ba
+Fingerprint: 88e394efa57287ff
 Judged: 2026-08-10
 Judge: codex
 
@@ -123,12 +132,15 @@ strictly newer than the boundary.
 
 ## Claim: surge-is-a-quote-component
 Verdict: sound
-Fingerprint: d755e6e012d7bcfe
+Fingerprint: bdda419881adc342
 Judged: 2026-08-10
 Judge: codex
 
 The component evidence asserts the exact ordered labels `base`, `distance`, `surge` over currencies,
 distances and both pressure branches, checks their serialized sum, and decodes the signed token. The
-e2e requires a positive surge and carries that same token through Trips to the captured amount.
-Omitting, relabelling or excluding surge from either signed total or capture makes one of those
-relations fail.
+e2e requires a positive surge and carries that token through Trips to capture. The issuance
+handler's realization relation is therefore justified.
+
+`IssueQuote.RequestHandler.Handle` is now the sole realization site: it always creates the explicit
+`base`, `distance` and `surge` components, sums those same values and signs that payload. The generic
+decoder remains correctly associated only with token-integrity claims.

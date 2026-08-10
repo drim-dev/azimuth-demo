@@ -1292,6 +1292,61 @@ product code.
 
 ---
 
+## D28 — Realization honesty is part of the agent judgment *(decided 2026-08-10)*
+
+**Decision.** Every declared `Realizes(spec, scenario)` site is a role-labelled input to the claim's
+agent-tier worklist and freshness fingerprint. The judge must say which part of the predicate each
+site establishes. A site that establishes none records `dishonest-realization`, distinct from
+`dishonest-tag`, which remains an overstatement of evidence form.
+
+Adding, removing or moving a realization relation changes the input set. Editing its
+compiler-resolved source boundary changes the source fingerprint. Either expires the prior
+judgment; unrelated edits in a shared source file do not. Inputs without a trustworthy boundary
+retain D22's whole-file fallback.
+
+**Evidence.** `QuoteTokenCodec.Decode` declared that it realized
+`pricing/quote#surge-is-a-quote-component`. The method authenticates and sum-checks arbitrary
+components but never requires `surge`, `base` or `distance`. Azimuth reported zero holes and the
+claim carried a current `sound` judgment because the generated judgment worklist included covering
+tests and the surge issuance mechanism but omitted every realization source. Removing the false
+tag would not have expired that verdict. The judgment process therefore could not inspect the
+relation it appeared to certify.
+
+The adjacent `total-equals-components` tag exposes the same boundary more subtly: the decoder does
+enforce a sum invariant on consumed tokens, while the scenario says “when a quote is issued.” The
+agent must decide that semantic fit explicitly; existence of a related guard is not enough.
+
+**Boundary.** The machine does not infer whether arbitrary code establishes prose. It enumerates
+the declared relation, supplies the compiler-resolved source and enforces freshness. Semantic
+adequacy remains the agent tier. This is not general code review: correctness outside the named
+predicate is irrelevant.
+
+**Validation.** Synthetic core tests cover role-labelled worklists, source edits, relation moves and
+removal, plus the distinct adverse hole. Applying the new fingerprint to the corpus must expire the
+old judgments and make the two quote-decoder relations visible to a focused re-judgment before
+either annotation is corrected.
+
+**Observed.** The repository check reports 67 `stale-judgment` errors and two current
+`dishonest-realization` errors, exactly the two quote-decoder relations above. The broad staleness is
+the one-time cost of adding inputs that prior judgments never examined; retaining their old
+fingerprints would preserve the blind spot D28 exists to close.
+
+The first worklist also exposed a source-navigation defect: a type-level realization on a class
+whose logic lives entirely in its constructor had no file or fingerprint because the .NET extractor
+searched ordinary methods only. Type boundaries now include declared constructors, with a fixture
+that would fail if such a realization became unauditable again.
+
+**Remediation.** The repository-wide D28 pass removed fourteen unjustified business relations. Two
+were the quote-decoder findings above; twelve more labelled broker topology, relay, operational
+metrics or trip-event production as if those sites directly established Analytics or Payments
+scenario predicates. Those sources remain in the account through their design-mechanism or detector
+bindings, so the correction removes false semantic credit without making the architecture
+invisible. All 69 non-routine judgments were then re-read against their role-labelled realization
+worklists. The resulting model reports 71 claims and no holes; the two routine claims remain
+intentionally unjudged.
+
+---
+
 ## Method
 
 **Concern catalog first, notation last.** No mechanism enters the model until **≥2 structurally

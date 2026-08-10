@@ -1,4 +1,3 @@
-using Azimuth.Annotations;
 using Common.Messaging;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -44,8 +43,6 @@ public sealed class TripEventRelay(
         }
     }
 
-    [Realizes("analytics/trip-activity", "latest-version-is-projected")]
-    [Realizes("payments/capture", "capture-created-on-completion")]
     public async Task<int> RelayPending(CancellationToken cancellation)
     {
         await using var session = await RabbitMqSession.OpenAsync(

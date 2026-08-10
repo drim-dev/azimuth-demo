@@ -64,6 +64,8 @@ pub enum HoleKind {
     ToothlessEvidence,
     /// The agent tier judged a tag as declaring a stronger form than the test has.
     DishonestTag,
+    /// The agent tier judged a realization site as not establishing the claim predicate.
+    DishonestRealization,
     /// The agent tier found a behaviour the spec should name and does not.
     SpecGap,
     /// A judgment whose fingerprint no longer matches what it looked at.
@@ -111,6 +113,7 @@ impl HoleKind {
             HoleKind::UnbackedProof => "unbacked-proof",
             HoleKind::ToothlessEvidence => "toothless-evidence",
             HoleKind::DishonestTag => "dishonest-tag-judged",
+            HoleKind::DishonestRealization => "dishonest-realization",
             HoleKind::SpecGap => "spec-gap",
             HoleKind::StaleJudgment => "stale-judgment",
             HoleKind::Unjudged => "unjudged",
@@ -970,6 +973,7 @@ fn judgment_holes(model: &Model) -> Vec<Hole> {
             crate::judgment::Verdict::Sound => continue,
             crate::judgment::Verdict::Toothless => HoleKind::ToothlessEvidence,
             crate::judgment::Verdict::DishonestTag => HoleKind::DishonestTag,
+            crate::judgment::Verdict::DishonestRealization => HoleKind::DishonestRealization,
             crate::judgment::Verdict::SpecGap => HoleKind::SpecGap,
         };
 
@@ -1021,6 +1025,7 @@ pub fn counts_by_kind(holes: &[Hole]) -> Vec<(&'static str, usize)> {
         HoleKind::StaleJudgment,
         HoleKind::ToothlessEvidence,
         HoleKind::DishonestTag,
+        HoleKind::DishonestRealization,
         HoleKind::SpecGap,
         HoleKind::InvariantBreach,
         HoleKind::EnumeratorUnsoundOrUnderived,

@@ -243,11 +243,12 @@ Two tiers produce findings:
 
 - The **machine tier** is deterministic. It finds structural holes, cannot be argued with, and
   cannot establish truth.
-- The **agent tier** judges what the machine cannot: whether a test is toothy, whether a tag is
-  honest, whether a required behaviour is missing from the spec. Its outputs are evidence *about*
-  evidence and can withdraw trust; they never cover a claim (D14, revised by D18). Freshness follows
-  compiler-resolved evidence sites and conservatively falls back to complete files. A judgment whose
-  evidence has changed is reported as
+- The **agent tier** judges what the machine cannot: whether every declared realization site
+  establishes part of the predicate, whether a test is toothy, whether its form tag is honest, and
+  whether a required behaviour is missing from the spec. Its outputs audit the declared account and
+  can withdraw trust; they never cover a claim (D14, revised by D18 and D28). Freshness follows
+  compiler-resolved realization and evidence sites and conservatively falls back to complete files.
+  A judgment whose inputs have changed is reported as
   `stale-judgment` rather than silently trusted — which is why a refactor invalidates prior
   verification by fingerprint rather than by anyone remembering.
 
@@ -300,8 +301,8 @@ transition around the three current-state facets.
 manual lifecycle observations. Other delta operations and rejected/abandoned archive automation
 remain absent. A general typed realization graph remains a proposal: the route experiment showed
 that derived surface membership does not imply semantic requirement discovery. D27's mechanism
-identity and two linkage relations are implemented synthetically but have not yet been used by a
-product change.
+identity has one product use; its application relation remains unresolved. D28 now makes declared
+realization sites agent-auditable without claiming that the machine understands their semantics.
 
 **Open.** Five of the seven questions recorded in `decisions.md` remain open — question 2 was closed
 by D26 and question 3 by D15 — and they are open because they need evidence from the fixture, not
@@ -327,7 +328,7 @@ Recorded before the evidence existed. `status.md` holds the current results; two
 | A hole kind that is not a missing-facet combination → D3 incomplete | **fired**, four times, and possibly harder — see above |
 | The three role views over the export turn out identical → the facet split is decorative | never tested |
 | Artifact and annotation cost exceeds what the defects justify → ceremony | never measured |
-| The agent tier cannot reliably detect a dishonest tag → the core claim fails | inconclusive |
+| The agent tier cannot reliably detect a dishonest tag → the core claim fails | **fired**: realization tags were absent from its worklist; D28 repairs the omission and the full pass removed fourteen unjustified relations, but self-review does not retroactively establish reliability |
 | A concern fits none of the six domains → D13 wrong | holds; two domains exercised |
 
 ---

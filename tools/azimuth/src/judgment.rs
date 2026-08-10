@@ -4,14 +4,14 @@
 //! judgment that a test is toothy is not independent evidence *of* a claim — treat it as such and a
 //! claim with no tests but a judgment becomes covered, which is nonsense.
 //!
-//! A judgment is evidence **about** evidence. It qualifies what the tags already assert, and its
-//! value is negative: it can take a claim that looks covered and report it as a hole. That is the
-//! seam the machine tier cannot reach — the machine makes structure checkable, it does not make
-//! truth checkable, and a tag is only as honest as whoever wrote it.
+//! A judgment audits the claim's declared account. It qualifies covering evidence and realization
+//! relations, and its value is negative: it can take a claim that looks complete and report it as a
+//! hole. That is the seam the machine tier cannot reach — the machine makes structure checkable, it
+//! does not make truth checkable, and a tag is only as honest as whoever wrote it.
 //!
 //! Freshness is a fingerprint over everything the judgment looked at. Compiler-resolved evidence
-//! sites are isolated from unrelated edits in a shared file; inputs without a trustworthy site
-//! fingerprint retain the safe whole-file fallback.
+//! and realization sites are isolated from unrelated edits in a shared file; inputs without a
+//! trustworthy site fingerprint retain the safe whole-file fallback.
 
 use crate::diag::{validate_id, Diag};
 use crate::labels::read_block;
@@ -28,6 +28,8 @@ pub enum Verdict {
     Toothless,
     /// A tag declares a stronger form than the test actually has.
     DishonestTag,
+    /// A realization tag names a site that does not establish the claim predicate.
+    DishonestRealization,
     /// The claim is satisfied, but the spec does not say something it should.
     SpecGap,
 }
@@ -38,6 +40,7 @@ impl Verdict {
             "sound" => Some(Verdict::Sound),
             "toothless" => Some(Verdict::Toothless),
             "dishonest-tag" => Some(Verdict::DishonestTag),
+            "dishonest-realization" => Some(Verdict::DishonestRealization),
             "spec-gap" => Some(Verdict::SpecGap),
             _ => None,
         }
@@ -48,6 +51,7 @@ impl Verdict {
             Verdict::Sound => "sound",
             Verdict::Toothless => "toothless",
             Verdict::DishonestTag => "dishonest-tag",
+            Verdict::DishonestRealization => "dishonest-realization",
             Verdict::SpecGap => "spec-gap",
         }
     }
@@ -73,21 +77,42 @@ pub struct Judgments {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FingerprintInput {
+    role: FingerprintInputRole,
     pub identity: String,
     pub file: String,
     pub source_fingerprint: Option<String>,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum FingerprintInputRole {
+    Context,
+    Evidence,
+    Realization,
+    Mechanism,
+}
+
+impl FingerprintInputRole {
+    fn name(self) -> &'static str {
+        match self {
+            FingerprintInputRole::Context => "context",
+            FingerprintInputRole::Evidence => "evidence",
+            FingerprintInputRole::Realization => "realization",
+            FingerprintInputRole::Mechanism => "mechanism",
+        }
+    }
+}
+
 impl FingerprintInput {
     pub fn file(path: &str) -> Self {
         Self {
+            role: FingerprintInputRole::Context,
             identity: path.to_string(),
             file: path.to_string(),
             source_fingerprint: None,
         }
     }
 
-    pub fn site(site: &crate::model::Site) -> Self {
+    pub fn evidence(site: &crate::model::Site) -> Self {
         let form = format!(
             "{:?}|{:?}|{}|{}|{}|{}|{:?}",
             site.scope,
@@ -99,7 +124,18 @@ impl FingerprintInput {
             site.expires_at
         );
         Self {
+            role: FingerprintInputRole::Evidence,
             identity: format!("{}#{}|{}|{}", site.file, site.site, site.lang, form),
+            file: site.file.clone(),
+            source_fingerprint: (!site.source_fingerprint.is_empty())
+                .then(|| site.source_fingerprint.clone()),
+        }
+    }
+
+    pub fn realization(site: &crate::model::Site) -> Self {
+        Self {
+            role: FingerprintInputRole::Realization,
+            identity: format!("{}#{}|{}|realization", site.file, site.site, site.lang),
             file: site.file.clone(),
             source_fingerprint: (!site.source_fingerprint.is_empty())
                 .then(|| site.source_fingerprint.clone()),
@@ -108,6 +144,7 @@ impl FingerprintInput {
 
     pub fn mechanism(implementation: &crate::model::MechanismImplementation) -> Self {
         Self {
+            role: FingerprintInputRole::Mechanism,
             identity: format!(
                 "{}#{}|{}|{}",
                 implementation.file,
@@ -123,6 +160,10 @@ impl FingerprintInput {
 
     pub fn display(&self) -> &str {
         &self.identity
+    }
+
+    pub fn role(&self) -> &'static str {
+        self.role.name()
     }
 }
 
@@ -225,7 +266,7 @@ pub fn parse(path: &str, source: &str) -> Result<Judgments, Vec<Diag>> {
                     path,
                     ln,
                     format!("`{id}` has no usable verdict"),
-                    "sound, toothless, dishonest-tag or spec-gap",
+                    "sound, toothless, dishonest-tag, dishonest-realization or spec-gap",
                 ));
                 continue;
             };
@@ -295,8 +336,13 @@ pub fn parse(path: &str, source: &str) -> Result<Judgments, Vec<Diag>> {
 /// trusted only when a compiler-aware extractor supplied it; older manifests and unresolved sites
 /// continue to hash the complete file.
 pub fn fingerprint(claim_text: &str, mut inputs: Vec<FingerprintInput>) -> String {
-    inputs.sort_by(|a, b| a.identity.cmp(&b.identity));
-    inputs.dedup_by(|a, b| a.identity == b.identity);
+    inputs.sort_by(|a, b| {
+        a.role
+            .name()
+            .cmp(b.role.name())
+            .then_with(|| a.identity.cmp(&b.identity))
+    });
+    inputs.dedup_by(|a, b| a.role == b.role && a.identity == b.identity);
 
     let mut hash: u64 = 0xcbf2_9ce4_8422_2325;
     let mut absorb = |bytes: &[u8]| {
@@ -308,6 +354,8 @@ pub fn fingerprint(claim_text: &str, mut inputs: Vec<FingerprintInput>) -> Strin
 
     absorb(claim_text.as_bytes());
     for input in &inputs {
+        absorb(b"\x00");
+        absorb(input.role().as_bytes());
         absorb(b"\x00");
         absorb(input.identity.as_bytes());
         match &input.source_fingerprint {
@@ -344,6 +392,7 @@ mod fingerprint_tests {
         let path = temporary_file();
         fs::write(&path, "first").unwrap();
         let input = FingerprintInput {
+            role: FingerprintInputRole::Evidence,
             identity: format!("{}#test", path.display()),
             file: path.display().to_string(),
             source_fingerprint: Some("site-v1".into()),
@@ -367,5 +416,29 @@ mod fingerprint_tests {
 
         assert_ne!(before, fingerprint("claim", vec![input]));
         fs::remove_file(path).unwrap();
+    }
+
+    #[test]
+    fn dishonest_realization_is_a_supported_verdict() {
+        let verdict = Verdict::parse("dishonest-realization").unwrap();
+        assert_eq!(verdict, Verdict::DishonestRealization);
+        assert_eq!(verdict.name(), "dishonest-realization");
+    }
+
+    #[test]
+    fn input_role_is_part_of_judgment_freshness() {
+        let evidence = FingerprintInput {
+            role: FingerprintInputRole::Evidence,
+            identity: "shared-site".into(),
+            file: "source.cs".into(),
+            source_fingerprint: Some("source-v1".into()),
+        };
+        let mut realization = evidence.clone();
+        realization.role = FingerprintInputRole::Realization;
+
+        assert_ne!(
+            fingerprint("claim", vec![evidence]),
+            fingerprint("claim", vec![realization])
+        );
     }
 }

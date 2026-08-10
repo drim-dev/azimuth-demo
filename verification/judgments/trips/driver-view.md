@@ -1,5 +1,10 @@
 # Judgments: trips/driver-view
 
+Re-judged 2026-08-10 after D28 exposed realization sources. `DriverProjection` is the disclosure
+boundary; the query handlers supply ownership and phase facts; the driver API, view-model and page
+sites preserve or render the bounded result. For the site-quantified invariant, surfaces that carry
+no contact discharge the rule by construction rather than merely participating in the call path.
+
 Revalidated 2026-08-10 after D27 added stable mechanism ids. The semantic diff changed no
 enforcement, binding, expectation, rationale, claim, evidence form or source; the prior verdict
 rationales therefore remain applicable and only their freshness fingerprints moved.
@@ -24,7 +29,7 @@ entries.
 
 ## Claim: rider-contact-confined-to-held-trips
 Verdict: sound
-Fingerprint: b945a0ab396b313d
+Fingerprint: d3f4571a9c102e15
 Judged: 2026-08-10
 Judge: codex
 
@@ -44,7 +49,7 @@ the trip was held by someone, the first two assertions pass and that one fails.
 
 ## Claim: pickup-shown-on-offer
 Verdict: sound
-Fingerprint: 971b626b5c3c846a
+Fingerprint: 77d9f6bd30c28a15
 Judged: 2026-08-10
 Judge: codex
 
@@ -63,7 +68,7 @@ market repeatedly. That is the deviation path used deliberately rather than an o
 
 ## Claim: rider-contact-hidden-on-offer
 Verdict: sound
-Fingerprint: e7007312fbb2589f
+Fingerprint: 90068e41a2582dea
 Judged: 2026-08-10
 Judge: codex
 
@@ -78,7 +83,7 @@ declare a discharge, but neither fact makes a false declaration impossible.
 
 ## Claim: proxy-contact-while-held
 Verdict: sound
-Fingerprint: f27c30ba23bfeb90
+Fingerprint: 349fc82c06998e89
 Judged: 2026-08-08
 Judge: codex
 
@@ -97,7 +102,7 @@ otherwise have to.
 
 ## Claim: contact-withdrawn-after-terminal
 Verdict: sound
-Fingerprint: f594cee0b137a9db
+Fingerprint: 6444da52c9847846
 Judged: 2026-08-08
 Judge: codex
 

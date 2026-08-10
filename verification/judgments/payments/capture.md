@@ -1,5 +1,12 @@
 # Judgments: payments/capture
 
+Re-judged 2026-08-10 after D28 exposed realization sources. The event consumer owns the
+completion-only intent and its deduplication; dispatch and capture handlers own batch progress,
+provider outcomes, amount derivation and database idempotency; query/update handlers and the rider
+receipt path own their stated observations. The trip transition, broker topology and settlement
+metrics remain applicable mechanism or detector inputs, but no longer claim to realize payment
+predicates they do not enforce.
+
 Revalidated 2026-08-10 after D27 added stable mechanism ids. The semantic diff changed no
 enforcement, binding, expectation, rationale, claim, evidence form or source; the prior verdict
 rationales therefore remain applicable and only their freshness fingerprints moved.
@@ -23,7 +30,7 @@ was not evidence of cancellation. Both claims now run through real Trips and Pay
 
 ## Claim: capture-created-on-completion
 Verdict: sound
-Fingerprint: 3a09e7b075d27dca
+Fingerprint: cff1df0cd923888f
 Judged: 2026-08-10
 Judge: codex
 
@@ -35,7 +42,7 @@ universal floor accepted in the verification plan.
 
 ## Claim: no-capture-before-completion
 Verdict: sound
-Fingerprint: f3c850ea769f7799
+Fingerprint: fe1ddd2b4bfd24c2
 Judged: 2026-08-10
 Judge: codex
 
@@ -45,7 +52,7 @@ all trips fails. The one-state sample is recorded rather than disguised as unive
 
 ## Claim: no-capture-on-cancellation-without-fee
 Verdict: sound
-Fingerprint: ce088e71a86be5b9
+Fingerprint: 415fc7d6b8f9d784
 Judged: 2026-08-10
 Judge: codex
 
@@ -55,7 +62,7 @@ on the no-fee cancellation branch fails the new evidence.
 
 ## Claim: duplicate-completion-event
 Verdict: sound
-Fingerprint: 27f2125fedd0480f
+Fingerprint: d21193e5cb0dde32
 Judged: 2026-08-10
 Judge: codex
 
@@ -66,7 +73,7 @@ breaks a distinct assertion. The capture constraint remains separate evidence fo
 
 ## Claim: concurrent-completion-processing
 Verdict: sound
-Fingerprint: f61212ea41285e10
+Fingerprint: af3e243baa4c44b3
 Judged: 2026-08-10
 Judge: codex
 
@@ -76,7 +83,7 @@ one row and fails the count. Distinct workers, rather than sequential repeats, e
 
 ## Claim: retry-after-transport-failure
 Verdict: sound
-Fingerprint: 61bcc8ce054c2cb4
+Fingerprint: 589f162e7d727533
 Judged: 2026-08-10
 Judge: codex
 
@@ -87,7 +94,7 @@ the asserted count at zero. Provider reconciliation remains a design residue.
 
 ## Claim: capture-equals-trip-fare
 Verdict: sound
-Fingerprint: ff0d82242a960218
+Fingerprint: dd8b0a5c56420a65
 Judged: 2026-08-10
 Judge: codex
 
@@ -99,7 +106,7 @@ on the intent anymore. `CaptureTrip` was checked and decodes before provider I/O
 
 ## Claim: adjusted-capture-records-reason
 Verdict: sound
-Fingerprint: 599045066d2f3c5b
+Fingerprint: e684fde3c93ed62c
 Judged: 2026-08-10
 Judge: codex
 
@@ -110,7 +117,7 @@ record assertion. The handler rejects an unreasoned or negative-result adjustmen
 
 ## Claim: declined-capture-recorded
 Verdict: sound
-Fingerprint: a7b839c23e9621cc
+Fingerprint: 89a2ae6838650836
 Judged: 2026-08-08
 Judge: codex
 
@@ -120,7 +127,7 @@ matches the one decline reason.
 
 ## Claim: declined-capture-is-retryable
 Verdict: sound
-Fingerprint: 2731d8995713c160
+Fingerprint: faee5052fbea835b
 Judged: 2026-08-08
 Judge: codex
 
@@ -132,7 +139,7 @@ The tag is `example`, as required for this standard claim.
 
 ## Claim: receipt-explains-payment-state
 Verdict: sound
-Fingerprint: 39064df66fb7aa46
+Fingerprint: 6a64a4354d0c34b2
 Judged: 2026-08-08
 Judge: codex
 
@@ -145,7 +152,7 @@ manual charter is intentionally not counted because it has no execution receipt.
 
 ## Claim: malformed-intent-does-not-starve-batch
 Verdict: sound
-Fingerprint: 42e3a9de9ccbd90f
+Fingerprint: 393df01eb4327292
 Judged: 2026-08-08
 Judge: codex
 

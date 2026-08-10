@@ -125,6 +125,17 @@ public sealed class CollectorTests
     }
 
     [Fact]
+    public void A_constructor_only_type_has_a_navigable_realization_source()
+    {
+        var entry = Assert.Single(
+            Collect().Realizes,
+            item => item.Scenario == "constructor-only-thing");
+
+        Assert.EndsWith("tools/extractors/dotnet/fixture/Fixture.cs", entry.File);
+        Assert.Matches("^[0-9a-f]{64}$", entry.SourceFingerprint);
+    }
+
+    [Fact]
     public void Mechanism_evidence_carries_its_actual_form()
     {
         var entry = Assert.Single(

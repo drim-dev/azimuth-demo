@@ -70,9 +70,6 @@ public static class TransitionTrip
         [Realizes("trips/lifecycle", "rider-cancels-before-start")]
         [Realizes("trips/lifecycle", "driver-cancels-after-assignment")]
         [Realizes("trips/lifecycle", "cancellation-after-completion-rejected")]
-        [Realizes("payments/capture", "capture-created-on-completion")]
-        [Realizes("payments/capture", "no-capture-before-completion")]
-        [Realizes("payments/capture", "no-capture-on-cancellation-without-fee")]
         public async Task<Response> Handle(Request request, CancellationToken ct)
         {
             if (!IdEncoding.TryDecode(request.Id, out var id))

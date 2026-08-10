@@ -47,8 +47,6 @@ public sealed class QuoteTokenCodec
         return $"{body}.{signature}";
     }
 
-    [Realizes("pricing/quote", "total-equals-components")]
-    [Realizes("pricing/quote", "surge-is-a-quote-component")]
     [ImplementsMechanism("security/quote-tokens", "quote-token-validation")]
     [Realizes("security/quote-tokens", "issued-token-round-trips")]
     [Realizes("security/quote-tokens", "altered-token-rejected")]

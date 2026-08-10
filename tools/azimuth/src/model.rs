@@ -354,20 +354,26 @@ impl Model {
             .collect()
     }
 
-    /// Every source the agent-tier rubric requires for a verdict. Compiler-resolved evidence sites
-    /// carry their own fingerprint; prose and explicitly bound non-code mechanisms remain
-    /// deliberately file-scoped.
+    /// Every source the agent-tier rubric requires for a verdict. Compiler-resolved evidence and
+    /// realization sites carry their own fingerprints; prose and explicitly bound non-code
+    /// mechanisms remain deliberately file-scoped.
     pub fn judgment_inputs(
         &self,
         spec: &str,
         scenario: &str,
     ) -> Vec<crate::judgment::FingerprintInput> {
         let mut inputs: Vec<crate::judgment::FingerprintInput> = self
-            .covers
+            .realizes
             .iter()
             .filter(|site| site.spec == spec && site.scenario == scenario)
-            .map(crate::judgment::FingerprintInput::site)
+            .map(crate::judgment::FingerprintInput::realization)
             .collect();
+        inputs.extend(
+            self.covers
+                .iter()
+                .filter(|site| site.spec == spec && site.scenario == scenario)
+                .map(crate::judgment::FingerprintInput::evidence),
+        );
         let Some(claim) = self.find_claim(spec, scenario) else {
             return inputs;
         };

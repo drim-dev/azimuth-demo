@@ -347,6 +347,53 @@ mechanism whose application domain has a different derivation shape; neither sho
 from this one case.
 
 Criticality remains top-heavy: the current corpus contains **17 of 33 requirements/invariants
-(52%) at critical**. The result improves
-mechanism credibility but does not close the ceremony falsifier: authoring minutes were still not
-measured, and this small concern added substantial current-state and transition prose.
+(52%) at critical**. The result improves mechanism credibility but does not close the ceremony
+falsifier: authoring minutes were still not measured, and this small concern added substantial
+current-state and transition prose.
+
+## Update after realization-link auditing *(2026-08-10)*
+
+The first explicit mechanism experiment exposed an agent-tier blind spot. `QuoteTokenCodec.Decode`
+claimed to realize `surge-is-a-quote-component`, although it accepts any non-empty set of uniquely
+labelled components whose sum matches. The accepted model was green and the judgment was current
+because realization sources were absent from both its worklist and fingerprint.
+
+D28 corrects the audit boundary rather than teaching the machine ride-hailing semantics. Every
+realization source is now role-labelled in `azimuth judge`; adding, removing, moving or editing the
+compiler-resolved site expires the verdict. `dishonest-realization` distinguishes an unjustified
+production relation from an evidence-form overstatement.
+
+The new worklist immediately found a second tooling defect: constructor-only types carrying a
+type-level realization had no navigable source. The .NET extractor now includes constructors when
+locating and fingerprinting a type boundary.
+
+This is adverse validation of the framework: the previous agent tier did not merely miss the bad
+tag while reading it; its generated worklist did not ask the judge to read it. The recorded
+falsifier therefore fired. D28 repairs the omission, but one self-authored correction does not
+establish that future judgments are reliable.
+
+The first repository check reports **69 errors: 67 stale judgments and two current
+`dishonest-realization` findings**. Both findings name the quote decoder relations above. The
+annotations remain in place so the check demonstrates discovery; correcting them is the next
+separate action. The staleness is intentional because every previous verdict was reached without
+examining its realization sources.
+
+All executable validation before that intentional gate is green: **221 tests** (103 core, 43
+extractor, 65 service/component and 10 composed-stack e2e), plus five Prometheus rule-test cases.
+
+## Update after realization-link remediation *(2026-08-10)*
+
+The intentional D28 gate is closed. The full role-labelled worklist found **fourteen** unjustified
+business relations: the two quote-decoder relations already recorded, five on shared broker
+topology, two on the relay, two on operational metrics handlers and three that credited trip-event
+production with Payments outcomes. The latter twelve were not product failures; they confused
+mechanism or detector participation with realization of a business predicate.
+
+All fourteen relations were removed. The affected topology, relay, event production and metrics
+sources remain visible through design-mechanism or verification-detector bindings, which is the
+separation D27 and D28 were intended to make. No product behavior changed.
+
+Every stale claim was re-read with its realization sources. The two corrected pricing verdicts are
+now `sound`, all **69 standard or critical claims carry current sound judgments**, and the two
+routine claims remain intentionally unjudged. The current repository check reports **71 claims,
+zero holes, zero errors and zero warnings**.

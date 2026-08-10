@@ -50,7 +50,8 @@ rather than from the check (D9.2).
   compare derived index properties. Strength is never written: it derives from the enforcement
   kind (D7). The `## Residue` section is read and never parsed.
 - **`judgment.rs`** reads the agent tier's verdicts — `sound`, `toothless`, `dishonest-tag`,
-  `spec-gap` — each carrying a fingerprint over everything the judgment looked at.
+  `dishonest-realization`, `spec-gap` — each carrying a fingerprint over everything the judgment
+  looked at. Worklists distinguish realization sites from evidence and context.
 - **`check.rs`** runs `rtm`.
 - **`model.rs`** holds the derived model and writes the export (D10).
 - **`change.rs`** projects additive and criticality-transition intent deltas, preflights accepted
@@ -67,12 +68,12 @@ Four behaviours worth knowing:
   artifacts, and it is the concrete argument that three beat one.
 - **A judgment is evidence *about* evidence, and its value is negative** (D18, revising D14). It
   cannot make a claim covered; it can take a claim that looks covered and report it as a hole.
-  Freshness isolates compiler-resolved evidence sites while retaining whole-file fallback for
-  inputs without a trustworthy boundary (D22).
+  Freshness isolates compiler-resolved evidence and realization sites while retaining whole-file
+  fallback for inputs without a trustworthy boundary (D22, D28).
 
 ### Hole kinds
 
-Twenty-seven, in seven groups.
+Twenty-eight, in seven groups.
 
 **Missing-facet** (D3's central structural claim — the facet is simply absent):
 
@@ -98,7 +99,7 @@ kinds and the two site-class kinds are not missing-facet combinations either. Se
 
 **Agent tier** — findings the machine tier structurally cannot reach, because a tag is only as
 honest as whoever wrote it: `toothless-evidence`, `dishonest-tag-judged`, `spec-gap`,
-`stale-judgment`.
+`dishonest-realization`, `stale-judgment`.
 
 **Site class** — for claims ranging over a set of sites rather than over executions:
 `invariant-breach`, `dangling-class`, `enumerator-unsound-or-underived`. An enumerator witness is
@@ -121,6 +122,9 @@ critical requirement is a hole. Partial adoption still reports.
 - **Symbol bindings establish existence only.** Database index bindings additionally compare
   uniqueness, columns and predicates. “Only caller,” transaction sharing and semantic properties
   still require a purpose-built analyzer, evidence or agent judgment.
+- **Realization honesty is agent-judged, not inferred.** The machine supplies every realization
+  source to the worklist and expires the verdict when its relation or source changes; it cannot
+  decide whether arbitrary code establishes a prose predicate.
 - **`invariant-breach` verifies only the weakest rung of the enforcement ladder** — a guard at every
   site. A choke point every member routes through would report N−1 breaches, which is exactly the
   defect D7 names in the alpha. Crediting one needs call-graph analysis in the extractor (D10.1).

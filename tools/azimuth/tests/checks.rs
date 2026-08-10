@@ -2,6 +2,7 @@
 
 use azimuth::check::{rtm, HoleKind, Severity};
 use azimuth::json;
+use azimuth::judgment::{fingerprint, Judgment, Judgments, Verdict};
 use azimuth::manifest;
 use azimuth::model::Model;
 use azimuth::selects;
@@ -396,4 +397,92 @@ fn a_site_domain_without_a_derived_enumerator_fails_closed() {
             .any(|(kind, _)| *kind == HoleKind::InvariantBreach),
         "a partial domain must not produce authoritative member findings: {holes:?}"
     );
+}
+
+#[test]
+fn judgments_name_realization_sources_as_realizations() {
+    let model = model_with(
+        r#"{
+          "realizes": [{"spec":"alpha","scenario":"guarded","site":"Production.Guard",
+            "file":"a.cs","lang":"csharp","source_fingerprint":"production-v1"}],
+          "covers": [{"spec":"alpha","scenario":"guarded","site":"Tests.Guard",
+            "file":"t.cs","lang":"csharp","source_fingerprint":"test-v1",
+            "scope":"component","quantification":"universal"}]
+        }"#,
+    );
+
+    let inputs = model.judgment_inputs("alpha", "guarded");
+    assert!(inputs.iter().any(|input| {
+        input.role() == "realization" && input.display().contains("Production.Guard")
+    }));
+    assert!(inputs
+        .iter()
+        .any(|input| input.role() == "evidence" && input.display().contains("Tests.Guard")));
+}
+
+#[test]
+fn realization_relation_and_source_changes_expire_a_judgment() {
+    let mut model = model_with(
+        r#"{
+          "realizes": [{"spec":"alpha","scenario":"guarded","site":"Production.Guard",
+            "file":"a.cs","lang":"csharp","source_fingerprint":"production-v1"}],
+          "covers": [{"spec":"alpha","scenario":"guarded","site":"Tests.Guard",
+            "file":"t.cs","lang":"csharp","source_fingerprint":"test-v1",
+            "scope":"component","quantification":"universal"}]
+        }"#,
+    );
+    let claim = model.find_claim("alpha", "guarded").unwrap();
+    let claim_text = model.claim_text(&claim);
+    let original = fingerprint(&claim_text, model.judgment_inputs("alpha", "guarded"));
+    let realization = model.realizes[0].clone();
+
+    model.realizes[0].source_fingerprint = "production-v2".into();
+    let source_changed = fingerprint(&claim_text, model.judgment_inputs("alpha", "guarded"));
+    assert_ne!(source_changed, original);
+
+    model.realizes[0].source_fingerprint = "production-v1".into();
+    model.realizes[0].site = "Production.OtherGuard".into();
+    let moved = fingerprint(&claim_text, model.judgment_inputs("alpha", "guarded"));
+    assert_ne!(moved, original);
+
+    model.realizes.clear();
+    let removed = fingerprint(&claim_text, model.judgment_inputs("alpha", "guarded"));
+    assert_ne!(removed, original);
+
+    model.realizes.push(realization);
+    let added = fingerprint(&claim_text, model.judgment_inputs("alpha", "guarded"));
+    assert_eq!(added, original);
+}
+
+#[test]
+fn a_dishonest_realization_verdict_is_a_distinct_hole() {
+    let mut model = model_with(
+        r#"{
+          "realizes": [{"spec":"alpha","scenario":"guarded","site":"Production.Guard",
+            "file":"a.cs","lang":"csharp","source_fingerprint":"production-v1"}],
+          "covers": [{"spec":"alpha","scenario":"guarded","site":"Tests.Guard",
+            "file":"t.cs","lang":"csharp","source_fingerprint":"test-v1",
+            "scope":"component","quantification":"universal"}]
+        }"#,
+    );
+    let claim = model.find_claim("alpha", "guarded").unwrap();
+    let current = fingerprint(
+        &model.claim_text(&claim),
+        model.judgment_inputs("alpha", "guarded"),
+    );
+    model.judgments.push(Judgments {
+        spec: "alpha".into(),
+        path: "judgments.md".into(),
+        entries: vec![Judgment {
+            scenario: "guarded".into(),
+            verdict: Verdict::DishonestRealization,
+            fingerprint: current,
+            judged: "2026-08-10".into(),
+            judge: "agent".into(),
+            reason: "the named site does not establish the predicate".into(),
+            line: 3,
+        }],
+    });
+
+    assert!(kinds(&model).contains(&(HoleKind::DishonestRealization, "alpha#guarded".into())));
 }

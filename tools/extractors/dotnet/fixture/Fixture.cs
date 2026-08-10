@@ -38,6 +38,19 @@ namespace Azimuth.Fixture
     [Realizes("alpha", "struct-level-thing")]
     public readonly record struct Amount(long MinorUnits);
 
+    /// A type with no ordinary methods still needs a navigable realization source. Validators and
+    /// configuration types commonly put their entire predicate in the constructor.
+    [Realizes("alpha", "constructor-only-thing")]
+    public sealed class ConstructorOnly
+    {
+        public ConstructorOnly()
+        {
+            Value = 1;
+        }
+
+        public int Value { get; }
+    }
+
     /// Stands in for a test framework attribute. Matched by simple name, so the emitter needs no
     /// reference to any test framework.
     [AttributeUsage(AttributeTargets.Method)]

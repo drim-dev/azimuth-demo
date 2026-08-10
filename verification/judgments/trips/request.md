@@ -1,5 +1,10 @@
 # Judgments: trips/request
 
+Re-judged 2026-08-10 after D28 exposed realization sources. `RequestRide` authenticates and expires
+quotes, enforces both uniqueness rules, creates the requested trip and returns its facts; the rider
+route and view model preserve the relevant admission/refusal and acknowledgement outcomes. Every
+remaining site therefore establishes a named part of its predicate.
+
 Revalidated 2026-08-10 after quote validation moved from a feature-local design entry to the
 reusable `security/quote-tokens` concern. Every stale covering body, the admission handler and both
 index definitions were re-read. The handler still invokes the same decoder before writing, and the
@@ -38,7 +43,7 @@ longer describes the system.
 
 ## Claim: request-admitted-with-valid-quote
 Verdict: sound
-Fingerprint: 96cabee9ac177e9f
+Fingerprint: 939f0defd6de3d6d
 Judged: 2026-08-10
 Judge: codex
 
@@ -64,7 +69,7 @@ quote that has not expired", and the near side of that boundary is exercised by
 
 ## Claim: request-rejected-with-expired-quote
 Verdict: sound
-Fingerprint: 9a479865bab37eab
+Fingerprint: 27e3b98ad25241fa
 Judged: 2026-08-10
 Judge: codex
 
@@ -82,7 +87,7 @@ window still passes.
 
 ## Claim: request-rejected-with-unknown-quote
 Verdict: sound
-Fingerprint: d76a17d9fb784c32
+Fingerprint: 0abac14d8935c6e2
 Judged: 2026-08-10
 Judge: codex
 
@@ -99,7 +104,7 @@ altered case; treating malformed input as a server error fails the response asse
 
 ## Claim: quote-consumed-once
 Verdict: sound
-Fingerprint: d2d88733e28fb90e
+Fingerprint: ebc5d13464ece332
 Judged: 2026-08-10
 Judge: codex
 
@@ -114,7 +119,7 @@ success and row counts; no write to Pricing is required.
 
 ## Claim: trip-created-in-requested-state
 Verdict: sound
-Fingerprint: afd73301c8a11512
+Fingerprint: 8e3e1762d6fb539a
 Judged: 2026-08-08
 Judge: codex
 
@@ -131,7 +136,7 @@ where before it was above the floor and false.
 
 ## Claim: rider-informed-of-trip
 Verdict: sound
-Fingerprint: cb82e439b894aeb7
+Fingerprint: 02685a6706fed16d
 Judged: 2026-08-08
 Judge: codex
 
@@ -151,7 +156,7 @@ and the verdict stands.
 
 ## Claim: second-request-rejected-while-active
 Verdict: sound
-Fingerprint: c02decf99c14c1bf
+Fingerprint: 0703bf73d59945d0
 Judged: 2026-08-10
 Judge: codex
 
@@ -165,7 +170,7 @@ entire mechanism; without it all eight insert and the count fails. Verified by r
 
 ## Claim: request-admitted-after-terminal
 Verdict: sound
-Fingerprint: a0039f6e281bf3f5
+Fingerprint: 763cb68d486fbea6
 Judged: 2026-08-10
 Judge: codex
 

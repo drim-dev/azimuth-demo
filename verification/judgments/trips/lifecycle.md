@@ -1,5 +1,10 @@
 # Judgments: trips/lifecycle
 
+Re-judged 2026-08-10 after D28 exposed realization sources. `TripStateMachine` establishes the
+permitted and terminal transition relation; `TransitionTrip` applies it under a locked conditional
+write and appends attribution/history. Its former payment relations were removed: emitting a
+lifecycle event is mechanism context for capture, not implementation of a payment predicate.
+
 Revalidated 2026-08-10 after D27 added stable mechanism ids. The semantic diff changed no
 enforcement, binding, expectation, rationale, claim, evidence form or source; the prior verdict
 rationales therefore remain applicable and only their freshness fingerprints moved.
@@ -34,7 +39,7 @@ system; the expected answer comes from a model that can disagree with it. That i
 
 ## Claim: assigned-to-in-progress
 Verdict: sound
-Fingerprint: dbf916de7d686389
+Fingerprint: 7bf8a6b64807c21d
 Judged: 2026-08-10
 Judge: codex
 
@@ -48,7 +53,7 @@ started trip moves to in-progress cannot notice that the same event is wrongly a
 
 ## Claim: in-progress-to-completed
 Verdict: sound
-Fingerprint: 69a63289be7841d4
+Fingerprint: b373297554baa256
 Judged: 2026-08-10
 Judge: codex
 
@@ -58,7 +63,7 @@ transition is not only modelled but executed.
 
 ## Claim: unpermitted-transition-rejected
 Verdict: sound
-Fingerprint: 1c480de32387f7bc
+Fingerprint: 4c655c2cb6a2797e
 Judged: 2026-08-10
 Judge: codex
 
@@ -76,7 +81,7 @@ derived, which is the part D13.1 constrains.
 
 ## Claim: no-transition-out-of-terminal
 Verdict: sound
-Fingerprint: 4fce8fee1888bf54
+Fingerprint: 300073f500ff2e5d
 Judged: 2026-08-10
 Judge: codex
 
@@ -95,7 +100,7 @@ the component test is what excludes that.
 
 ## Claim: replayed-transition-is-inert
 Verdict: sound
-Fingerprint: 35b9d35b451d44f5
+Fingerprint: 9fd97b6ddb37cb8a
 Judged: 2026-08-10
 Judge: codex
 
@@ -114,7 +119,7 @@ is honest: the axis is arrival multiplicity and the test ranges over it.
 
 ## Claim: transition-records-actor-and-instant
 Verdict: sound
-Fingerprint: 7883eaecaaca5ff1
+Fingerprint: fa9f65b87c0c8128
 Judged: 2026-08-08
 Judge: codex
 
@@ -129,7 +134,7 @@ Retagged `Example`: one trip, one actor pair. `standard`'s floor is `example`.
 
 ## Claim: history-is-append-only
 Verdict: sound
-Fingerprint: dccd15e3f39449d1
+Fingerprint: 8b58e99b5da38f88
 Judged: 2026-08-08
 Judge: codex
 
@@ -143,7 +148,7 @@ claim.
 
 ## Claim: rider-cancels-before-start
 Verdict: sound
-Fingerprint: a84fb2c16e1a1868
+Fingerprint: ce347d7705eb1ebd
 Judged: 2026-08-08
 Judge: codex
 
@@ -157,7 +162,7 @@ handler that recorded a constant actor, the driver case in the same test fails.
 
 ## Claim: driver-cancels-after-assignment
 Verdict: sound
-Fingerprint: 3f282b5ec3ceb063
+Fingerprint: 3211c4285cb177ea
 Judged: 2026-08-08
 Judge: codex
 
@@ -167,7 +172,7 @@ case alone would pass against a hard-coded actor; the pair does not.
 
 ## Claim: cancellation-after-completion-rejected
 Verdict: sound
-Fingerprint: 4a87f196486d75c1
+Fingerprint: 6315475be752aa68
 Judged: 2026-08-08
 Judge: codex
 

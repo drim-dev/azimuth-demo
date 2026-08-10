@@ -218,10 +218,10 @@ It gates the mechanical archive move and contains no authored risk decision.
 **Machine tier** — the deterministic checks. Finds structural holes. Cannot be argued with, and
 cannot establish truth.
 
-**Agent tier** — the judgment pass: is a test toothy, is a tag honest, is a required behaviour
-missing from the spec. A judgment is evidence about evidence, never evidence of the claim; its
-negative verdicts create holes and its fingerprint expires when the comparison it examined changes
-(D18).
+**Agent tier** — the judgment pass: does each realization site establish part of the predicate, is
+a test toothy, is its form tag honest, and is a required behaviour missing from the spec. A
+judgment never establishes the claim; its negative verdicts create holes and its fingerprint
+expires when a relation or source it examined changes (D18, D28).
 
 **Export** — the derived model, serialized. Checks, dashboards, PR annotations and the agent tier
 are all consumers of it; nothing re-parses specs.

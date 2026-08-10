@@ -1,5 +1,12 @@
 # Judgments: analytics/trip-activity
 
+Re-judged 2026-08-10 after D28 exposed realization sources. The consumer handler directly
+establishes maximum-version projection, inbox deduplication and older-version inertia; the
+background receiver establishes poison-message rejection. Broker topology, relay and metrics are
+still inspected through design and verification bindings, but their misleading business
+`Realizes` relations were removed because they provide mechanisms and detection rather than those
+scenario predicates.
+
 Revalidated 2026-08-10 after D27 added stable mechanism ids. The semantic diff changed no
 enforcement, binding, expectation, rationale, claim, evidence form or source; the prior verdict
 rationales therefore remain applicable and only their freshness fingerprints moved.
@@ -10,7 +17,7 @@ multiplicity only from one to two under a `universal` tag. The corrected evidenc
 
 ## Claim: latest-version-is-projected
 Verdict: sound
-Fingerprint: d27f2c48021711c5
+Fingerprint: 10e123c67789ee1f
 Judged: 2026-08-10
 Judge: codex
 
@@ -23,7 +30,7 @@ tag is honestly `example`. The relay/backlog alerts are supplementary and their 
 
 ## Claim: redelivery-is-counted-once
 Verdict: sound
-Fingerprint: 1594a46dccb8a162
+Fingerprint: 7b4c048ca80311f9
 Judged: 2026-08-10
 Judge: codex
 
@@ -35,7 +42,7 @@ multiplicity axis; the finite trial count is sampling of schedules, not a claim 
 
 ## Claim: older-delivery-is-inert
 Verdict: sound
-Fingerprint: 6088482881bfa005
+Fingerprint: 752ff9a6198e60da
 Judged: 2026-08-10
 Judge: codex
 
@@ -47,7 +54,7 @@ read directly; topology does not pretend to supply this consumer-specific rule.
 
 ## Claim: malformed-event-is-dead-lettered
 Verdict: sound
-Fingerprint: 7deeaf8896bf837b
+Fingerprint: ebb43e18bdfad307
 Judged: 2026-08-10
 Judge: codex
 

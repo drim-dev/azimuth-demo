@@ -1,6 +1,5 @@
 using System.Globalization;
 using System.Text;
-using Azimuth.Annotations;
 using Common.Http;
 using Common.Time;
 using MediatR;
@@ -29,7 +28,6 @@ public static class GetTripEventMetrics
         Clock clock,
         TripEventRelayState state) : IRequestHandler<Request, string>
     {
-        [Realizes("analytics/trip-activity", "latest-version-is-projected")]
         public async Task<string> Handle(Request request, CancellationToken cancellation)
         {
             var pending = await db.TripEvents.AsNoTracking()

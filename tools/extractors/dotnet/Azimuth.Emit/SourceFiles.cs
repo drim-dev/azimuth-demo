@@ -19,6 +19,11 @@ namespace Azimuth.Emit;
 /// </remarks>
 internal sealed class SourceFiles : IDisposable
 {
+    private const BindingFlags DeclaredMembers = BindingFlags.Public
+        | BindingFlags.NonPublic
+        | BindingFlags.Instance
+        | BindingFlags.Static
+        | BindingFlags.DeclaredOnly;
     private readonly MetadataReaderProvider? _provider;
     private readonly MetadataReader? _reader;
     private readonly string _root;
@@ -101,12 +106,7 @@ internal sealed class SourceFiles : IDisposable
 
     public string FingerprintOf(Type type)
     {
-        const BindingFlags flags = BindingFlags.Public
-            | BindingFlags.NonPublic
-            | BindingFlags.Instance
-            | BindingFlags.Static
-            | BindingFlags.DeclaredOnly;
-        var fingerprints = type.GetMethods(flags)
+        var fingerprints = SourceMembersOf(type)
             .Select(FingerprintOf)
             .Where(value => value.Length > 0)
             .OrderBy(value => value, StringComparer.Ordinal)
@@ -225,16 +225,10 @@ internal sealed class SourceFiles : IDisposable
         }
     }
 
-    /// <summary>A type's path is taken from its first method that has one.</summary>
+    /// <summary>A type's path is taken from its first declared source member that has one.</summary>
     public string PathOf(Type type)
     {
-        const BindingFlags flags = BindingFlags.Public
-            | BindingFlags.NonPublic
-            | BindingFlags.Instance
-            | BindingFlags.Static
-            | BindingFlags.DeclaredOnly;
-
-        foreach (var method in type.GetMethods(flags))
+        foreach (var method in SourceMembersOf(type))
         {
             var path = PathOf(method);
             if (path.Length > 0)
@@ -245,6 +239,10 @@ internal sealed class SourceFiles : IDisposable
 
         return string.Empty;
     }
+
+    private static IEnumerable<MethodBase> SourceMembersOf(Type type) =>
+        type.GetMethods(DeclaredMembers).Cast<MethodBase>()
+            .Concat(type.GetConstructors(DeclaredMembers));
 
     private string Relative(string absolute)
     {

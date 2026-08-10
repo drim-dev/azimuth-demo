@@ -1,5 +1,10 @@
 # Judgments: trips/dispatch
 
+Re-judged 2026-08-10 after D28 exposed realization sources. `OfferTripToDrivers` owns eligibility
+filtering and offer creation, `AcceptOffer` owns the assignment compare-and-set and withdrawal, and
+`GetOffers` owns expiry transition and the observable offer set. Those responsibilities establish
+an identifiable part of every relation attached to them.
+
 Revalidated 2026-08-10 after D27 added stable mechanism ids. The semantic diff changed no
 enforcement, binding, expectation, rationale, claim, evidence form or source; the prior verdict
 rationales therefore remain applicable and only their freshness fingerprints moved.
@@ -24,7 +29,7 @@ strengthening of `late-acceptance-rejected`.
 
 ## Claim: offer-sent-to-available-nearby-driver
 Verdict: sound
-Fingerprint: 6f29e191feba9a96
+Fingerprint: 7bef9855798b245a
 Judged: 2026-08-08
 Judge: codex
 
@@ -42,7 +47,7 @@ than universal over populations. `standard`'s floor is `example`.
 
 ## Claim: unavailable-driver-not-offered
 Verdict: sound
-Fingerprint: 8c6a92ab00e0997d
+Fingerprint: fa3a371e66723b57
 Judged: 2026-08-08
 Judge: codex
 
@@ -52,7 +57,7 @@ and cheaply so: the second form says out loud what the first implies.
 
 ## Claim: no-available-drivers
 Verdict: sound
-Fingerprint: 64960d5937165f17
+Fingerprint: 6815352259c22fbd
 Judged: 2026-08-08
 Judge: codex
 
@@ -70,7 +75,7 @@ against the store, but it is the half a rider actually experiences.
 
 ## Claim: first-acceptance-assigns
 Verdict: sound
-Fingerprint: 9dcfe21a3c5d4641
+Fingerprint: f2ef7d418bcf83e9
 Judged: 2026-08-10
 Judge: codex
 
@@ -84,7 +89,7 @@ many accept and the test ranges over it.
 
 ## Claim: concurrent-acceptances-yield-one-assignment
 Verdict: sound
-Fingerprint: 3b57617226eb253a
+Fingerprint: 4225f17a0dbaab7a
 Judged: 2026-08-10
 Judge: codex
 
@@ -98,7 +103,7 @@ corpus, and is stated rather than hidden.
 
 ## Claim: late-acceptance-rejected
 Verdict: sound
-Fingerprint: 0523830f5f3dac43
+Fingerprint: 89a25882f2985c05
 Judged: 2026-08-10
 Judge: codex
 
@@ -113,7 +118,7 @@ produced repeatedly.
 
 ## Claim: other-offers-withdrawn
 Verdict: sound
-Fingerprint: 2938fe3e37f76ade
+Fingerprint: dbb11f89063894dd
 Judged: 2026-08-08
 Judge: codex
 
@@ -126,7 +131,7 @@ which is what a partial withdrawal looks like. Retagged `Example` — one popula
 
 ## Claim: expired-offer-withdrawn
 Verdict: sound
-Fingerprint: 69190921b74b954b
+Fingerprint: 4fefcce1ac43fcbf
 Judged: 2026-08-08
 Judge: codex
 

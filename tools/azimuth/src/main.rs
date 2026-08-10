@@ -467,7 +467,7 @@ fn command_judge(options: Options) -> Result<ExitCode, String> {
             state
         );
         for input in inputs {
-            println!("\tevidence\t{}", input.display());
+            println!("\t{}\t{}", input.role(), input.display());
         }
     }
     Ok(ExitCode::SUCCESS)

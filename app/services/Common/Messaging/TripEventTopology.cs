@@ -1,4 +1,3 @@
-using Azimuth.Annotations;
 using RabbitMQ.Client;
 
 namespace Common.Messaging;
@@ -12,11 +11,6 @@ public static class TripEventTopology
     public const string PaymentsDeadLetterQueue = "trip.lifecycle.payments.dead";
     public const string AnalyticsDeadLetterQueue = "trip.lifecycle.analytics.dead";
 
-    [Realizes("analytics/trip-activity", "latest-version-is-projected")]
-    [Realizes("analytics/trip-activity", "redelivery-is-counted-once")]
-    [Realizes("analytics/trip-activity", "older-delivery-is-inert")]
-    [Realizes("analytics/trip-activity", "malformed-event-is-dead-lettered")]
-    [Realizes("payments/capture", "capture-created-on-completion")]
     public static async Task DeclareAsync(IChannel channel, CancellationToken cancellation)
     {
         await channel.ExchangeDeclareAsync(

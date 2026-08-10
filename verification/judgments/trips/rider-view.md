@@ -1,5 +1,11 @@
 # Judgments: trips/rider-view
 
+Re-judged 2026-08-10 after D28 exposed realization sources. `RiderProjection` owns phase-dependent
+identity and position disclosure; service/BFF view models preserve that decision; pages render only
+their bounded models. The site-quantified invariant also includes every built rider surface: a
+surface that carries no position discharges the rule explicitly, while position-bearing surfaces
+route through the projection.
+
 Revalidated 2026-08-10 after D27 added stable mechanism ids. The semantic diff changed no
 enforcement, binding, expectation, rationale, claim, evidence form or source; the prior verdict
 rationales therefore remain applicable and only their freshness fingerprints moved.
@@ -36,7 +42,7 @@ hashes whole files, which D19.1 records.
 
 ## Claim: position-confined-to-live-phases
 Verdict: sound
-Fingerprint: 57719f2df66f28f5
+Fingerprint: 0dc3939f4359e2bd
 Judged: 2026-08-10
 Judge: codex
 
@@ -58,7 +64,7 @@ because the evidence tag and plan no longer claim the type proof that the code c
 
 ## Claim: no-driver-identity-before-assignment
 Verdict: sound
-Fingerprint: 4971d6d697d4a856
+Fingerprint: a71eab40905c3c77
 Judged: 2026-08-10
 Judge: codex
 
@@ -73,7 +79,7 @@ The doc comment above it, which claimed derivation this body does not do, is sti
 
 ## Claim: no-driver-position-before-assignment
 Verdict: sound
-Fingerprint: 3f071bd27f464ad6
+Fingerprint: 553b10ce811cecf7
 Judged: 2026-08-10
 Judge: codex
 
@@ -83,7 +89,7 @@ test fails on the null assertion and the e2e on both the field and the substring
 
 ## Claim: supply-density-shown-before-assignment
 Verdict: sound
-Fingerprint: c51d7c006810cf38
+Fingerprint: c7f2aeee5293252a
 Judged: 2026-08-10
 Judge: codex
 
@@ -104,7 +110,7 @@ The unit test remains a round-trip and adds nothing. It is not the evidence carr
 
 ## Claim: driver-shown-after-assignment
 Verdict: sound
-Fingerprint: c04b1b81de5d29a8
+Fingerprint: 8f13e864b375c18e
 Judged: 2026-08-08
 Judge: codex
 
@@ -123,7 +129,7 @@ escape.
 
 ## Claim: driver-position-follows-driver
 Verdict: sound
-Fingerprint: 56190aa0fab5de64
+Fingerprint: 3e891e9430bfff27
 Judged: 2026-08-08
 Judge: codex
 
@@ -141,7 +147,7 @@ and the claim does not say the driver moves via an endpoint.
 
 ## Claim: no-position-after-completion
 Verdict: sound
-Fingerprint: 1055d57850cf3780
+Fingerprint: a389927fffd5e1bb
 Judged: 2026-08-10
 Judge: codex
 
@@ -164,7 +170,7 @@ asserts the position is gone.
 
 ## Claim: no-position-after-cancellation
 Verdict: sound
-Fingerprint: a0620090ace3a3ff
+Fingerprint: 357c80c0724c10a8
 Judged: 2026-08-10
 Judge: codex
 
@@ -178,7 +184,7 @@ removed this claim would have no evidence that constructs the failure case.
 
 ## Claim: driver-identity-remains-on-receipt
 Verdict: sound
-Fingerprint: 189f3baca6b973e5
+Fingerprint: 8fbfd902f7bab30b
 Judged: 2026-08-10
 Judge: codex
 

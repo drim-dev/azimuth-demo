@@ -1,5 +1,9 @@
 # Judgments: security/quote-tokens
 
+Re-judged 2026-08-10 after D28 exposed realization sources. `Encode` establishes issuance and
+`Decode` establishes authenticated round-trip, mutation rejection and foreign-authority rejection;
+each remaining relation names behavior implemented inside the codec boundary.
+
 Judged 2026-08-10 from the codec, both mechanism implementations, the verification plan and every
 covering test body. The same judge wrote the evidence, so the strongest observation is the mutation
 it caught before this judgment: a changed final base64url character could decode to the original
@@ -8,7 +12,7 @@ canonical encoding.
 
 ## Claim: issued-token-round-trips
 Verdict: sound
-Fingerprint: 7558711ac3356aea
+Fingerprint: c1d242b67c93705c
 Judged: 2026-08-10
 Judge: codex
 
@@ -20,7 +24,7 @@ axes; it does not claim exhaustive enumeration of every string or integer.
 
 ## Claim: altered-token-rejected
 Verdict: sound
-Fingerprint: 21266452d04fb3bb
+Fingerprint: 59482eb0d88c527a
 Judged: 2026-08-10
 Judge: codex
 
@@ -33,7 +37,7 @@ implementation rather than inferred only by inspection.
 
 ## Claim: foreign-signature-rejected
 Verdict: sound
-Fingerprint: cc6f4a791c9ca122
+Fingerprint: e3d2250809023abf
 Judged: 2026-08-10
 Judge: codex
 
