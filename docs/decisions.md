@@ -1347,6 +1347,39 @@ intentionally unjudged.
 
 ---
 
+## D29 — Relational is distinct from metamorphic and model-based *(decided 2026-08-10)*
+
+**Decision.** `relational` enters the Oracle vocabulary. It names evidence whose expected result is
+a stated relation among values observed for one case. `metamorphic` is narrowed to a relation
+across executions connected by an intentional transformation. `model-based` is narrowed to an
+independent model computing the exact expected result for the input.
+
+**Why the distinction is observable.** The quote component test does not transform an execution
+and does not calculate the correct quote with a second pricing implementation. It observes one
+serialized quote and checks `total = sum(breakdown)`. Calling that metamorphic hid the experimental
+shape; calling it model-based would invent an independent oracle that does not exist. Payment
+capture supplies the second, structurally different concern: one settlement case observes the
+admitted fare and stored capture and requires amount and currency equality across a component
+boundary.
+
+The money primitive test remains `metamorphic`. It partitions a generated component set, executes
+the subject over the whole and both partitions, and checks the recombination relation. Sharing a
+claim with relational component evidence does not make every covering test use the same oracle.
+
+**Machine and agent boundary.** The annotation APIs, extractors, manifest reader and plan parser
+share one closed vocabulary; an unknown name fails rather than entering the model silently. Oracle
+kinds are categories, not a strength ladder. The machine neither ranks them nor treats one kind as
+satisfying another. Whether a tag honestly names the discriminating source remains part of the
+agent judgment and judgment freshness includes the declared kind.
+
+**Scope of an observation.** “One case” does not mean one function or process. A relational oracle
+may compare request, response, persisted state and an external call gathered for the same case. If
+the evidence deliberately changes an input or environment and compares the source and follow-up
+executions, it is metamorphic. If a separate reference function supplies the exact answer, it is
+model-based.
+
+---
+
 ## Method
 
 **Concern catalog first, notation last.** No mechanism enters the model until **≥2 structurally

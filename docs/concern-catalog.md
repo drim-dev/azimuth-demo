@@ -171,9 +171,10 @@ Each entry records:
   payments). Two independent implementations that must agree.
 - **Enforcement.** A signed quote token carried from quote to capture; capture recomputes and
   compares.
-- **Verification.** The interesting form is **differential**: run both paths on the same input
-  and assert agreement — a metamorphic/model-based oracle rather than a direct one. Per-path
-  example tests can both pass while the paths disagree.
+- **Verification.** The interesting form is **differential**: observe both paths for the same case
+  and assert agreement — a relational oracle, unless an independent reference implementation
+  computes an exact expected result and makes it model-based. Per-path example tests can both pass
+  while the paths disagree.
 - **Silent failure.** A surge rule is added to pricing but not to the recompute path.
 - **Forgotten by.** Anyone changing pricing rules.
 - **Shape.** Coherence between independent implementations. **New shape — not in the earlier

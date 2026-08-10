@@ -80,12 +80,12 @@ test('a site fingerprint changes only when that site changes', () => {
   assert.notEqual(before.covers[1].source_fingerprint, after.covers[1].source_fingerprint);
 });
 
-test('an oracle is carried when given', () => {
+test('a relational oracle is carried when given', () => {
   const result = scanText(
-    `test('t', () => { covers('a', 's', 'e2e', 'example', 'model-based'); });`,
+    `test('t', () => { covers('a', 's', 'e2e', 'example', 'relational'); });`,
     'a.test.ts',
   );
-  assert.equal(result.covers[0].oracle, 'model-based');
+  assert.equal(result.covers[0].oracle, 'relational');
 });
 
 test('a mechanism implementation derives a symbol binding', () => {

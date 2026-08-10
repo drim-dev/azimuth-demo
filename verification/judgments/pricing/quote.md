@@ -1,5 +1,10 @@
 # Judgments: pricing/quote
 
+Revalidated 2026-08-10 after D29 separated relational, metamorphic and model-based oracles. Every
+stale claim, covering body, realization site and design binding was re-read. The HTTP quote test
+uses a relational oracle over one serialized response; the supplementary `Money.Sum` test remains
+metamorphic because it compares whole and partitioned executions. No behavior changed.
+
 Re-judged 2026-08-10 after D28 added every realization source to the generated worklist. The two
 invalid issuance relations on `QuoteTokenCodec.Decode` were removed. `IssueQuote` establishes quote
 construction, component composition and pressure selection; `Money` establishes minor-unit and sum
@@ -32,7 +37,7 @@ stale optional artifact look like a framework finding.
 
 ## Claim: quote-returned
 Verdict: sound
-Fingerprint: 2781eae629c2c561
+Fingerprint: dc367c4f845c85e1
 Judged: 2026-08-08
 Judge: codex
 
@@ -43,7 +48,7 @@ Removing any required response field makes the test fail during assertion or des
 
 ## Claim: unserviceable-area
 Verdict: sound
-Fingerprint: 0e93917db98a01f2
+Fingerprint: d63cca77b45b7ea6
 Judged: 2026-08-08
 Judge: codex
 
@@ -54,7 +59,7 @@ fails this evidence.
 
 ## Claim: quote-valid-before-expiry
 Verdict: sound
-Fingerprint: 8d249b548935e647
+Fingerprint: b62ae991a1f6e4b7
 Judged: 2026-08-08
 Judge: codex
 
@@ -64,7 +69,7 @@ instant prevents a permanently-valid implementation from passing the near side a
 
 ## Claim: quote-invalid-after-expiry
 Verdict: sound
-Fingerprint: 8f8f95fba15637d7
+Fingerprint: 194beff458f21247
 Judged: 2026-08-08
 Judge: codex
 
@@ -73,7 +78,7 @@ unchanged. A grace period, strict-`<` boundary or zeroing/recalculation on expir
 
 ## Claim: expired-quote-is-never-revalidated
 Verdict: sound
-Fingerprint: c077f7a44461811d
+Fingerprint: 89930c5bb8479a39
 Judged: 2026-08-08
 Judge: codex
 
@@ -83,7 +88,7 @@ the latest issuance fails.
 
 ## Claim: total-in-minor-units
 Verdict: sound
-Fingerprint: 320f698f15b76c95
+Fingerprint: 59e4a60bc04f79b6
 Judged: 2026-08-10
 Judge: codex
 
@@ -94,14 +99,15 @@ being presented as the proof.
 
 ## Claim: total-equals-components
 Verdict: sound
-Fingerprint: ff24f62814edc72d
+Fingerprint: 2b8b874ec6afa33d
 Judged: 2026-08-10
 Judge: codex
 
-The evidence is discriminating: one test generates 500 variable-length component sets and checks
-independent sum and split/recombine relations; the component test adds HTTP serialization, three
-currencies and both pressure branches. `IssueQuote.RequestHandler.Handle` constructs the issued
-total through `Money.Sum`, so those realization relations establish the predicate.
+The evidence is discriminating: the component test's relational oracle compares total and
+breakdown within each serialized quote across three currencies and both pressure branches. A
+separate metamorphic test generates 500 variable-length component sets and compares whole and
+split/recombined executions. `IssueQuote.RequestHandler.Handle` constructs the issued total through
+`Money.Sum`, so those realization relations establish the predicate.
 
 The remaining realization sites are exact: `Money.Sum` establishes the arithmetic and currency
 relation, while `IssueQuote.RequestHandler.Handle` applies it to the components of the issued quote.
@@ -109,7 +115,7 @@ Token decoding remains defense in depth but no longer claims to establish issuan
 
 ## Claim: current-pressure-selects-surge
 Verdict: sound
-Fingerprint: d93dedc2ff4c453c
+Fingerprint: 34e845499b999b8e
 Judged: 2026-08-10
 Judge: codex
 
@@ -121,7 +127,7 @@ issues the quote.
 
 ## Claim: stale-pressure-does-not-select-surge
 Verdict: sound
-Fingerprint: 88e394efa57287ff
+Fingerprint: 59a9ddcd44c6f289
 Judged: 2026-08-10
 Judge: codex
 
@@ -132,7 +138,7 @@ strictly newer than the boundary.
 
 ## Claim: surge-is-a-quote-component
 Verdict: sound
-Fingerprint: bdda419881adc342
+Fingerprint: 0cda94c8782d839e
 Judged: 2026-08-10
 Judge: codex
 

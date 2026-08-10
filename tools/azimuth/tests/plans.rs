@@ -3,7 +3,7 @@
 use azimuth::check::{rtm, HoleKind};
 use azimuth::json;
 use azimuth::manifest;
-use azimuth::model::{Model, Quantification, Scope, Strength};
+use azimuth::model::{Model, Oracle, Quantification, Scope, Strength};
 use azimuth::plan::{parse_plan, parse_standards};
 use azimuth::spec::parse_spec;
 
@@ -72,6 +72,26 @@ fn plan_err(source: &str) -> String {
             .collect::<Vec<_>>()
             .join("\n"),
     }
+}
+
+#[test]
+fn relational_oracle_parses() {
+    let plan = parse_plan(
+        "p.md",
+        "# Verification: alpha\n\n## Claim: typed-thing\nOracle: relational\n\nA reason.\n",
+    )
+    .expect("plan parses");
+
+    assert_eq!(plan.entries[0].oracle, Some(Oracle::Relational));
+}
+
+#[test]
+fn unknown_oracle_is_rejected_in_a_plan() {
+    let error = plan_err(
+        "# Verification: alpha\n\n## Claim: typed-thing\nOracle: differential\n\nA reason.\n",
+    );
+
+    assert!(error.contains("unknown oracle `differential`"), "{error}");
 }
 
 fn kinds(m: &Model) -> Vec<(HoleKind, String)> {

@@ -11,7 +11,7 @@ precision; that limit remains in the design residue.
 ## Claim: total-equals-components
 Scope: component
 Quantification: universal
-Oracle: metamorphic
+Oracle: relational
 
 Generate distances, currencies and both pressure branches through HTTP; assert the serialized sum
 and decode the signed token. Real serialization is part of the claim.

@@ -72,6 +72,13 @@ namespace Azimuth.Fixture.Traced
         }
 
         [Fact]
+        [Covers("alpha", "relational-thing", Scope.Component, Quantification.Universal,
+            Oracle.Relational)]
+        public void CoveredRelationally()
+        {
+        }
+
+        [Fact]
         [Covers("alpha", "first-branch", Scope.E2e, Quantification.Example, Oracle.ModelBased)]
         [CoversMechanism(
             "alpha",

@@ -103,8 +103,13 @@ nothing.)*
 (D15). Applies to demonstration-strength evidence only: a static rule executes nothing and has no
 scope; a monitor has a target.
 
-**Oracle** — how the expected result was obtained: `direct`, `golden`, `metamorphic`,
-`model-based`, `contract`. Descriptive, never gated.
+**Oracle** — how the expected result was obtained: `direct` writes it in the evidence; `golden`
+reads a recorded output; `relational` checks a relation among values observed for one case;
+`metamorphic` checks a relation across executions connected by an intentional transformation;
+`model-based` computes the exact expected result with an independent model; `contract` consults an
+agreed interface or protocol. The vocabulary is validated, but it is descriptive and never ranked
+or gated. *(revised 2026-08-10 — `relational` separates within-case relations from metamorphic
+relations across executions.)*
 
 **Freshness** — what re-establishes an evidence item and how often, plus how it dies silently. A
 test is re-established every CI run; an attestation ages out; a monitor whose query broke has

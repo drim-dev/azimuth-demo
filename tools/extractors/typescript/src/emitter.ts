@@ -19,7 +19,14 @@ const LANG = 'typescript';
 
 const SCOPES = ['unit', 'component', 'e2e'] as const;
 const QUANTIFICATIONS = ['example', 'universal'] as const;
-const ORACLES = ['direct', 'golden', 'metamorphic', 'model-based', 'contract'] as const;
+const ORACLES = [
+  'direct',
+  'golden',
+  'relational',
+  'metamorphic',
+  'model-based',
+  'contract',
+] as const;
 
 const TEST_CALLS = new Set(['test', 'it']);
 

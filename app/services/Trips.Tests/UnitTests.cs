@@ -13,9 +13,9 @@ namespace Trips.Tests;
 public sealed class MoneyTests
 {
     /// <summary>
-    /// The plan asks for a metamorphic oracle here: generate component sets and assert the sum
-    /// relation, rather than asserting one arithmetic result that a reimplementation of the same
-    /// bug would also produce.
+    /// The component evidence supplies the plan's relational oracle. This supplementary unit test
+    /// deliberately adds a metamorphic one: partition each generated set and require recombination
+    /// to agree, rather than asserting one arithmetic example the same bug could also produce.
     /// </summary>
     [Fact]
     [Covers("pricing/quote", "total-equals-components", Scope.Unit, Quantification.Universal, Oracle.Metamorphic)]

@@ -28,7 +28,8 @@ public sealed class DispatchCapturesTests(PaymentsTestFixture fixture) : IAsyncL
     /// dishonest: it declared `Invariant` and exercised one amount. The tag now describes the test.
     /// </summary>
     [Fact]
-    [Covers("payments/capture", "capture-equals-trip-fare", Scope.Component, Quantification.Universal)]
+    [Covers("payments/capture", "capture-equals-trip-fare", Scope.Component,
+        Quantification.Universal, Oracle.Relational)]
     public async Task A_completed_trip_is_captured_for_whatever_its_fare_is()
     {
         var client = fixture.HttpClient.CreateClient();

@@ -15,7 +15,7 @@
 
 use crate::diag::{validate_id, Diag};
 use crate::labels::read_block;
-use crate::model::{Criticality, Quantification, Scope, Strength};
+use crate::model::{Criticality, Oracle, Quantification, Scope, Strength};
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -54,7 +54,7 @@ pub struct PlanEntry {
     pub scenario: String,
     pub scope: Option<Scope>,
     pub quantification: Option<Quantification>,
-    pub oracle: Option<String>,
+    pub oracle: Option<Oracle>,
     pub evidence: Option<EvidenceItem>,
     pub residual: Option<String>,
     pub accepted: Option<String>,
@@ -670,11 +670,26 @@ fn claim_entry(
         ));
     }
 
+    let oracle = block
+        .value("Oracle")
+        .and_then(|value| match Oracle::parse(value) {
+            Some(oracle) => Some(oracle),
+            None => {
+                errors.push(Diag::expecting(
+                    path,
+                    line,
+                    format!("unknown oracle `{value}`"),
+                    "direct, golden, relational, metamorphic, model-based or contract",
+                ));
+                None
+            }
+        });
+
     Some(PlanEntry {
         scenario: id.to_string(),
         scope,
         quantification,
-        oracle: block.value("Oracle").map(str::to_string),
+        oracle,
         evidence,
         residual,
         accepted,

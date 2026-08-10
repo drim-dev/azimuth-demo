@@ -115,6 +115,15 @@ public sealed class CollectorTests
     }
 
     [Fact]
+    public void A_relational_oracle_is_emitted()
+    {
+        var entry = Assert.Single(
+            Collect().Covers,
+            c => c.Scenario == "relational-thing");
+        Assert.Equal("relational", entry.Oracle);
+    }
+
+    [Fact]
     public void A_mechanism_implementation_derives_its_symbol_binding()
     {
         var entry = Assert.Single(

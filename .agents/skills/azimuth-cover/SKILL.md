@@ -122,6 +122,18 @@ The tag declares scope and oracle too, and they are held to the same standard: `
 that never touches the real store, or an oracle naming a source the test does not consult, is the
 same failure as an over-declared quantification.
 
+Keep the three relation-shaped oracles separate:
+
+- `relational` checks a stated relation among values observed for one case;
+- `metamorphic` compares executions connected by an intentional transformation without computing
+  either absolute answer;
+- `model-based` uses an independent model to compute the exact expected result for the input.
+
+If a test contains several shapes, name the one that actually discriminates this claim. Comparing
+a response total with its own breakdown is relational. Partitioning an input and comparing whole
+and recombined executions is metamorphic. Repeating production logic in the expected-value path is
+not model-based merely because it is in test code.
+
 ## When the required form is not available
 
 This is the branch that decides whether the skill works. There are claims whose honest evidence
@@ -153,8 +165,8 @@ this framework cannot detect from structure alone.
 - **Generating on the wrong axis.** The most damaging outcome, because it defeats a reader who
   checks only whether generation is present.
 - **An oracle that reimplements the subject.** Passes for correct and incorrect implementations
-  alike whenever both share the misunderstanding. Prefer a relation stated by the claim, or a
-  metamorphic relation between runs.
+  alike whenever both share the misunderstanding. Prefer a relation stated by the claim: within a
+  case that is relational; across intentionally transformed executions it is metamorphic.
 - **Hand-listed enumerations.** Report green over an unknown fraction of the domain.
 - **Trial counts as reassurance.** Repetition without contention, or cases without variation, is
   the same evidence run repeatedly.

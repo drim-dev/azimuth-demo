@@ -197,10 +197,13 @@ namespace Azimuth.Annotations
         /// <summary>Compared against a recorded previous output.</summary>
         Golden,
 
-        /// <summary>Checked by a relation between inputs rather than an absolute answer.</summary>
+        /// <summary>Checked by a relation among values observed for one case.</summary>
+        Relational,
+
+        /// <summary>Checked across executions connected by an intentional transformation.</summary>
         Metamorphic,
 
-        /// <summary>Compared against an independent model of the behaviour.</summary>
+        /// <summary>Compared against an exact result computed by an independent model.</summary>
         ModelBased,
 
         /// <summary>Checked against an agreed interface contract.</summary>

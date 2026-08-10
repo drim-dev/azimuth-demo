@@ -20,7 +20,7 @@ public sealed class IssueQuoteTests(PricingTestFixture fixture) : IAsyncLifetime
     [Covers("pricing/quote", "quote-returned", Scope.Component, Quantification.Example,
         Oracle.Contract)]
     [Covers("pricing/quote", "total-equals-components", Scope.Component, Quantification.Universal,
-        Oracle.Metamorphic)]
+        Oracle.Relational)]
     [Covers("pricing/quote", "surge-is-a-quote-component", Scope.Component, Quantification.Universal,
         Oracle.Contract)]
     public async Task Every_serialized_quote_total_is_the_sum_of_its_three_components()

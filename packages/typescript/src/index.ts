@@ -9,7 +9,13 @@
 
 export type Scope = 'unit' | 'component' | 'e2e';
 export type Quantification = 'example' | 'universal';
-export type Oracle = 'direct' | 'golden' | 'metamorphic' | 'model-based' | 'contract';
+export type Oracle =
+  | 'direct'
+  | 'golden'
+  | 'relational'
+  | 'metamorphic'
+  | 'model-based'
+  | 'contract';
 
 /**
  * Marks a production-code site as being on a claim's path, keyed by the stable

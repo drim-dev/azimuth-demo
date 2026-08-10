@@ -42,10 +42,9 @@ public readonly record struct Money
 
     /// <summary>Sums components, refusing a mix of currencies.</summary>
     /// <remarks>
-    /// The sum relation is what <c>pricing/quote#total-equals-components</c> asserts, and the plan
-    /// requires it at <c>universal</c> quantification with a metamorphic oracle: generate component
-    /// sets and assert the relation, rather than asserting one arithmetic result that a
-    /// reimplementation of the same bug would also produce.
+    /// The sum relation is what <c>pricing/quote#total-equals-components</c> asserts. The plan
+    /// requires a relational oracle at the serialized component boundary; the unit evidence adds
+    /// a metamorphic partition-and-recombine check over generated component sets.
     /// </remarks>
     [Realizes("pricing/quote", "total-equals-components")]
     public static Money Sum(string currency, IEnumerable<Money> components)

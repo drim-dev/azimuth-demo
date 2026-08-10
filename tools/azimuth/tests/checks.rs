@@ -214,7 +214,7 @@ fn mechanism_relations_parse_in_the_normalized_manifest() {
           "mechanism_covers": [{
             "spec":"alpha","mechanism":"guard","site":"Tests.Guard","file":"t.cs",
             "lang":"csharp","source_fingerprint":"def","scope":"component",
-            "quantification":"universal","oracle":"model-based"
+            "quantification":"universal","oracle":"relational"
           }]
         }"#,
     )
@@ -229,6 +229,27 @@ fn mechanism_relations_parse_in_the_normalized_manifest() {
         manifest.mechanism_covers[0].quantification.unwrap().name(),
         "universal"
     );
+    assert_eq!(
+        manifest.mechanism_covers[0].oracle.unwrap().name(),
+        "relational"
+    );
+}
+
+#[test]
+fn a_mechanism_cover_may_omit_its_oracle() {
+    let root = json::parse(
+        r#"{
+          "mechanism_covers": [{
+            "spec":"alpha","mechanism":"guard","site":"Tests.Guard","file":"t.cs",
+            "lang":"csharp","source_fingerprint":"def","scope":"component",
+            "quantification":"universal"
+          }]
+        }"#,
+    )
+    .unwrap();
+
+    let manifest = manifest::parse("m.json", &root).expect("manifest parses");
+    assert_eq!(manifest.mechanism_covers[0].oracle, None);
 }
 
 #[test]
@@ -246,6 +267,24 @@ fn unknown_form_values_are_rejected() {
         .join("\n");
     assert!(text.contains("unknown scope `integration`"), "{text}");
     assert!(text.contains("unit, component or e2e"), "{text}");
+}
+
+#[test]
+fn unknown_oracle_values_are_rejected() {
+    let root = json::parse(
+        r#"{"covers":[{"spec":"alpha","scenario":"guarded","site":"X","file":"t.cs",
+            "lang":"csharp","scope":"unit","quantification":"example",
+            "oracle":"differential"}]}"#,
+    )
+    .unwrap();
+    let errors = manifest::parse("m.json", &root).unwrap_err();
+    let text = errors
+        .iter()
+        .map(|d| d.to_string())
+        .collect::<Vec<_>>()
+        .join("\n");
+    assert!(text.contains("unknown oracle `differential`"), "{text}");
+    assert!(text.contains("relational"), "{text}");
 }
 
 /// D19 renamed the quantification value `invariant` → `universal` with no alias (D2.3). The retired

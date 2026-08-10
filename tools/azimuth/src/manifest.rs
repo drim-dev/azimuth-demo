@@ -10,8 +10,8 @@
 use crate::diag::Diag;
 use crate::json::{self, Json};
 use crate::model::{
-    Artifact, ClassMember, Enumeration, MechanismCover, MechanismImplementation, Quantification,
-    Scope, Site,
+    Artifact, ClassMember, Enumeration, MechanismCover, MechanismImplementation, Oracle,
+    Quantification, Scope, Site,
 };
 use std::fs;
 use std::path::Path;
@@ -151,7 +151,15 @@ pub fn parse(path: &str, root: &Json) -> Result<Manifest, Vec<Diag>> {
                 "example or universal",
                 &mut errors,
             );
-            let oracle = optional_string_field(path, &where_, item, "oracle", &mut errors);
+            let oracle = optional_enum_field(
+                path,
+                &where_,
+                item,
+                "oracle",
+                Oracle::parse,
+                "direct, golden, relational, metamorphic, model-based or contract",
+                &mut errors,
+            );
             out.mechanism_covers.push(MechanismCover {
                 spec: spec.unwrap_or_default(),
                 mechanism: mechanism.unwrap_or_default(),
@@ -437,11 +445,19 @@ fn site(
                 )),
             }
         }
-        oracle = item
-            .get("oracle")
-            .and_then(|v| v.as_str())
-            .map(|s| s.to_string());
-    } else if item.get("scope").is_some() || item.get("quantification").is_some() {
+        oracle = optional_enum_field(
+            path,
+            &where_,
+            item,
+            "oracle",
+            Oracle::parse,
+            "direct, golden, relational, metamorphic, model-based or contract",
+            &mut errors,
+        );
+    } else if item.get("scope").is_some()
+        || item.get("quantification").is_some()
+        || item.get("oracle").is_some()
+    {
         errors.push(Diag::at(
             path,
             0,
@@ -533,6 +549,30 @@ fn enum_field<T>(
         return None;
     };
     match parse(value) {
+        Some(value) => Some(value),
+        None => {
+            errors.push(Diag::expecting(
+                path,
+                0,
+                format!("{where_} has unknown {key} `{value}`"),
+                expected,
+            ));
+            None
+        }
+    }
+}
+
+fn optional_enum_field<T>(
+    path: &str,
+    where_: &str,
+    item: &Json,
+    key: &str,
+    parse: impl Fn(&str) -> Option<T>,
+    expected: &str,
+    errors: &mut Vec<Diag>,
+) -> Option<T> {
+    let value = optional_string_field(path, where_, item, key, errors)?;
+    match parse(&value) {
         Some(value) => Some(value),
         None => {
             errors.push(Diag::expecting(

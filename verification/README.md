@@ -39,7 +39,7 @@ non-test evidence and accepting no residual needs **no plan file at all**.
 ## Claim: <scenario-id>
 Scope: unit | component | e2e
 Quantification: example | universal
-Oracle: direct | golden | metamorphic | model-based | contract
+Oracle: direct | golden | relational | metamorphic | model-based | contract
 
 Prose stating why this claim needs what it needs. Required — an entry without a reason is a
 number nobody can review.
@@ -48,6 +48,21 @@ number nobody can review.
 Labels first, then a blank line, then prose. Values may wrap: inside the label block, a line that
 begins no known label continues the previous one. Every field is optional; an entry states only
 what it changes. `Oracle` is descriptive and never gated.
+
+Oracle names are distinguished by the source that can make the assertion fail:
+
+| Oracle | Meaning | Typical shape |
+|---|---|---|
+| `direct` | The expected value is written in the evidence | `status == 404` |
+| `golden` | The expected value is a recorded prior output | snapshot comparison |
+| `relational` | Values observed for one case must satisfy a stated relation | total = sum(parts) |
+| `metamorphic` | A relation holds across transformed executions | mutate token → rejection |
+| `model-based` | An independent model computes the exact result | transition table vs subject |
+| `contract` | An agreed interface or protocol supplies the expectation | schema or wire contract |
+
+One test may contain more than one shape; its tag names the oracle doing the discriminating work
+for this claim. The parser rejects unknown names, while adequacy remains an agent judgment. Oracle
+kinds are categories, not a ladder, and the machine does not compare one as stronger than another.
 
 **Two field groups that are easy to confuse, and are therefore kept apart:**
 

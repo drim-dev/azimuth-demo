@@ -117,7 +117,7 @@ impl FingerprintInput {
             "{:?}|{:?}|{}|{}|{}|{}|{:?}",
             site.scope,
             site.quantification,
-            site.oracle.as_deref().unwrap_or(""),
+            site.oracle.map(|oracle| oracle.name()).unwrap_or(""),
             site.evidence_kind.as_deref().unwrap_or(""),
             site.evidence_outcome.as_deref().unwrap_or(""),
             site.observed_at.as_deref().unwrap_or(""),

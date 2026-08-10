@@ -89,6 +89,44 @@ impl Quantification {
     }
 }
 
+/// How evidence obtains its expected result. Oracle kinds are descriptive categories rather than
+/// a strength ladder, but keeping the vocabulary closed prevents stale emitters from inventing a
+/// category the model and its judges do not understand.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Oracle {
+    Direct,
+    Golden,
+    Relational,
+    Metamorphic,
+    ModelBased,
+    Contract,
+}
+
+impl Oracle {
+    pub fn parse(s: &str) -> Option<Self> {
+        match s {
+            "direct" => Some(Oracle::Direct),
+            "golden" => Some(Oracle::Golden),
+            "relational" => Some(Oracle::Relational),
+            "metamorphic" => Some(Oracle::Metamorphic),
+            "model-based" => Some(Oracle::ModelBased),
+            "contract" => Some(Oracle::Contract),
+            _ => None,
+        }
+    }
+
+    pub fn name(self) -> &'static str {
+        match self {
+            Oracle::Direct => "direct",
+            Oracle::Golden => "golden",
+            Oracle::Relational => "relational",
+            Oracle::Metamorphic => "metamorphic",
+            Oracle::ModelBased => "model-based",
+            Oracle::Contract => "contract",
+        }
+    }
+}
+
 /// How far evidence reaches (D4.1). A ladder: stronger satisfies weaker.
 ///
 /// `Proof` is deliberately narrower than the formal-methods sense — established by construction
@@ -203,7 +241,7 @@ pub struct Site {
     pub expires_at: Option<u64>,
     pub scope: Option<Scope>,
     pub quantification: Option<Quantification>,
-    pub oracle: Option<String>,
+    pub oracle: Option<Oracle>,
 }
 
 /// A compiler-resolved site that implements a design-owned mechanism identity.
@@ -229,7 +267,7 @@ pub struct MechanismCover {
     pub source_fingerprint: String,
     pub scope: Option<Scope>,
     pub quantification: Option<Quantification>,
-    pub oracle: Option<String>,
+    pub oracle: Option<Oracle>,
 }
 
 /// A member of a class, enumerated by the project's extractor from what the build produced —
@@ -723,8 +761,8 @@ fn site_json(s: &Site) -> Json {
     if let Some(q) = s.quantification {
         pairs.push(("quantification".to_string(), Json::str(q.name())));
     }
-    if let Some(o) = &s.oracle {
-        pairs.push(("oracle".to_string(), Json::str(o)));
+    if let Some(o) = s.oracle {
+        pairs.push(("oracle".to_string(), Json::str(o.name())));
     }
     Json::Obj(pairs)
 }
@@ -761,8 +799,8 @@ fn mechanism_cover_json(item: &MechanismCover) -> Json {
             Json::str(quantification.name()),
         ));
     }
-    if let Some(oracle) = &item.oracle {
-        fields.push(("oracle".to_string(), Json::str(oracle)));
+    if let Some(oracle) = item.oracle {
+        fields.push(("oracle".to_string(), Json::str(oracle.name())));
     }
     Json::Obj(fields)
 }

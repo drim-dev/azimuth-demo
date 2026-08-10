@@ -43,7 +43,7 @@ the terminal item is not retried.
 ## Claim: capture-equals-trip-fare
 Scope: component
 Quantification: universal
-Oracle: model-based
+Oracle: relational
 
 Payments receives only the signed token, independently sums it and persists the provider amount.
 Amount/currency variation and altered-token refusal make trusting a forwarded constant or omitting

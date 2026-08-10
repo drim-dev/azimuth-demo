@@ -170,8 +170,17 @@ renamed it, because a Floyd or Meyer invariant is a predicate about the *system*
 reports the breadth of the *evidence*. *Narrowing:* `universal` states the quantifier the evidence
 ranges under, not exhaustiveness — a wider sample is still a sample.
 
-**Oracle** — `direct | golden | metamorphic | model-based | contract` — is descriptive and never
-gated.
+**Oracle** describes where the expected result comes from. It is a closed vocabulary but not a
+strength ladder, so the machine validates the name and never ranks or gates it:
+
+| Oracle | Discriminating source |
+|---|---|
+| `direct` | An expected value written in the evidence |
+| `golden` | A recorded prior output |
+| `relational` | A stated relation among values observed for one case |
+| `metamorphic` | A stated relation across executions connected by an intentional transformation |
+| `model-based` | An exact expected result computed by an independent model |
+| `contract` | An agreed interface or protocol contract |
 
 The project standard (`verification/standards.md`) maps criticality to required evidence once,
 rather than per claim:

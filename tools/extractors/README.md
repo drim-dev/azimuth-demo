@@ -21,7 +21,7 @@ what makes splitting or merging a requirement free, since no tag moves.
                  "source_fingerprint": "",
                  "scope": "unit|component|e2e",
                  "quantification": "example|universal",
-                 "oracle": "direct|golden|metamorphic|model-based|contract" }],
+                 "oracle": "direct|golden|relational|metamorphic|model-based|contract" }],
   "mechanism_implementations": [
     { "spec": "", "mechanism": "", "binding": "", "file": "", "lang": "",
       "source_fingerprint": "" }
@@ -29,7 +29,8 @@ what makes splitting or merging a requirement free, since no tag moves.
   "mechanism_covers": [
     { "spec": "", "mechanism": "", "site": "", "file": "", "lang": "",
       "source_fingerprint": "", "scope": "unit|component|e2e",
-      "quantification": "example|universal", "oracle": "direct|golden|metamorphic|model-based|contract" }
+      "quantification": "example|universal",
+      "oracle": "direct|golden|relational|metamorphic|model-based|contract" }
   ],
   "enumerations": [{ "class": "", "kind": "", "source": "",
                      "source_fingerprint": "" }],
