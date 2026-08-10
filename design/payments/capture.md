@@ -44,11 +44,26 @@ The event carries the immutable token rather than a second amount/currency pair.
 trust a forwarded total and does not call Pricing, so the quote-to-capture relation survives either
 service being unavailable after admission.
 
-## Residue
+An adjustment is no longer accepted from the dispatcher. A referral credit is applied only when a
+signed, trip-bound authority validates; the handler derives its amount and typed reason. The credit
+authority mechanisms and cross-store lifecycle are owned by `referrals/rewards`.
 
-**Adjustment authority is not modelled.** The dispatch endpoint accepts a delta and reason but the
-fixture has no service authentication or role capable of authorizing it. The evidence establishes
-arithmetic and attribution, not that an appropriate actor chose the adjustment.
+## Requirement: successful-capture-is-published
+Mechanism: payment-capture-outbox
+Enforcement: choke-point
+Binding: dotnet-symbol:Payments.Features.Captures.CaptureTrip.RequestHandler.Handle
+Mechanism: payment-event-relay
+Enforcement: choke-point
+Binding: dotnet-symbol:Payments.Features.Events.PaymentEventRelay.RelayPending
+Mechanism: payment-event-topology
+Enforcement: constraint
+
+The capture and immutable payment event are written by one `SaveChanges` transaction. A confirmed
+relay marks the outbox only after publish; a crash between those operations repeats the same event
+id. The durable referral queue dead-letters malformed payment envelopes. Pending age, relay
+heartbeat, queue backlog and dead letters feed repository-owned Prometheus rules.
+
+## Residue
 
 **Voided captures are not deleted.** The unique index is partial for this reason. A voided capture
 stays as a row so that the history of a disputed trip is legible; the cost is that every query

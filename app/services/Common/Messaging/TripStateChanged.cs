@@ -11,7 +11,8 @@ public sealed record TripStateChanged(
     string State,
     DateTimeOffset OccurredAt,
     string QuoteToken,
-    string PaymentMethod)
+    string PaymentMethod,
+    string? ReferralCreditAuthority = null)
 {
     public const int SchemaVersion = 1;
 
@@ -45,7 +46,9 @@ public static class TripStateChangedCodec
                 && message.Version > 0
                 && States.Contains(message.State)
                 && !string.IsNullOrWhiteSpace(message.QuoteToken)
-                && !string.IsNullOrWhiteSpace(message.PaymentMethod);
+                && !string.IsNullOrWhiteSpace(message.PaymentMethod)
+                && (message.ReferralCreditAuthority is null
+                    || !string.IsNullOrWhiteSpace(message.ReferralCreditAuthority));
         }
         catch (JsonException)
         {

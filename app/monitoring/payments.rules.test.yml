@@ -10,6 +10,12 @@ tests:
         values: 1x12
       - series: payments_capture_worker_last_success_timestamp_seconds
         values: 1x12
+      - series: payments_event_outbox_oldest_pending_age_seconds
+        values: 45x18
+      - series: rabbitmq_queue_messages_ready{queue="payment.lifecycle.referrals"}
+        values: 3x24
+      - series: rabbitmq_queue_messages{queue="payment.lifecycle.referrals.dead"}
+        values: 1x12
     alert_rule_test:
       - eval_time: 1m
         alertname: PaymentsCaptureOverdue
@@ -25,3 +31,26 @@ tests:
               severity: critical
             exp_annotations:
               summary: Capture settlement worker has stopped reporting success
+      - eval_time: 1m
+        alertname: PaymentEventRelayStalled
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+            exp_annotations:
+              summary: Recorded captures are not reaching the payment lifecycle broker
+      - eval_time: 2m
+        alertname: PaymentEventReferralBacklog
+        exp_alerts:
+          - exp_labels:
+              queue: payment.lifecycle.referrals
+              severity: warning
+            exp_annotations:
+              summary: Referral reward processing is falling behind
+      - eval_time: 30s
+        alertname: PaymentEventReferralDeadLetters
+        exp_alerts:
+          - exp_labels:
+              queue: payment.lifecycle.referrals.dead
+              severity: warning
+            exp_annotations:
+              summary: Payment lifecycle messages require referral diagnosis

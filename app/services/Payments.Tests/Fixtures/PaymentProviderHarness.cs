@@ -19,14 +19,19 @@ namespace Payments.Tests.Fixtures;
 /// </remarks>
 public sealed class PaymentProviderHarness : IHarness<Program>, IPaymentProvider
 {
+    public sealed record CaptureCall(long TripId, long AmountMinor, string Currency, string PaymentMethod);
+
     private ProviderOutcome[] _outcomes = [ProviderOutcome.Captured];
     private HashSet<int> _failingCalls = [];
     private int _calls;
     private readonly ConcurrentQueue<string> _paymentMethods = new();
+    private readonly ConcurrentQueue<CaptureCall> _captures = new();
 
     public int Calls => _calls;
 
     public IReadOnlyList<string> PaymentMethods => _paymentMethods.ToArray();
+
+    public IReadOnlyList<CaptureCall> Captures => _captures.ToArray();
 
     /// <summary>Answers in order, then repeats the last answer for every further call.</summary>
     public void Script(params ProviderOutcome[] outcomes)
@@ -34,6 +39,7 @@ public sealed class PaymentProviderHarness : IHarness<Program>, IPaymentProvider
         _outcomes = outcomes.Length == 0 ? [ProviderOutcome.Captured] : outcomes;
         Interlocked.Exchange(ref _calls, 0);
         _paymentMethods.Clear();
+        _captures.Clear();
         _failingCalls = [];
     }
 
@@ -50,6 +56,7 @@ public sealed class PaymentProviderHarness : IHarness<Program>, IPaymentProvider
     {
         var index = Interlocked.Increment(ref _calls) - 1;
         _paymentMethods.Enqueue(paymentMethod);
+        _captures.Enqueue(new CaptureCall(tripId, amountMinor, currency, paymentMethod));
         if (_failingCalls.Contains(index + 1))
         {
             throw new HttpRequestException("scripted provider transport failure");

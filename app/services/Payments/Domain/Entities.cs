@@ -14,6 +14,8 @@ public sealed class CaptureIntent
 
     public required string PaymentMethod { get; set; }
 
+    public string? ReferralCreditAuthority { get; set; }
+
     public DateTimeOffset WrittenAt { get; set; }
 
     public DateTimeOffset? DispatchedAt { get; set; }
@@ -45,6 +47,12 @@ public sealed class Capture
 
     public long TripId { get; set; }
 
+    public long OriginalFareMinor { get; set; }
+
+    public long ReferralCreditMinor { get; set; }
+
+    public long? ReferralCreditId { get; set; }
+
     public long AmountMinor { get; set; }
 
     public required string Currency { get; set; }
@@ -55,6 +63,30 @@ public sealed class Capture
     public bool Voided { get; set; }
 
     public DateTimeOffset CapturedAt { get; set; }
+}
+
+/// <summary>The durable side of the database-to-broker capture handoff.</summary>
+public sealed class PaymentEventOutbox
+{
+    public Guid EventId { get; set; }
+
+    public long CaptureId { get; set; }
+
+    public long TripId { get; set; }
+
+    public long OriginalFareMinor { get; set; }
+
+    public long ReferralCreditMinor { get; set; }
+
+    public long CapturedAmountMinor { get; set; }
+
+    public required string Currency { get; set; }
+
+    public long? ReferralCreditId { get; set; }
+
+    public DateTimeOffset OccurredAt { get; set; }
+
+    public DateTimeOffset? PublishedAt { get; set; }
 }
 
 public sealed class CaptureFailure

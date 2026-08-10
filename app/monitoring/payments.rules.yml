@@ -15,3 +15,24 @@ groups:
           severity: critical
         annotations:
           summary: Capture settlement worker has stopped reporting success
+      - alert: PaymentEventRelayStalled
+        expr: payments_event_outbox_oldest_pending_age_seconds > 30
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: Recorded captures are not reaching the payment lifecycle broker
+      - alert: PaymentEventReferralBacklog
+        expr: rabbitmq_queue_messages_ready{queue="payment.lifecycle.referrals"} > 0
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: Referral reward processing is falling behind
+      - alert: PaymentEventReferralDeadLetters
+        expr: rabbitmq_queue_messages{queue="payment.lifecycle.referrals.dead"} > 0
+        for: 30s
+        labels:
+          severity: warning
+        annotations:
+          summary: Payment lifecycle messages require referral diagnosis

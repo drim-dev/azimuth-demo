@@ -1,5 +1,10 @@
 # Judgments: trips/dispatch
 
+Revalidated 2026-08-10 for rider referral rewards. `AcceptOffer` now copies an opaque credit
+authority into its lifecycle outbox row; the conditional assignment, offer withdrawal and every
+dispatch assertion are unchanged. The handler, all four stale evidence bodies and their design
+bindings were re-read before refreshing these verdicts.
+
 Re-judged 2026-08-10 after D28 exposed realization sources. `OfferTripToDrivers` owns eligibility
 filtering and offer creation, `AcceptOffer` owns the assignment compare-and-set and withdrawal, and
 `GetOffers` owns expiry transition and the observable offer set. Those responsibilities establish
@@ -75,7 +80,7 @@ against the store, but it is the half a rider actually experiences.
 
 ## Claim: first-acceptance-assigns
 Verdict: sound
-Fingerprint: f2ef7d418bcf83e9
+Fingerprint: 8d524e24bff36a3c
 Judged: 2026-08-10
 Judge: codex
 
@@ -89,7 +94,7 @@ many accept and the test ranges over it.
 
 ## Claim: concurrent-acceptances-yield-one-assignment
 Verdict: sound
-Fingerprint: 4225f17a0dbaab7a
+Fingerprint: 8e9c6db5d0a4308b
 Judged: 2026-08-10
 Judge: codex
 
@@ -103,7 +108,7 @@ corpus, and is stated rather than hidden.
 
 ## Claim: late-acceptance-rejected
 Verdict: sound
-Fingerprint: 89a25882f2985c05
+Fingerprint: cb735d1800fd1150
 Judged: 2026-08-10
 Judge: codex
 
@@ -118,7 +123,7 @@ produced repeatedly.
 
 ## Claim: other-offers-withdrawn
 Verdict: sound
-Fingerprint: dbb11f89063894dd
+Fingerprint: 8758d9f404eaf45e
 Judged: 2026-08-08
 Judge: codex
 

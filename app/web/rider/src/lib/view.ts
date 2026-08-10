@@ -88,6 +88,22 @@ export interface RiderQuote {
   breakdown: { label: string; amountMinor: number }[];
 }
 
+export type ReferralAttributionStatus = 'none' | 'pending' | 'qualified';
+export type ReferralCreditStatus = 'available' | 'reserved' | 'used';
+
+export interface RiderReferralCredit {
+  id: string;
+  amountMinor: number;
+  currency: string;
+  status: ReferralCreditStatus;
+}
+
+export interface RiderReferralSummary {
+  referralCode: string;
+  attributionStatus: ReferralAttributionStatus;
+  credits: RiderReferralCredit[];
+}
+
 export function riderQuote(quote: ServiceQuote): RiderQuote {
   realizes('pricing/quote', 'quote-returned');
   return {
@@ -122,6 +138,12 @@ export interface RiderReceipt {
     amountMinor: number | null;
     currency: string | null;
     message: string;
+    originalFareMinor: number | null;
+    adjustment: {
+      kind: 'referral-credit';
+      deltaMinor: number;
+      creditId: string;
+    } | null;
   };
 }
 
@@ -130,6 +152,12 @@ export interface ServicePaymentStatus {
   amountMinor: number | null;
   currency: string | null;
   message: string;
+  originalFareMinor: number | null;
+  adjustment: {
+    kind: string;
+    deltaMinor: number;
+    creditId: string;
+  } | null;
 }
 
 /**
@@ -148,12 +176,32 @@ export function riderReceipt(
   realizes('trips/rider-view', 'driver-identity-remains-on-receipt');
   realizes('trips/rider-view', 'position-confined-to-live-phases');
   realizes('payments/capture', 'receipt-explains-payment-state');
+  realizes('referrals/rewards', 'owned-credit-reduces-capture');
+  const referralAdjustment =
+    payment.adjustment?.kind === 'referral-credit'
+    && payment.adjustment.deltaMinor < 0
+    && payment.originalFareMinor !== null
+    && payment.amountMinor !== null
+      ? {
+          kind: 'referral-credit' as const,
+          deltaMinor: payment.adjustment.deltaMinor,
+          creditId: payment.adjustment.creditId,
+        }
+      : null;
+
   return {
     id: trip.tripId,
     state: trip.state,
     fare: { minor: trip.fareMinor, currency: trip.currency },
     driver: trip.driverDisplay ? { name: trip.driverDisplay, vehicle: trip.vehicle } : null,
     route: { pickup: null, dropoff: null },
-    payment,
+    payment: {
+      status: payment.status,
+      amountMinor: payment.amountMinor,
+      currency: payment.currency,
+      message: payment.message,
+      originalFareMinor: payment.originalFareMinor,
+      adjustment: referralAdjustment,
+    },
   };
 }

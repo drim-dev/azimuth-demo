@@ -12,8 +12,8 @@ namespace Payments.Features.Captures;
 /// Drains the outbox: captures every undispatched intent, at most once per trip.
 /// </summary>
 /// <remarks>
-/// The dispatcher is the only reader of <c>capture_intents</c>, which the trip service writes in
-/// the same transaction as the completion. A transactional outbox rather than a direct call:
+/// The dispatcher is the only reader of <c>capture_intents</c>, which the lifecycle consumer writes
+/// in the same local transaction as its inbox position. A durable broker rather than a direct call:
 /// calling the payment client inline from the completion handler is the single most-repeated
 /// mistake in the concern catalog (C16) — it charges riders for transactions that roll back, and no
 /// behavioural test catches it because the failing case needs a rollback at one exact instant.
@@ -22,22 +22,12 @@ public static class DispatchCaptures
 {
     public sealed class Endpoint : IEndpoint
     {
-        /// <summary>
-        /// The reason travels on the request because an adjustment is a decision the caller makes,
-        /// not a property of the intent. It reaches the wire because a capability only a handler
-        /// call can exercise is one no client can use, and the claim asserts the product has it.
-        /// </summary>
         public void MapEndpoint(WebApplication app) =>
-            app.MapPost("/dispatch", async (
-                string? adjustmentReason,
-                long? adjustmentMinor,
-                ISender sender,
-                CancellationToken ct) =>
-                Results.Ok(await sender.Send(new Request(adjustmentReason, adjustmentMinor ?? 0), ct)));
+            app.MapPost("/dispatch", async (ISender sender, CancellationToken ct) =>
+                Results.Ok(await sender.Send(new Request(), ct)));
     }
 
-    public sealed record Request(string? AdjustmentReason = null, long AdjustmentMinor = 0)
-        : IRequest<Response>;
+    public sealed record Request() : IRequest<Response>;
 
     public sealed record Response(int Captured, int Quarantined, int Deferred);
 
@@ -63,7 +53,13 @@ public static class DispatchCaptures
                 .Where(i => i.DispatchedAt == null)
                 .OrderBy(i => i.WrittenAt)
                 .ThenBy(i => i.TripId)
-                .Select(i => new { i.TripId, i.QuoteToken, i.PaymentMethod })
+                .Select(i => new
+                {
+                    i.TripId,
+                    i.QuoteToken,
+                    i.PaymentMethod,
+                    i.ReferralCreditAuthority,
+                })
                 .ToListAsync(ct);
 
             var captured = 0;
@@ -78,8 +74,7 @@ public static class DispatchCaptures
                             intent.TripId,
                             intent.QuoteToken,
                             intent.PaymentMethod,
-                            request.AdjustmentReason,
-                            request.AdjustmentMinor),
+                            intent.ReferralCreditAuthority),
                         ct);
 
                     if (result.Captured)
@@ -88,7 +83,8 @@ public static class DispatchCaptures
                     }
                 }
                 catch (BusinessRuleException exception)
-                    when (exception.ErrorCode == "payment:capture:create:invalid_quote")
+                    when (exception.ErrorCode is "payment:capture:create:invalid_quote"
+                        or "payment:capture:create:invalid_referral_credit")
                 {
                     await Quarantine(intent.TripId, exception.ErrorCode, ct);
                     quarantined++;

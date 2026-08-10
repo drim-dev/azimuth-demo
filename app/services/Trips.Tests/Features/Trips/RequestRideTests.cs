@@ -289,5 +289,25 @@ public sealed class RequestRideTests(TripTestFixture fixture) : IAsyncLifetime
             _validator.TestValidate(new RequestRide.Request("rider-1", "0000000000000"))
                 .ShouldNotHaveAnyValidationErrors();
         }
+
+        [Fact]
+        public void Optional_referral_inputs_reject_empty_or_oversized_values()
+        {
+            var empty = _validator.TestValidate(new RequestRide.Request(
+                "rider-1",
+                "0000000000000",
+                ReferralCode: string.Empty,
+                ReferralCreditId: string.Empty));
+            empty.ShouldHaveValidationErrorFor(x => x.ReferralCode);
+            empty.ShouldHaveValidationErrorFor(x => x.ReferralCreditId);
+
+            var oversized = _validator.TestValidate(new RequestRide.Request(
+                "rider-1",
+                "0000000000000",
+                ReferralCode: new string('x', 65),
+                ReferralCreditId: new string('x', 33)));
+            oversized.ShouldHaveValidationErrorFor(x => x.ReferralCode);
+            oversized.ShouldHaveValidationErrorFor(x => x.ReferralCreditId);
+        }
     }
 }

@@ -26,6 +26,7 @@ public sealed class RabbitMqSession : IAsyncDisposable
             publisherConfirmationTrackingEnabled: publisherConfirmations);
         var channel = await connection.CreateChannelAsync(options, cancellation);
         await TripEventTopology.DeclareAsync(channel, cancellation);
+        await PaymentEventTopology.DeclareAsync(channel, cancellation);
         return new RabbitMqSession(connection, channel);
     }
 

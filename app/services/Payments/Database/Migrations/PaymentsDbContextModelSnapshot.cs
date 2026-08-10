@@ -45,6 +45,18 @@ namespace Payments.Database.Migrations
                         .HasColumnType("text")
                         .HasColumnName("currency");
 
+                    b.Property<long>("OriginalFareMinor")
+                        .HasColumnType("bigint")
+                        .HasColumnName("original_fare_minor");
+
+                    b.Property<long?>("ReferralCreditId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("referral_credit_id");
+
+                    b.Property<long>("ReferralCreditMinor")
+                        .HasColumnType("bigint")
+                        .HasColumnName("referral_credit_minor");
+
                     b.Property<long>("TripId")
                         .HasColumnType("bigint")
                         .HasColumnName("trip_id");
@@ -56,6 +68,11 @@ namespace Payments.Database.Migrations
                         .HasColumnName("voided");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ReferralCreditId")
+                        .IsUnique()
+                        .HasDatabaseName("ux_capture_referral_credit")
+                        .HasFilter("referral_credit_id IS NOT NULL");
 
                     b.HasIndex("TripId")
                         .IsUnique()
@@ -112,6 +129,10 @@ namespace Payments.Database.Migrations
                         .HasColumnType("text")
                         .HasColumnName("quote_token");
 
+                    b.Property<string>("ReferralCreditAuthority")
+                        .HasColumnType("text")
+                        .HasColumnName("referral_credit_authority");
+
                     b.Property<DateTimeOffset>("WrittenAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("written_at");
@@ -119,6 +140,61 @@ namespace Payments.Database.Migrations
                     b.HasKey("TripId");
 
                     b.ToTable("capture_intents", (string)null);
+                });
+
+            modelBuilder.Entity("Payments.Domain.PaymentEventOutbox", b =>
+                {
+                    b.Property<Guid>("EventId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("event_id");
+
+                    b.Property<long>("CaptureId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("capture_id");
+
+                    b.Property<long>("CapturedAmountMinor")
+                        .HasColumnType("bigint")
+                        .HasColumnName("captured_amount_minor");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("currency");
+
+                    b.Property<DateTimeOffset>("OccurredAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("occurred_at");
+
+                    b.Property<long>("OriginalFareMinor")
+                        .HasColumnType("bigint")
+                        .HasColumnName("original_fare_minor");
+
+                    b.Property<DateTimeOffset?>("PublishedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("published_at");
+
+                    b.Property<long?>("ReferralCreditId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("referral_credit_id");
+
+                    b.Property<long>("ReferralCreditMinor")
+                        .HasColumnType("bigint")
+                        .HasColumnName("referral_credit_minor");
+
+                    b.Property<long>("TripId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("trip_id");
+
+                    b.HasKey("EventId");
+
+                    b.HasIndex("CaptureId")
+                        .IsUnique()
+                        .HasDatabaseName("ux_payment_event_capture");
+
+                    b.HasIndex("PublishedAt", "OccurredAt")
+                        .HasDatabaseName("ix_payment_events_pending");
+
+                    b.ToTable("payment_events", (string)null);
                 });
 
             modelBuilder.Entity("Payments.Domain.TripEventCursor", b =>

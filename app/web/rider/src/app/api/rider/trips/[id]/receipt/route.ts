@@ -9,6 +9,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   // and therefore carries the driver's name and no position.
   realizes('trips/rider-view', 'position-confined-to-live-phases');
   realizes('payments/capture', 'receipt-explains-payment-state');
+  realizes('referrals/rewards', 'owned-credit-reduces-capture');
 
   const { id } = await params;
 

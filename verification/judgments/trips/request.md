@@ -1,5 +1,11 @@
 # Judgments: trips/request
 
+Revalidated 2026-08-10 for rider referral rewards. `RequestRide` now performs first-admission,
+referral-code and optional credit reservation work inside the existing admission transaction. The
+quote is still decoded and expiry-checked before trip persistence; quote and active-rider indexes
+remain final concurrency guards. Each stale test and the complete handler, including rollback
+paths, was re-read before refreshing these four verdicts.
+
 Re-judged 2026-08-10 after D28 exposed realization sources. `RequestRide` authenticates and expires
 quotes, enforces both uniqueness rules, creates the requested trip and returns its facts; the rider
 route and view model preserve the relevant admission/refusal and acknowledgement outcomes. Every
@@ -43,7 +49,7 @@ longer describes the system.
 
 ## Claim: request-admitted-with-valid-quote
 Verdict: sound
-Fingerprint: 939f0defd6de3d6d
+Fingerprint: 537554f394ce2425
 Judged: 2026-08-10
 Judge: codex
 
@@ -69,7 +75,7 @@ quote that has not expired", and the near side of that boundary is exercised by
 
 ## Claim: request-rejected-with-expired-quote
 Verdict: sound
-Fingerprint: 27e3b98ad25241fa
+Fingerprint: 6abdcc98ece2cfc4
 Judged: 2026-08-10
 Judge: codex
 
@@ -87,7 +93,7 @@ window still passes.
 
 ## Claim: request-rejected-with-unknown-quote
 Verdict: sound
-Fingerprint: 0abac14d8935c6e2
+Fingerprint: 0f366cdbe9012615
 Judged: 2026-08-10
 Judge: codex
 
@@ -104,7 +110,7 @@ altered case; treating malformed input as a server error fails the response asse
 
 ## Claim: quote-consumed-once
 Verdict: sound
-Fingerprint: ebc5d13464ece332
+Fingerprint: e3737547696a2675
 Judged: 2026-08-10
 Judge: codex
 

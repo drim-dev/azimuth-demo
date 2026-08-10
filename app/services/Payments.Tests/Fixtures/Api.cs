@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
 using Common.Identity;
+using Common.Referrals;
 using FluentAssertions;
 using Payments.Domain;
 using Payments.Features.Captures;
@@ -18,23 +19,15 @@ public sealed record Problem(
 /// The payments service's endpoints, named once.
 /// </summary>
 /// <remarks>
-/// The outbox row is seeded rather than posted, because that is how it arrives in production: the
-/// trip service writes it in the same transaction as the completion, and payments is only ever its
-/// reader. Seeding it is the faithful arrangement, not a shortcut around a missing endpoint.
+/// The intent is seeded because production creates it from a broker delivery rather than a public
+/// Payments endpoint. Consumer behavior has separate broker-backed component evidence.
 /// </remarks>
 public static class Api
 {
     private static long _quoteId = 50_000;
     private static readonly QuoteTokenCodec Tokens = new("azimuth-demo-signing-key");
-    public static Task<HttpResponseMessage> Dispatch(
-        this HttpClient client,
-        string? adjustmentReason = null,
-        long adjustmentMinor = 0) =>
-        client.PostAsync(
-            adjustmentReason is null
-                ? "/dispatch"
-                : $"/dispatch?adjustmentReason={adjustmentReason}&adjustmentMinor={adjustmentMinor}",
-            null);
+    public static Task<HttpResponseMessage> Dispatch(this HttpClient client) =>
+        client.PostAsync("/dispatch", null);
 
     public static Task<HttpResponseMessage> GetCapture(this HttpClient client, long tripId) =>
         client.GetAsync($"/captures/{IdEncoding.Encode(tripId)}");
@@ -76,14 +69,28 @@ public static class Api
         (await response.Content.ReadFromJsonAsync<T>())!;
 
     /// <summary>What the trip service writes when a trip completes.</summary>
-    public static CaptureIntent CompletedTrip(long tripId, long amountMinor, string currency = "EUR") =>
+    public static CaptureIntent CompletedTrip(
+        long tripId,
+        long amountMinor,
+        string currency = "EUR",
+        string? referralCreditAuthority = null) =>
         new()
         {
             TripId = tripId,
             QuoteToken = Quote(amountMinor, currency),
             PaymentMethod = "default",
+            ReferralCreditAuthority = referralCreditAuthority,
             WrittenAt = PaymentsTestFixture.Start,
         };
+
+    public static string ReferralAuthority(
+        long creditId,
+        long tripId,
+        long amountMinor,
+        string currency = "EUR",
+        string key = "azimuth-demo-referral-credit-signing-key") =>
+        new ReferralCreditAuthorityCodec(key).Encode(
+            new ReferralCreditAuthority(creditId, tripId, amountMinor, currency));
 
     public static string Quote(long amountMinor, string currency = "EUR")
     {

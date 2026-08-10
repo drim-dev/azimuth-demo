@@ -19,6 +19,8 @@ public sealed class TripConfiguration : IEntityTypeConfiguration<Trip>
         builder.Property(t => t.Currency).HasColumnName("currency").IsRequired();
         builder.Property(t => t.QuoteId).HasColumnName("quote_id").IsRequired();
         builder.Property(t => t.QuoteToken).HasColumnName("quote_token").IsRequired();
+        builder.Property(t => t.ReferralCreditId).HasColumnName("referral_credit_id");
+        builder.Property(t => t.ReferralCreditAuthority).HasColumnName("referral_credit_authority");
         builder.Property(t => t.Pickup).HasColumnName("pickup").IsRequired();
         builder.Property(t => t.Dropoff).HasColumnName("dropoff").IsRequired();
         builder.Property(t => t.CreatedAt).HasColumnName("created_at").IsRequired();

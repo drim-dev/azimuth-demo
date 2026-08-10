@@ -1,6 +1,7 @@
 using Azimuth.Annotations;
 using Common.Exceptions;
 using Common.Identity;
+using Common.Referrals;
 using Common.Time;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -18,8 +19,7 @@ public static class CaptureTrip
         long TripId,
         string QuoteToken,
         string PaymentMethod,
-        string? AdjustmentReason = null,
-        long AdjustmentMinor = 0)
+        string? ReferralCreditAuthority = null)
         : IRequest<Response>;
 
     public sealed record Response(bool Captured);
@@ -29,7 +29,8 @@ public static class CaptureTrip
         IPaymentProvider provider,
         IdFactory ids,
         Clock clock,
-        QuoteTokenCodec tokens)
+        QuoteTokenCodec tokens,
+        ReferralCreditAuthorityCodec referralCredits)
         : IRequestHandler<Request, Response>
     {
         /// <summary>
@@ -46,6 +47,10 @@ public static class CaptureTrip
         [Realizes("payments/capture", "adjusted-capture-records-reason")]
         [Realizes("payments/capture", "declined-capture-recorded")]
         [Realizes("payments/capture", "declined-capture-is-retryable")]
+        [Realizes("referrals/rewards", "owned-credit-reduces-capture")]
+        [Realizes("referrals/rewards", "forged-credit-authority-is-rejected")]
+        [Realizes("referrals/rewards", "capture-redelivery-does-not-redeem-twice")]
+        [Realizes("payments/capture", "committed-capture-is-published")]
         public async Task<Response> Handle(Request request, CancellationToken ct)
         {
             QuotePayload quote;
@@ -69,25 +74,22 @@ public static class CaptureTrip
                 return new Response(Captured: false);
             }
 
-            long captureAmount;
-            try
+            var referralCredit = DecodeReferralCredit(request, quote);
+            if (referralCredit is not null)
             {
-                captureAmount = checked(quote.TotalMinor + request.AdjustmentMinor);
-            }
-            catch (OverflowException)
-            {
-                throw new BusinessRuleException(
-                    "the adjusted capture amount exceeds minor-unit bounds",
-                    "payment:capture:create:invalid_adjustment");
+                var priorTrip = await db.Captures
+                    .AsNoTracking()
+                    .Where(c => c.ReferralCreditId == referralCredit.CreditId)
+                    .Select(c => (long?)c.TripId)
+                    .SingleOrDefaultAsync(ct);
+                if (priorTrip is not null && priorTrip != request.TripId)
+                {
+                    throw InvalidReferralCredit("that referral credit already adjusted another trip");
+                }
             }
 
-            if (captureAmount < 0
-                || (request.AdjustmentMinor != 0 && request.AdjustmentReason is null))
-            {
-                throw new BusinessRuleException(
-                    "an adjustment requires a reason and cannot make the capture negative",
-                    "payment:capture:create:invalid_adjustment");
-            }
+            var referralCreditMinor = referralCredit?.AmountMinor ?? 0;
+            var captureAmount = quote.TotalMinor - referralCreditMinor;
 
             var outcome = await provider.CaptureAsync(
                 request.TripId,
@@ -115,21 +117,54 @@ public static class CaptureTrip
                 return new Response(Captured: false);
             }
 
+            var captureId = ids.Create();
+            var capturedAt = clock.Now;
             db.Captures.Add(new Capture
             {
-                Id = ids.Create(),
+                Id = captureId,
                 TripId = request.TripId,
+                OriginalFareMinor = quote.TotalMinor,
+                ReferralCreditMinor = referralCreditMinor,
+                ReferralCreditId = referralCredit?.CreditId,
                 AmountMinor = captureAmount,
                 Currency = quote.Currency,
-                AdjustmentReason = request.AdjustmentReason,
-                CapturedAt = clock.Now,
+                AdjustmentReason = referralCredit is null ? null : "referral-credit",
+                CapturedAt = capturedAt,
+            });
+            db.PaymentEvents.Add(new PaymentEventOutbox
+            {
+                EventId = Guid.NewGuid(),
+                CaptureId = captureId,
+                TripId = request.TripId,
+                OriginalFareMinor = quote.TotalMinor,
+                ReferralCreditMinor = referralCreditMinor,
+                CapturedAmountMinor = captureAmount,
+                Currency = quote.Currency,
+                ReferralCreditId = referralCredit?.CreditId,
+                OccurredAt = capturedAt,
             });
 
             try
             {
                 await db.SaveChangesAsync(ct);
             }
-            catch (DbUpdateException e) when (e.InnerException is PostgresException { SqlState: "23505" })
+            catch (DbUpdateException e) when (e.InnerException is PostgresException
+                { SqlState: "23505", ConstraintName: "ux_capture_referral_credit" })
+            {
+                db.ChangeTracker.Clear();
+                var winnerTrip = await db.Captures
+                    .AsNoTracking()
+                    .Where(c => c.ReferralCreditId == referralCredit!.CreditId)
+                    .Select(c => c.TripId)
+                    .SingleAsync(ct);
+                if (winnerTrip == request.TripId)
+                {
+                    return new Response(Captured: false);
+                }
+                throw InvalidReferralCredit("that referral credit already adjusted another trip");
+            }
+            catch (DbUpdateException e) when (e.InnerException is PostgresException
+                { SqlState: "23505", ConstraintName: "ux_capture_trip" })
             {
                 // Another worker won. Exactly the case the pre-check cannot cover.
                 db.ChangeTracker.Clear();
@@ -142,5 +177,36 @@ public static class CaptureTrip
 
             return new Response(Captured: true);
         }
+
+        private ReferralCreditAuthority? DecodeReferralCredit(Request request, QuotePayload quote)
+        {
+            if (request.ReferralCreditAuthority is null)
+            {
+                return null;
+            }
+
+            ReferralCreditAuthority authority;
+            try
+            {
+                authority = referralCredits.Decode(request.ReferralCreditAuthority);
+            }
+            catch (InvalidReferralCreditAuthorityException)
+            {
+                throw InvalidReferralCredit("that referral credit authority is invalid");
+            }
+
+            if (authority.TripId != request.TripId
+                || !string.Equals(authority.Currency, quote.Currency, StringComparison.Ordinal)
+                || authority.AmountMinor <= 0
+                || authority.AmountMinor > quote.TotalMinor)
+            {
+                throw InvalidReferralCredit("that referral credit authority does not match the trip");
+            }
+
+            return authority;
+        }
+
+        private static BusinessRuleException InvalidReferralCredit(string message) =>
+            new(message, "payment:capture:create:invalid_referral_credit");
     }
 }

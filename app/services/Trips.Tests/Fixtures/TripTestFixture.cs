@@ -1,4 +1,6 @@
 using Common.Testing;
+using MediatR;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Trips.Database;
 using Xunit;
@@ -80,4 +82,75 @@ public sealed class DispatchTestsCollection : ICollectionFixture<TripTestFixture
 public sealed class LifecycleTestsCollection : ICollectionFixture<TripTestFixture>
 {
     public const string Name = nameof(LifecycleTestsCollection);
+}
+
+/// <summary>
+/// Referral qualification includes the payment broker boundary, while the older trip collections
+/// avoid paying for RabbitMQ where their claims do not depend on it.
+/// </summary>
+public sealed class ReferralTestFixture : IAsyncLifetime
+{
+    private readonly WebApplicationFactory<Program> _factory;
+
+    public ReferralTestFixture()
+    {
+        Database = new DatabaseHarness<Program, TripDbContext>("trip");
+        RabbitMq = new RabbitMqHarness<Program>();
+        HttpClient = new HttpClientHarness<Program>();
+        Clock = new ClockHarness<Program>(TripTestFixture.Start);
+
+        _factory = new WebApplicationFactory<Program>()
+            .AddHarness(Database)
+            .AddHarness(RabbitMq)
+            .AddHarness(HttpClient)
+            .AddHarness(Clock);
+    }
+
+    public DatabaseHarness<Program, TripDbContext> Database { get; }
+
+    public RabbitMqHarness<Program> RabbitMq { get; }
+
+    public HttpClientHarness<Program> HttpClient { get; }
+
+    public ClockHarness<Program> Clock { get; }
+
+    public async Task Reset(CancellationToken cancellation)
+    {
+        Clock.Reset();
+        await Database.Clear(cancellation);
+        await RabbitMq.Purge(
+            cancellation,
+            Common.Messaging.PaymentEventTopology.ReferralsQueue,
+            Common.Messaging.PaymentEventTopology.ReferralsDeadLetterQueue);
+    }
+
+    public async Task Send(IRequest request, CancellationToken cancellation)
+    {
+        await using var scope = _factory.Services.CreateAsyncScope();
+        await scope.ServiceProvider.GetRequiredService<ISender>().Send(request, cancellation);
+    }
+
+    public async Task InitializeAsync()
+    {
+        await Database.Start(_factory, Cancellation.Token(120));
+        await RabbitMq.Start(_factory, Cancellation.Token(120));
+        await HttpClient.Start(_factory, Cancellation.Token());
+        await Clock.Start(_factory, Cancellation.Token());
+        _ = _factory.Server;
+    }
+
+    public async Task DisposeAsync()
+    {
+        await Clock.Stop(Cancellation.Token());
+        await HttpClient.Stop(Cancellation.Token());
+        await RabbitMq.Stop(Cancellation.Token());
+        await Database.Stop(Cancellation.Token());
+        await _factory.DisposeAsync();
+    }
+}
+
+[CollectionDefinition(Name)]
+public sealed class ReferralTestsCollection : ICollectionFixture<ReferralTestFixture>
+{
+    public const string Name = nameof(ReferralTestsCollection);
 }

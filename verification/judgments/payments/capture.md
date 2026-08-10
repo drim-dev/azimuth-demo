@@ -1,5 +1,12 @@
 # Judgments: payments/capture
 
+Revalidated 2026-08-10 for rider referral rewards. `CaptureTrip` now derives the sole supported
+adjustment from authenticated trip-bound authority, persists an explicit original/credit/final
+breakdown, and writes a payment outbox beside the capture. The dispatcher no longer accepts a
+batch-wide delta. Every changed handler, query, component test, e2e body and payment design section
+was re-read; existing capture predicates remain sound and the two publication predicates are judged
+below.
+
 Revalidated 2026-08-10 after D29 separated relational, metamorphic and model-based oracles. Every
 stale claim, covering body, realization site and design binding was re-read. The behavioral sources
 are unchanged; the capture-amount test now honestly names its within-case fare/capture relation as
@@ -35,7 +42,7 @@ was not evidence of cancellation. Both claims now run through real Trips and Pay
 
 ## Claim: capture-created-on-completion
 Verdict: sound
-Fingerprint: 44343c7bbf5a2693
+Fingerprint: edb741e28a702dcd
 Judged: 2026-08-10
 Judge: codex
 
@@ -47,7 +54,7 @@ universal floor accepted in the verification plan.
 
 ## Claim: no-capture-before-completion
 Verdict: sound
-Fingerprint: fc98abf973a4443a
+Fingerprint: bd68a75512ce5543
 Judged: 2026-08-10
 Judge: codex
 
@@ -57,7 +64,7 @@ all trips fails. The one-state sample is recorded rather than disguised as unive
 
 ## Claim: no-capture-on-cancellation-without-fee
 Verdict: sound
-Fingerprint: fb2cca0773fcc6ba
+Fingerprint: 81238431b053688b
 Judged: 2026-08-10
 Judge: codex
 
@@ -67,7 +74,7 @@ on the no-fee cancellation branch fails the new evidence.
 
 ## Claim: duplicate-completion-event
 Verdict: sound
-Fingerprint: ee3aa5985150d45c
+Fingerprint: 06860eb189514b6c
 Judged: 2026-08-10
 Judge: codex
 
@@ -78,7 +85,7 @@ breaks a distinct assertion. The capture constraint remains separate evidence fo
 
 ## Claim: concurrent-completion-processing
 Verdict: sound
-Fingerprint: b9520d9af9c874f3
+Fingerprint: ec614751b054c876
 Judged: 2026-08-10
 Judge: codex
 
@@ -88,7 +95,7 @@ one row and fails the count. Distinct workers, rather than sequential repeats, e
 
 ## Claim: retry-after-transport-failure
 Verdict: sound
-Fingerprint: 7de31cd88f41561f
+Fingerprint: ddaa754b557f4010
 Judged: 2026-08-10
 Judge: codex
 
@@ -99,7 +106,7 @@ the asserted count at zero. Provider reconciliation remains a design residue.
 
 ## Claim: capture-equals-trip-fare
 Verdict: sound
-Fingerprint: 167ec16be98aef17
+Fingerprint: 87b27426aff582bd
 Judged: 2026-08-10
 Judge: codex
 
@@ -112,18 +119,19 @@ anymore. `CaptureTrip` was checked and decodes before provider I/O.
 
 ## Claim: adjusted-capture-records-reason
 Verdict: sound
-Fingerprint: 114a76d4572214fa
+Fingerprint: d8e5b14d996bd277
 Judged: 2026-08-10
 Judge: codex
 
-For four reasons and 24 generated cases, the test keeps the signed quote total separate from a
-non-zero positive or negative adjustment, then asserts both the changed captured amount and exact
-reason. Ignoring the adjustment now fails the amount inequality; ignoring the reason fails the
-record assertion. The handler rejects an unreasoned or negative-result adjustment.
+Across three currencies and generated fare/credit pairs, the test keeps the signed quote total
+separate from a signed referral authority, then asserts the original fare, negative adjustment,
+typed reason, provider amount, final capture, status response and outbox breakdown. Caller-supplied
+delta/reason parameters no longer exist. Removing authority validation, using the credit as the
+final total, or dropping its typed attribution breaks an independent assertion.
 
 ## Claim: declined-capture-recorded
 Verdict: sound
-Fingerprint: 9aa586accba8e1e4
+Fingerprint: 5fcc22ffe1bdc1c9
 Judged: 2026-08-08
 Judge: codex
 
@@ -133,7 +141,7 @@ matches the one decline reason.
 
 ## Claim: declined-capture-is-retryable
 Verdict: sound
-Fingerprint: 1ffc9ae5531b7db7
+Fingerprint: 00d53b0fb63f3cfa
 Judged: 2026-08-08
 Judge: codex
 
@@ -145,7 +153,7 @@ The tag is `example`, as required for this standard claim.
 
 ## Claim: receipt-explains-payment-state
 Verdict: sound
-Fingerprint: c98589bb183a1c72
+Fingerprint: ed044dfd59aedcfe
 Judged: 2026-08-08
 Judge: codex
 
@@ -158,7 +166,7 @@ manual charter is intentionally not counted because it has no execution receipt.
 
 ## Claim: malformed-intent-does-not-starve-batch
 Verdict: sound
-Fingerprint: ec13aa51e11290a4
+Fingerprint: 8e0c973ffabef15c
 Judged: 2026-08-08
 Judge: codex
 
@@ -167,3 +175,28 @@ dispatches once, and observes one terminal failure plus both valid captures. A s
 proves the poison intent left the pending set. Removing per-intent isolation, failure recording or
 the dispatch marker fails a distinct assertion. The `example` tag matches the standard floor and
 does not claim all malformed payloads or interleavings.
+
+## Claim: committed-capture-is-published
+Verdict: sound
+Fingerprint: 6a803ebc73b165b0
+Judged: 2026-08-10
+Judge: codex
+
+The component test ranges fare, credit and relay retry count against real Postgres and RabbitMQ.
+For each case `CaptureTrip` writes one capture and one outbox row in the same `SaveChanges`; the
+relay publishes a contract-valid envelope carrying the exact stored breakdown. The handler and
+relay realization tags each name their actual half of the predicate. Writing outside the capture
+transaction, constructing a second logical event on retry, or omitting a breakdown field fails a
+distinct database or decoded-envelope assertion.
+
+## Claim: capture-publication-is-retryable
+Verdict: sound
+Fingerprint: e0b2b28496ba8cf4
+Judged: 2026-08-10
+Judge: codex
+
+Evidence repeatedly removes only the publication mark and invokes the confirmed relay. Every
+delivery retains the committed event id and capture id, while Postgres retains one capture and one
+outbox row. This relational oracle distinguishes retrying an immutable fact from rebuilding it.
+The topology implementation resolves to the durable exchange/queue declaration. The test does not
+simulate an external broker losing an acknowledged message; that boundary remains design residue.

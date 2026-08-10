@@ -14,6 +14,7 @@ public sealed class CaptureIntentConfiguration : IEntityTypeConfiguration<Captur
         builder.Property(i => i.TripId).HasColumnName("trip_id").ValueGeneratedNever();
         builder.Property(i => i.QuoteToken).HasColumnName("quote_token").IsRequired();
         builder.Property(i => i.PaymentMethod).HasColumnName("payment_method").IsRequired();
+        builder.Property(i => i.ReferralCreditAuthority).HasColumnName("referral_credit_authority");
         builder.Property(i => i.WrittenAt).HasColumnName("written_at").IsRequired();
         builder.Property(i => i.DispatchedAt).HasColumnName("dispatched_at");
     }
@@ -28,6 +29,9 @@ public sealed class CaptureConfiguration : IEntityTypeConfiguration<Capture>
 
         builder.Property(c => c.Id).HasColumnName("id").ValueGeneratedNever();
         builder.Property(c => c.TripId).HasColumnName("trip_id").IsRequired();
+        builder.Property(c => c.OriginalFareMinor).HasColumnName("original_fare_minor").IsRequired();
+        builder.Property(c => c.ReferralCreditMinor).HasColumnName("referral_credit_minor").IsRequired();
+        builder.Property(c => c.ReferralCreditId).HasColumnName("referral_credit_id");
         builder.Property(c => c.AmountMinor).HasColumnName("amount_minor").IsRequired();
         builder.Property(c => c.Currency).HasColumnName("currency").IsRequired();
         builder.Property(c => c.AdjustmentReason).HasColumnName("adjustment_reason");
@@ -42,6 +46,38 @@ public sealed class CaptureConfiguration : IEntityTypeConfiguration<Capture>
             .IsUnique()
             .HasFilter("NOT voided")
             .HasDatabaseName("ux_capture_trip");
+
+        // An authority is bound to a trip cryptographically; this constraint remains the last line
+        // if a second capture path later fails to verify that binding.
+        builder.HasIndex(c => c.ReferralCreditId)
+            .IsUnique()
+            .HasFilter("referral_credit_id IS NOT NULL")
+            .HasDatabaseName("ux_capture_referral_credit");
+    }
+}
+
+public sealed class PaymentEventOutboxConfiguration : IEntityTypeConfiguration<PaymentEventOutbox>
+{
+    public void Configure(EntityTypeBuilder<PaymentEventOutbox> builder)
+    {
+        builder.ToTable("payment_events");
+        builder.HasKey(x => x.EventId);
+        builder.Property(x => x.EventId).HasColumnName("event_id").ValueGeneratedNever();
+        builder.Property(x => x.CaptureId).HasColumnName("capture_id").IsRequired();
+        builder.Property(x => x.TripId).HasColumnName("trip_id").IsRequired();
+        builder.Property(x => x.OriginalFareMinor).HasColumnName("original_fare_minor").IsRequired();
+        builder.Property(x => x.ReferralCreditMinor).HasColumnName("referral_credit_minor").IsRequired();
+        builder.Property(x => x.CapturedAmountMinor).HasColumnName("captured_amount_minor").IsRequired();
+        builder.Property(x => x.Currency).HasColumnName("currency").IsRequired();
+        builder.Property(x => x.ReferralCreditId).HasColumnName("referral_credit_id");
+        builder.Property(x => x.OccurredAt).HasColumnName("occurred_at").IsRequired();
+        builder.Property(x => x.PublishedAt).HasColumnName("published_at");
+
+        builder.HasIndex(x => x.CaptureId)
+            .IsUnique()
+            .HasDatabaseName("ux_payment_event_capture");
+        builder.HasIndex(x => new { x.PublishedAt, x.OccurredAt })
+            .HasDatabaseName("ix_payment_events_pending");
     }
 }
 

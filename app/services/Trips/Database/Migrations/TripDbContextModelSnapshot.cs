@@ -22,55 +22,6 @@ namespace Trips.Database.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("Trips.Domain.TripEventOutbox", b =>
-                {
-                    b.Property<Guid>("EventId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("event_id");
-
-                    b.Property<DateTimeOffset>("OccurredAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("occurred_at");
-
-                    b.Property<string>("PaymentMethod")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("payment_method");
-
-                    b.Property<string>("QuoteToken")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("quote_token");
-
-                    b.Property<DateTimeOffset?>("PublishedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("published_at");
-
-                    b.Property<string>("State")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("state");
-
-                    b.Property<long>("TripId")
-                        .HasColumnType("bigint")
-                        .HasColumnName("trip_id");
-
-                    b.Property<long>("Version")
-                        .HasColumnType("bigint")
-                        .HasColumnName("version");
-
-                    b.HasKey("EventId");
-
-                    b.HasIndex("PublishedAt", "OccurredAt")
-                        .HasDatabaseName("ix_trip_events_pending");
-
-                    b.HasIndex("TripId", "Version")
-                        .IsUnique()
-                        .HasDatabaseName("ux_trip_event_version");
-
-                    b.ToTable("trip_events", (string)null);
-                });
-
             modelBuilder.Entity("Trips.Domain.Driver", b =>
                 {
                     b.Property<string>("Id")
@@ -133,6 +84,172 @@ namespace Trips.Database.Migrations
                     b.ToTable("offers", (string)null);
                 });
 
+            modelBuilder.Entity("Trips.Domain.PaymentEventInbox", b =>
+                {
+                    b.Property<Guid>("EventId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("event_id");
+
+                    b.Property<long>("CaptureId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("capture_id");
+
+                    b.Property<DateTimeOffset>("ReceivedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("received_at");
+
+                    b.Property<long>("TripId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("trip_id");
+
+                    b.HasKey("EventId");
+
+                    b.HasIndex("CaptureId")
+                        .HasDatabaseName("ix_payment_event_inbox_capture");
+
+                    b.ToTable("payment_event_inbox", (string)null);
+                });
+
+            modelBuilder.Entity("Trips.Domain.ReferralAccount", b =>
+                {
+                    b.Property<long>("Id")
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("code");
+
+                    b.Property<string>("RiderId")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("rider_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique()
+                        .HasDatabaseName("ux_referral_account_code");
+
+                    b.HasIndex("RiderId")
+                        .IsUnique()
+                        .HasDatabaseName("ux_referral_account_rider");
+
+                    b.ToTable("referral_accounts", (string)null);
+                });
+
+            modelBuilder.Entity("Trips.Domain.ReferralAttribution", b =>
+                {
+                    b.Property<long>("Id")
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    b.Property<long>("FirstTripId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("first_trip_id");
+
+                    b.Property<long?>("QualificationCaptureId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("qualification_capture_id");
+
+                    b.Property<string>("ReferredRiderId")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("referred_rider_id");
+
+                    b.Property<string>("ReferrerRiderId")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("referrer_rider_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FirstTripId")
+                        .IsUnique()
+                        .HasDatabaseName("ux_referral_attribution_first_trip");
+
+                    b.HasIndex("ReferredRiderId")
+                        .IsUnique()
+                        .HasDatabaseName("ux_referral_attribution_referred_rider");
+
+                    b.ToTable("referral_attributions", (string)null);
+                });
+
+            modelBuilder.Entity("Trips.Domain.ReferralCredit", b =>
+                {
+                    b.Property<long>("Id")
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    b.Property<long>("AmountMinor")
+                        .HasColumnType("bigint")
+                        .HasColumnName("amount_minor");
+
+                    b.Property<long>("AttributionId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("attribution_id");
+
+                    b.Property<string>("BeneficiaryRiderId")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("beneficiary_rider_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("currency");
+
+                    b.Property<long?>("ReservedTripId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("reserved_trip_id");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("state");
+
+                    b.Property<long?>("UsedCaptureId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("used_capture_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ReservedTripId")
+                        .IsUnique()
+                        .HasDatabaseName("ux_referral_credit_reserved_trip")
+                        .HasFilter("reserved_trip_id IS NOT NULL");
+
+                    b.HasIndex("AttributionId", "BeneficiaryRiderId")
+                        .IsUnique()
+                        .HasDatabaseName("ux_referral_credit_source_beneficiary");
+
+                    b.ToTable("referral_credits", (string)null);
+                });
+
+            modelBuilder.Entity("Trips.Domain.RiderAdmission", b =>
+                {
+                    b.Property<string>("RiderId")
+                        .HasColumnType("text")
+                        .HasColumnName("rider_id");
+
+                    b.Property<long>("FirstTripId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("first_trip_id");
+
+                    b.HasKey("RiderId");
+
+                    b.HasIndex("FirstTripId")
+                        .IsUnique()
+                        .HasDatabaseName("ux_rider_admission_trip");
+
+                    b.ToTable("rider_admissions", (string)null);
+                });
+
             modelBuilder.Entity("Trips.Domain.Trip", b =>
                 {
                     b.Property<long>("Id")
@@ -175,6 +292,14 @@ namespace Trips.Database.Migrations
                         .HasColumnType("text")
                         .HasColumnName("quote_token");
 
+                    b.Property<string>("ReferralCreditAuthority")
+                        .HasColumnType("text")
+                        .HasColumnName("referral_credit_authority");
+
+                    b.Property<long?>("ReferralCreditId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("referral_credit_id");
+
                     b.Property<string>("RiderId")
                         .IsRequired()
                         .HasColumnType("text")
@@ -201,6 +326,59 @@ namespace Trips.Database.Migrations
                         .HasFilter("state NOT IN ('completed', 'cancelled')");
 
                     b.ToTable("trips", (string)null);
+                });
+
+            modelBuilder.Entity("Trips.Domain.TripEventOutbox", b =>
+                {
+                    b.Property<Guid>("EventId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("event_id");
+
+                    b.Property<DateTimeOffset>("OccurredAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("occurred_at");
+
+                    b.Property<string>("PaymentMethod")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("payment_method");
+
+                    b.Property<DateTimeOffset?>("PublishedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("published_at");
+
+                    b.Property<string>("QuoteToken")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("quote_token");
+
+                    b.Property<string>("ReferralCreditAuthority")
+                        .HasColumnType("text")
+                        .HasColumnName("referral_credit_authority");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("state");
+
+                    b.Property<long>("TripId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("trip_id");
+
+                    b.Property<long>("Version")
+                        .HasColumnType("bigint")
+                        .HasColumnName("version");
+
+                    b.HasKey("EventId");
+
+                    b.HasIndex("PublishedAt", "OccurredAt")
+                        .HasDatabaseName("ix_trip_events_pending");
+
+                    b.HasIndex("TripId", "Version")
+                        .IsUnique()
+                        .HasDatabaseName("ux_trip_event_version");
+
+                    b.ToTable("trip_events", (string)null);
                 });
 
             modelBuilder.Entity("Trips.Domain.TripTransition", b =>
@@ -252,6 +430,17 @@ namespace Trips.Database.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("Trips.Domain.ReferralCredit", b =>
+                {
+                    b.HasOne("Trips.Domain.ReferralAttribution", "Attribution")
+                        .WithMany("Credits")
+                        .HasForeignKey("AttributionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Attribution");
+                });
+
             modelBuilder.Entity("Trips.Domain.TripTransition", b =>
                 {
                     b.HasOne("Trips.Domain.Trip", null)
@@ -259,6 +448,11 @@ namespace Trips.Database.Migrations
                         .HasForeignKey("TripId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("Trips.Domain.ReferralAttribution", b =>
+                {
+                    b.Navigation("Credits");
                 });
 
             modelBuilder.Entity("Trips.Domain.Trip", b =>

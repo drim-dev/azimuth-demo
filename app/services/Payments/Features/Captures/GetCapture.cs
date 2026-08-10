@@ -19,7 +19,14 @@ public static class GetCapture
 
     public sealed record Request(string TripId) : IRequest<Response>;
 
-    public sealed record Response(string Id, long AmountMinor, string Currency, string? AdjustmentReason);
+    public sealed record Adjustment(string Kind, long DeltaMinor, string CreditId);
+
+    public sealed record Response(
+        string Id,
+        long OriginalFareMinor,
+        long AmountMinor,
+        string Currency,
+        Adjustment? Adjustment);
 
     public sealed class RequestHandler(PaymentsDbContext db) : IRequestHandler<Request, Response>
     {
@@ -36,7 +43,15 @@ public static class GetCapture
             var capture = await db.Captures
                 .AsNoTracking()
                 .Where(c => c.TripId == tripId && !c.Voided)
-                .Select(c => new { c.Id, c.AmountMinor, c.Currency, c.AdjustmentReason })
+                .Select(c => new
+                {
+                    c.Id,
+                    c.OriginalFareMinor,
+                    c.ReferralCreditMinor,
+                    c.ReferralCreditId,
+                    c.AmountMinor,
+                    c.Currency,
+                })
                 .FirstOrDefaultAsync(ct);
 
             if (capture is null)
@@ -46,9 +61,15 @@ public static class GetCapture
 
             return new Response(
                 IdEncoding.Encode(capture.Id),
+                capture.OriginalFareMinor,
                 capture.AmountMinor,
                 capture.Currency,
-                capture.AdjustmentReason);
+                capture.ReferralCreditId is { } creditId
+                    ? new Adjustment(
+                        "referral-credit",
+                        -capture.ReferralCreditMinor,
+                        IdEncoding.Encode(creditId))
+                    : null);
         }
 
         private static NotFoundException NotFound() =>

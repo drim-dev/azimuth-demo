@@ -79,7 +79,8 @@ public sealed class TripEventRelay(
         TripStateMachine.Name(item.State),
         item.OccurredAt,
         item.QuoteToken,
-        item.PaymentMethod);
+        item.PaymentMethod,
+        item.ReferralCreditAuthority);
 }
 
 public sealed class TripEventRelayState

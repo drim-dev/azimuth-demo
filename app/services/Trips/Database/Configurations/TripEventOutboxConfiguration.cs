@@ -15,6 +15,7 @@ public sealed class TripEventOutboxConfiguration : IEntityTypeConfiguration<Trip
         builder.Property(x => x.Version).HasColumnName("version").IsRequired();
         builder.Property(x => x.QuoteToken).HasColumnName("quote_token").IsRequired();
         builder.Property(x => x.PaymentMethod).HasColumnName("payment_method").IsRequired();
+        builder.Property(x => x.ReferralCreditAuthority).HasColumnName("referral_credit_authority");
         builder.Property(x => x.OccurredAt).HasColumnName("occurred_at").IsRequired();
         builder.Property(x => x.PublishedAt).HasColumnName("published_at");
         builder.Property(x => x.State)

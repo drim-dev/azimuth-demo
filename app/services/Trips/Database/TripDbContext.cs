@@ -15,6 +15,16 @@ public sealed class TripDbContext(DbContextOptions<TripDbContext> options) : DbC
 
     public DbSet<Driver> Drivers => Set<Driver>();
 
+    public DbSet<RiderAdmission> RiderAdmissions => Set<RiderAdmission>();
+
+    public DbSet<ReferralAccount> ReferralAccounts => Set<ReferralAccount>();
+
+    public DbSet<ReferralAttribution> ReferralAttributions => Set<ReferralAttribution>();
+
+    public DbSet<ReferralCredit> ReferralCredits => Set<ReferralCredit>();
+
+    public DbSet<PaymentEventInbox> PaymentEventInbox => Set<PaymentEventInbox>();
+
     protected override void OnModelCreating(ModelBuilder builder) =>
         builder.ApplyConfigurationsFromAssembly(typeof(TripDbContext).Assembly);
 }

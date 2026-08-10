@@ -11,6 +11,8 @@ public sealed class PaymentsDbContext(DbContextOptions<PaymentsDbContext> option
 
     public DbSet<CaptureFailure> CaptureFailures => Set<CaptureFailure>();
 
+    public DbSet<PaymentEventOutbox> PaymentEvents => Set<PaymentEventOutbox>();
+
     public DbSet<TripEventInbox> TripEventInbox => Set<TripEventInbox>();
 
     public DbSet<TripEventCursor> TripEventCursors => Set<TripEventCursor>();

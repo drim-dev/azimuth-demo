@@ -1,6 +1,7 @@
 import {
   RiderQuote,
   RiderReceipt,
+  RiderReferralSummary,
   RiderTrip,
   ServicePaymentStatus,
   ServiceQuote,
@@ -54,6 +55,14 @@ export async function requestRide(body: unknown) {
     : result;
 }
 
+export async function referrals(riderId: string): Promise<Forwarded<RiderReferralSummary>> {
+  return forward<RiderReferralSummary>(
+    tripUrl(),
+    `/referrals/${encodeURIComponent(riderId)}`,
+    { method: 'PUT' },
+  );
+}
+
 export async function trip(id: string): Promise<Forwarded<RiderTrip>> {
   const result = await forward<ServiceTrip>(tripUrl(), `/trips/${id}`);
   return result.status === 200 && result.body
@@ -81,6 +90,8 @@ export async function receipt(id: string): Promise<Forwarded<RiderReceipt>> {
             amountMinor: null,
             currency: null,
             message: 'Payment status is temporarily unavailable.',
+            originalFareMinor: null,
+            adjustment: null,
           },
     ),
   };

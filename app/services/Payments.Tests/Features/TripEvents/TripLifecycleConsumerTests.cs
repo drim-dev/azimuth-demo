@@ -20,7 +20,10 @@ public sealed class TripLifecycleConsumerTests(PaymentsTestFixture fixture) : IA
         Quantification.Universal)]
     public async Task Redelivery_and_older_versions_create_one_settlement_intent()
     {
-        var completed = Event(version: 4, state: "completed");
+        var completed = Event(
+            version: 4,
+            state: "completed",
+            referralCreditAuthority: "signed-referral-credit");
         for (var delivery = 0; delivery < 7; delivery++)
         {
             await fixture.RabbitMq.Publish(completed, Cancellation.Token());
@@ -43,20 +46,26 @@ public sealed class TripLifecycleConsumerTests(PaymentsTestFixture fixture) : IA
             await Task.Delay(25);
         }
 
-        (await fixture.Database.Count<CaptureIntent>(
+        var intent = await fixture.Database.SingleOrDefault<CaptureIntent>(
             x => x.TripId == completed.TripId,
-            Cancellation.Token())).Should().Be(1);
+            Cancellation.Token());
+        intent.Should().NotBeNull();
+        intent!.ReferralCreditAuthority.Should().Be(completed.ReferralCreditAuthority);
         (await fixture.Database.SingleOrDefault<TripEventCursor>(
             x => x.TripId == completed.TripId,
             Cancellation.Token()))!.Version.Should().Be(completed.Version);
     }
 
-    private static TripStateChanged Event(long version, string state) => new(
+    private static TripStateChanged Event(
+        long version,
+        string state,
+        string? referralCreditAuthority = null) => new(
         Guid.NewGuid(),
         30_000,
         version,
         state,
         PaymentsTestFixture.Start.AddMinutes(version),
         "signed-quote",
-        "default");
+        "default",
+        referralCreditAuthority);
 }

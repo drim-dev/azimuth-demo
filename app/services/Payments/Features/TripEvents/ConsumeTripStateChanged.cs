@@ -60,6 +60,7 @@ public static class ConsumeTripStateChanged
                         TripId = message.TripId,
                         QuoteToken = message.QuoteToken,
                         PaymentMethod = message.PaymentMethod,
+                        ReferralCreditAuthority = message.ReferralCreditAuthority,
                         WrittenAt = message.OccurredAt,
                     });
                 }

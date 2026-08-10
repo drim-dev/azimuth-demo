@@ -2,6 +2,7 @@ using Common.Testing;
 using Common.Messaging;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.DependencyInjection;
 using Payments.Database;
 using Xunit;
 
@@ -27,7 +28,10 @@ public sealed class PaymentsTestFixture : IAsyncLifetime
 
         _factory = new WebApplicationFactory<Program>()
             .WithWebHostBuilder(builder =>
-                builder.UseSetting("CaptureSettlement:Enabled", "false"))
+            {
+                builder.UseSetting("CaptureSettlement:Enabled", "false");
+                builder.UseSetting("PaymentEventRelay:Enabled", "false");
+            })
             .AddHarness(Database)
             .AddHarness(RabbitMq)
             .AddHarness(HttpClient)
@@ -45,6 +49,8 @@ public sealed class PaymentsTestFixture : IAsyncLifetime
 
     public RabbitMqHarness<Program> RabbitMq { get; }
 
+    public T Service<T>() where T : notnull => _factory.Services.GetRequiredService<T>();
+
     public async Task Reset(CancellationToken cancellation)
     {
         Clock.Reset();
@@ -55,7 +61,9 @@ public sealed class PaymentsTestFixture : IAsyncLifetime
             TripEventTopology.PaymentsQueue,
             TripEventTopology.PaymentsDeadLetterQueue,
             TripEventTopology.AnalyticsQueue,
-            TripEventTopology.AnalyticsDeadLetterQueue);
+            TripEventTopology.AnalyticsDeadLetterQueue,
+            PaymentEventTopology.ReferralsQueue,
+            PaymentEventTopology.ReferralsDeadLetterQueue);
     }
 
     public async Task InitializeAsync()

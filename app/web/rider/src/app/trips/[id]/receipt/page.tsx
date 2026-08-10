@@ -16,6 +16,7 @@ export default async function ReceiptPage({ params }: { params: Promise<{ id: st
   realizes('trips/rider-view', 'driver-identity-remains-on-receipt');
   realizes('trips/rider-view', 'position-confined-to-live-phases');
   realizes('payments/capture', 'receipt-explains-payment-state');
+  realizes('referrals/rewards', 'owned-credit-reduces-capture');
 
   const { id } = await params;
   const result = await fetchReceipt(id);
@@ -24,6 +25,7 @@ export default async function ReceiptPage({ params }: { params: Promise<{ id: st
   }
 
   const receipt = result.body;
+  const referralCredit = receipt.payment.adjustment;
 
   return (
     <>
@@ -37,12 +39,35 @@ export default async function ReceiptPage({ params }: { params: Promise<{ id: st
 
       <div className="card">
         <dl>
-          <div className="stat">
-            <dt>Total</dt>
-            <dd>
-              {receipt.fare.minor} {receipt.fare.currency}
-            </dd>
-          </div>
+          {referralCredit ? (
+            <>
+              <div className="stat">
+                <dt>Original fare</dt>
+                <dd>
+                  {receipt.payment.originalFareMinor} {receipt.payment.currency}
+                </dd>
+              </div>
+              <div className="stat">
+                <dt>Referral credit</dt>
+                <dd>
+                  {referralCredit.deltaMinor} {receipt.payment.currency}
+                </dd>
+              </div>
+              <div className="stat">
+                <dt>Captured total</dt>
+                <dd>
+                  {receipt.payment.amountMinor} {receipt.payment.currency}
+                </dd>
+              </div>
+            </>
+          ) : (
+            <div className="stat">
+              <dt>Total</dt>
+              <dd>
+                {receipt.fare.minor} {receipt.fare.currency}
+              </dd>
+            </div>
+          )}
           <div className="stat">
             <dt>Driver</dt>
             <dd>{receipt.driver?.name ?? '—'}</dd>

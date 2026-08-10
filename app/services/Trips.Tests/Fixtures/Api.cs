@@ -5,6 +5,7 @@ using FluentAssertions;
 using Pricing;
 using Trips.Domain;
 using Trips.Features.Trips;
+using Trips.Features.Referrals;
 
 namespace Trips.Tests.Fixtures;
 
@@ -65,8 +66,18 @@ public static class Api
     public static Task<HttpResponseMessage> RequestRide(
         this HttpClient client,
         string riderId,
-        string quoteToken) =>
-        client.PostAsJsonAsync("/trips", new RequestRide.Request(riderId, quoteToken));
+        string quoteToken,
+        string? referralCode = null,
+        string? referralCreditId = null) =>
+        client.PostAsJsonAsync(
+            "/trips",
+            new RequestRide.Request(riderId, quoteToken, referralCode, referralCreditId));
+
+    public static async Task<GetReferralSummary.Response> ReferralSummary(
+        this HttpClient client,
+        string riderId) =>
+        await (await client.PutAsync($"/referrals/{riderId}", null))
+            .Read<GetReferralSummary.Response>();
 
     /// <summary>Requests a ride and hands back the trip id.</summary>
     public static async Task<string> RideId(this HttpClient client, string? riderId = null)

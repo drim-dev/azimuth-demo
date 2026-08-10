@@ -278,6 +278,49 @@ async function requestedTrip(rider: string) {
   return created.body.id as string;
 }
 
+async function referralSummary(rider: string) {
+  const summary = await get(`/api/rider/referrals/${encodeURIComponent(rider)}`);
+  assert.equal(summary.status, 200, JSON.stringify(summary.body));
+  return summary.body as {
+    referralCode: string;
+    attributionStatus: 'none' | 'pending' | 'qualified';
+    credits: Array<{
+      id: string;
+      amountMinor: number;
+      currency: string;
+      status: 'available' | 'reserved' | 'used';
+    }>;
+  };
+}
+
+async function requestedReferralTrip(
+  rider: string,
+  options: { referralCode?: string; referralCreditId?: string } = {},
+) {
+  const quote = await post('/api/rider/quotes', {
+    pickup: 'downtown', dropoff: 'airport', distanceMeters: 10000, currency: 'EUR',
+  });
+  assert.equal(quote.status, 200, JSON.stringify(quote.body));
+  const created = await post('/api/rider/trips', {
+    riderId: rider,
+    quoteToken: quote.body.token,
+    ...options,
+  });
+  assert.equal(created.status, 200, JSON.stringify(created.body));
+  createdTripCount++;
+  return {
+    id: created.body.id as string,
+    fareMinor: quote.body.fare.minor as number,
+    currency: quote.body.fare.currency as string,
+  };
+}
+
+async function completeTrip(id: string) {
+  assert.equal(await driver(`/trips/${id}/accept/driver-e2e`), 200);
+  assert.equal(await driver(`/trips/${id}/start?actor=driver-e2e`), 200);
+  assert.equal(await driver(`/trips/${id}/complete?actor=driver-e2e`), 200);
+}
+
 test('a rider sees no individual driver before assignment', async () => {
   covers('trips/rider-view', 'no-driver-position-before-assignment', 'e2e', 'universal');
   covers('trips/rider-view', 'no-driver-identity-before-assignment', 'e2e', 'universal');
@@ -534,6 +577,119 @@ test('surge survives quote admission and capture unchanged', async () => {
     .find((entry: any) => entry.state === 'completed')?.trips ?? 0;
   assert.equal(summaryAfter.totalTrips, summaryBefore.totalTrips + 1);
   assert.equal(completedAfter, completedBefore + 1);
+});
+
+test('a captured referral earns two credits and one funds a later trip', async () => {
+  covers('referrals/rewards', 'known-code-is-attributed', 'e2e', 'example', 'direct');
+  covers('referrals/rewards', 'no-reward-before-capture', 'e2e', 'example', 'direct');
+  covers('referrals/rewards', 'first-capture-awards-pair', 'e2e', 'example', 'direct');
+  covers('referrals/rewards', 'owned-credit-reduces-capture', 'e2e', 'example', 'relational');
+  covers('referrals/rewards', 'referral-summary-explains-state', 'e2e', 'example', 'direct');
+
+  const suffix = Date.now();
+  const inviter = `rider-${suffix}-inviter`;
+  const invitee = `rider-${suffix}-invitee`;
+  const inviterBefore = await referralSummary(inviter);
+  assert.equal(inviterBefore.attributionStatus, 'none');
+  assert.deepEqual(inviterBefore.credits, []);
+
+  const qualifying = await requestedReferralTrip(invitee, {
+    referralCode: inviterBefore.referralCode,
+  });
+  const inviteeBeforeCapture = await referralSummary(invitee);
+  assert.equal(inviteeBeforeCapture.attributionStatus, 'pending');
+  assert.deepEqual(inviteeBeforeCapture.credits, []);
+  assert.deepEqual((await referralSummary(inviter)).credits, []);
+
+  await completeTrip(qualifying.id);
+  await waitFor(async () => {
+    const inviterState = await referralSummary(inviter);
+    const inviteeState = await referralSummary(invitee);
+    return inviterState.credits.length === 1
+      && inviterState.credits[0].status === 'available'
+      && inviteeState.attributionStatus === 'qualified'
+      && inviteeState.credits.length === 1
+      && inviteeState.credits[0].status === 'available';
+  }, 'referral reward pair');
+
+  const inviterReward = (await referralSummary(inviter)).credits[0];
+  assert.equal(inviterReward.amountMinor, 500);
+  assert.equal(inviterReward.currency, qualifying.currency);
+
+  const redeemed = await requestedReferralTrip(inviter, {
+    referralCreditId: inviterReward.id,
+  });
+  await completeTrip(redeemed.id);
+  await waitFor(async () => {
+    const receipt = await get(`/api/rider/trips/${redeemed.id}/receipt`);
+    return receipt.status === 200
+      && receipt.body.payment.status === 'captured'
+      && receipt.body.payment.adjustment?.kind === 'referral-credit';
+  }, 'referral-adjusted receipt');
+
+  const receipt = await get(`/api/rider/trips/${redeemed.id}/receipt`);
+  assert.equal(receipt.body.payment.originalFareMinor, redeemed.fareMinor);
+  assert.equal(receipt.body.payment.adjustment.deltaMinor, -inviterReward.amountMinor);
+  assert.equal(receipt.body.payment.adjustment.creditId, inviterReward.id);
+  assert.equal(
+    receipt.body.payment.amountMinor,
+    redeemed.fareMinor - inviterReward.amountMinor,
+  );
+
+  await waitFor(async () =>
+    (await referralSummary(inviter)).credits.some(
+      (credit) => credit.id === inviterReward.id && credit.status === 'used',
+    ), 'used referral credit');
+
+  const receiptPage = await page(RIDER, `/trips/${redeemed.id}/receipt`);
+  assert.equal(receiptPage.status, 200);
+  assert.equal(receiptPage.html.includes('Original fare'), true);
+  assert.equal(receiptPage.html.includes('Referral credit'), true);
+  assert.equal(receiptPage.html.includes('Captured total'), true);
+
+  const referralPage = await page(RIDER, `/referrals/${encodeURIComponent(inviter)}`);
+  assert.equal(referralPage.status, 200);
+  assert.equal(referralPage.html.includes('Referral rewards'), true);
+  assert.equal(referralPage.html.includes(inviterReward.currency), true);
+  assert.equal(referralPage.html.includes('used'), true);
+});
+
+test('referral credit history is grouped by state', async () => {
+  const suffix = Date.now();
+  const inviter = `rider-${suffix}-filter-inviter`;
+  const invitee = `rider-${suffix}-filter-invitee`;
+  const inviterBefore = await referralSummary(inviter);
+  const qualifying = await requestedReferralTrip(invitee, {
+    referralCode: inviterBefore.referralCode,
+  });
+
+  await completeTrip(qualifying.id);
+  await waitFor(async () => {
+    const inviterState = await referralSummary(inviter);
+    return inviterState.credits.length === 1
+      && inviterState.credits[0].status === 'available';
+  }, 'credit-group fixture reward');
+
+  const inviterReward = (await referralSummary(inviter)).credits[0];
+  const redeemed = await requestedReferralTrip(inviter, {
+    referralCreditId: inviterReward.id,
+  });
+  await completeTrip(redeemed.id);
+  await waitFor(async () =>
+    (await referralSummary(inviter)).credits.some(
+      (credit) => credit.id === inviterReward.id && credit.status === 'used',
+    ), 'credit-group fixture redemption');
+
+  const creditGroups = await page(RIDER, `/referrals/${encodeURIComponent(inviter)}`);
+  assert.equal(creditGroups.status, 200);
+  assert.equal(creditGroups.html.includes('id="credit-group-available"'), true);
+  assert.equal(creditGroups.html.includes('id="credit-group-reserved"'), true);
+  assert.equal(creditGroups.html.includes('id="credit-group-used"'), true);
+  assert.equal(creditGroups.html.includes('aria-label="Used referral credits"'), true);
+  const visibleText = creditGroups.html.replace(/<!--.*?-->/g, '');
+  assert.equal(visibleText.includes('No available referral credits.'), true);
+  assert.equal(visibleText.includes('No reserved referral credits.'), true);
+  assert.equal(creditGroups.html.includes('<strong>used</strong>'), true);
 });
 
 test('the stack is reachable', () => {

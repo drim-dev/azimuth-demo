@@ -131,8 +131,20 @@ public static class TransitionTrip
                 State = to,
                 QuoteToken = current.QuoteToken,
                 PaymentMethod = "default",
+                ReferralCreditAuthority = current.ReferralCreditAuthority,
                 OccurredAt = clock.Now,
             });
+
+            if (to == TripState.Cancelled && current.ReferralCreditId is { } creditId)
+            {
+                await db.ReferralCredits
+                    .Where(x => x.Id == creditId
+                        && x.State == ReferralCreditState.Reserved
+                        && x.ReservedTripId == id)
+                    .ExecuteUpdateAsync(x => x
+                        .SetProperty(c => c.State, ReferralCreditState.Available)
+                        .SetProperty(c => c.ReservedTripId, (long?)null), ct);
+            }
 
             await db.SaveChangesAsync(ct);
             await transaction.CommitAsync(ct);

@@ -23,9 +23,13 @@ public static class GetPaymentStatus
 
     public sealed record Response(
         string Status,
+        long? OriginalFareMinor,
         long? AmountMinor,
         string? Currency,
+        Adjustment? Adjustment,
         string Message);
+
+    public sealed record Adjustment(string Kind, long DeltaMinor, string CreditId);
 
     public sealed class RequestHandler(PaymentsDbContext db) : IRequestHandler<Request, Response>
     {
@@ -42,14 +46,28 @@ public static class GetPaymentStatus
             var capture = await db.Captures
                 .AsNoTracking()
                 .Where(item => item.TripId == tripId && !item.Voided)
-                .Select(item => new { item.AmountMinor, item.Currency })
+                .Select(item => new
+                {
+                    item.OriginalFareMinor,
+                    item.ReferralCreditMinor,
+                    item.ReferralCreditId,
+                    item.AmountMinor,
+                    item.Currency,
+                })
                 .FirstOrDefaultAsync(ct);
             if (capture is not null)
             {
                 return new Response(
                     "captured",
+                    capture.OriginalFareMinor,
                     capture.AmountMinor,
                     capture.Currency,
+                    capture.ReferralCreditId is { } creditId
+                        ? new Adjustment(
+                            "referral-credit",
+                            -capture.ReferralCreditMinor,
+                            IdEncoding.Encode(creditId))
+                        : null,
                     "Payment captured.");
             }
 
@@ -62,6 +80,8 @@ public static class GetPaymentStatus
                     "declined",
                     null,
                     null,
+                    null,
+                    null,
                     "Payment was declined. It will be retried after the payment method is updated.");
             }
 
@@ -69,8 +89,14 @@ public static class GetPaymentStatus
                 .AsNoTracking()
                 .AnyAsync(item => item.TripId == tripId && item.DispatchedAt == null, ct);
             return pending
-                ? new Response("pending", null, null, "Payment is being processed. No action is needed.")
-                : new Response("none", null, null, "No payment is due for this trip.");
+                ? new Response(
+                    "pending",
+                    null,
+                    null,
+                    null,
+                    null,
+                    "Payment is being processed. No action is needed.")
+                : new Response("none", null, null, null, null, "No payment is due for this trip.");
         }
     }
 }

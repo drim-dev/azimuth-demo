@@ -37,6 +37,15 @@ public sealed class RabbitMqHarness<TProgram> : IHarness<TProgram> where TProgra
         await TripEventPublisher.PublishAsync(session.Channel, message, cancellation);
     }
 
+    public async Task Publish(PaymentCaptured message, CancellationToken cancellation)
+    {
+        await using var session = await RabbitMqSession.OpenAsync(
+            ConnectionString,
+            publisherConfirmations: true,
+            cancellation);
+        await PaymentEventPublisher.PublishAsync(session.Channel, message, cancellation);
+    }
+
     public async Task PublishMalformed(ReadOnlyMemory<byte> body, CancellationToken cancellation)
     {
         await using var session = await RabbitMqSession.OpenAsync(
@@ -46,6 +55,27 @@ public sealed class RabbitMqHarness<TProgram> : IHarness<TProgram> where TProgra
         await session.Channel.BasicPublishAsync(
             TripEventTopology.Exchange,
             TripEventTopology.RoutingKey,
+            mandatory: true,
+            basicProperties: new BasicProperties
+            {
+                ContentType = "application/json",
+                DeliveryMode = DeliveryModes.Persistent,
+            },
+            body,
+            cancellation);
+    }
+
+    public async Task PublishMalformedPayment(
+        ReadOnlyMemory<byte> body,
+        CancellationToken cancellation)
+    {
+        await using var session = await RabbitMqSession.OpenAsync(
+            ConnectionString,
+            publisherConfirmations: true,
+            cancellation);
+        await session.Channel.BasicPublishAsync(
+            PaymentEventTopology.Exchange,
+            PaymentEventTopology.RoutingKey,
             mandatory: true,
             basicProperties: new BasicProperties
             {

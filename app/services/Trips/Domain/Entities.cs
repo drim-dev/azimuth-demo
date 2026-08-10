@@ -22,6 +22,10 @@ public sealed class Trip
 
     public required string QuoteToken { get; set; }
 
+    public long? ReferralCreditId { get; set; }
+
+    public string? ReferralCreditAuthority { get; set; }
+
     public required string Pickup { get; set; }
 
     public required string Dropoff { get; set; }
@@ -50,9 +54,83 @@ public sealed class TripEventOutbox
 
     public required string PaymentMethod { get; set; }
 
+    public string? ReferralCreditAuthority { get; set; }
+
     public DateTimeOffset OccurredAt { get; set; }
 
     public DateTimeOffset? PublishedAt { get; set; }
+}
+
+public sealed class RiderAdmission
+{
+    public required string RiderId { get; set; }
+
+    public long FirstTripId { get; set; }
+}
+
+public sealed class ReferralAccount
+{
+    public long Id { get; set; }
+
+    public required string RiderId { get; set; }
+
+    public required string Code { get; set; }
+}
+
+public sealed class ReferralAttribution
+{
+    public long Id { get; set; }
+
+    public required string ReferredRiderId { get; set; }
+
+    public required string ReferrerRiderId { get; set; }
+
+    public long FirstTripId { get; set; }
+
+    public long? QualificationCaptureId { get; set; }
+
+    public List<ReferralCredit> Credits { get; set; } = [];
+}
+
+public enum ReferralCreditState
+{
+    Available,
+    Reserved,
+    Used,
+}
+
+public sealed class ReferralCredit
+{
+    public long Id { get; set; }
+
+    public long AttributionId { get; set; }
+
+    public ReferralAttribution Attribution { get; set; } = null!;
+
+    public required string BeneficiaryRiderId { get; set; }
+
+    public long AmountMinor { get; set; }
+
+    public required string Currency { get; set; }
+
+    public ReferralCreditState State { get; set; }
+
+    public long? ReservedTripId { get; set; }
+
+    public long? UsedCaptureId { get; set; }
+
+    public DateTimeOffset CreatedAt { get; set; }
+}
+
+public sealed class PaymentEventInbox
+{
+    public Guid EventId { get; set; }
+
+    public long CaptureId { get; set; }
+
+    public long TripId { get; set; }
+
+    public DateTimeOffset ReceivedAt { get; set; }
 }
 
 /// <summary>One move of a trip through the machine, written and never amended.</summary>

@@ -112,3 +112,21 @@ the demo acquires a deployment environment with an actual notification receiver
 
 No evidence establishes that Alertmanager routes a firing capture alert to an on-call recipient.
 Calling the metric or rule test an end-to-end notification test would hide that operational gap.
+
+## Claim: committed-capture-is-published
+Scope: component
+Quantification: universal
+Oracle: contract
+
+A real Postgres capture writes one outbox row. Evidence ranges fare, credit and relay count; every
+confirmed relay publishes a decodable envelope with the same committed identity to the real
+RabbitMQ referral queue. The composed journey establishes that the downstream consumer can use it.
+
+## Claim: capture-publication-is-retryable
+Scope: component
+Quantification: universal
+Oracle: relational
+
+Evidence repeatedly clears only the publication mark and relays again. Every observed envelope
+retains the committed event id and breakdown while the database retains one capture and one outbox
+row.

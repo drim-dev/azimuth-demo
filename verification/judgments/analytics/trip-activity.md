@@ -1,5 +1,10 @@
 # Judgments: analytics/trip-activity
 
+Revalidated 2026-08-10 for rider referral rewards. The payment contract added a second topology
+declaration and the composed e2e file gained a referral journey; neither changes Analytics'
+maximum-version consumer or the assertions in the existing activity journey. All three stale
+evidence bodies and the unchanged realization handler were re-read before refreshing fingerprints.
+
 Re-judged 2026-08-10 after D28 exposed realization sources. The consumer handler directly
 establishes maximum-version projection, inbox deduplication and older-version inertia; the
 background receiver establishes poison-message rejection. Broker topology, relay and metrics are
@@ -17,7 +22,7 @@ multiplicity only from one to two under a `universal` tag. The corrected evidenc
 
 ## Claim: latest-version-is-projected
 Verdict: sound
-Fingerprint: 10e123c67789ee1f
+Fingerprint: b2e1a2e2a4deff91
 Judged: 2026-08-10
 Judge: codex
 
@@ -30,7 +35,7 @@ tag is honestly `example`. The relay/backlog alerts are supplementary and their 
 
 ## Claim: redelivery-is-counted-once
 Verdict: sound
-Fingerprint: 7b4c048ca80311f9
+Fingerprint: ec6945fa5d73db9b
 Judged: 2026-08-10
 Judge: codex
 
@@ -42,7 +47,7 @@ multiplicity axis; the finite trial count is sampling of schedules, not a claim 
 
 ## Claim: older-delivery-is-inert
 Verdict: sound
-Fingerprint: 752ff9a6198e60da
+Fingerprint: d126eaa6151b46e8
 Judged: 2026-08-10
 Judge: codex
 

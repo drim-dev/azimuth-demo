@@ -1,5 +1,16 @@
 # Judgments: trips/rider-view
 
+Revalidated 2026-08-10 for rider referral rewards. The derived rider-surface class gained a referral
+BFF route and server-rendered referral page; both bodies were inspected and carry no driver field or
+position source. The receipt gained payment breakdown rows while retaining its driver name and
+continuing to omit position. The invariant enumerator, all realization sites and both stale evidence
+bodies were re-read before refreshing these verdicts.
+
+Revalidated 2026-08-10 for routine referral-credit grouping. The edited referral page still obtains
+only code, attribution and credit fields from the referral projection; grouping introduces no trip,
+driver or position source. All other enumerated rider surfaces, both bound mechanisms and the e2e
+body were re-read and are unchanged.
+
 Re-judged 2026-08-10 after D28 exposed realization sources. `RiderProjection` owns phase-dependent
 identity and position disclosure; service/BFF view models preserve that decision; pages render only
 their bounded models. The site-quantified invariant also includes every built rider surface: a
@@ -42,7 +53,7 @@ hashes whole files, which D19.1 records.
 
 ## Claim: position-confined-to-live-phases
 Verdict: sound
-Fingerprint: 0dc3939f4359e2bd
+Fingerprint: e08b0c76378bb57e
 Judged: 2026-08-10
 Judge: codex
 
@@ -184,7 +195,7 @@ removed this claim would have no evidence that constructs the failure case.
 
 ## Claim: driver-identity-remains-on-receipt
 Verdict: sound
-Fingerprint: 8fbfd902f7bab30b
+Fingerprint: cd2b2364742ef410
 Judged: 2026-08-10
 Judge: codex
 

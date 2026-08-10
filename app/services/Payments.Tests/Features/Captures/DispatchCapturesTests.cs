@@ -210,6 +210,8 @@ public sealed class DispatchCapturesTests(PaymentsTestFixture fixture) : IAsyncL
 
     [Fact]
     [Covers("payments/capture", "concurrent-completion-processing", Scope.Component, Quantification.Universal)]
+    [Covers("referrals/rewards", "capture-redelivery-does-not-redeem-twice", Scope.Component,
+        Quantification.Universal, Oracle.Relational)]
     public async Task Concurrent_workers_create_exactly_one_capture()
     {
         var client = fixture.HttpClient.CreateClient();
@@ -218,13 +220,22 @@ public sealed class DispatchCapturesTests(PaymentsTestFixture fixture) : IAsyncL
         {
             await fixture.Reset(Cancellation.Token());
             var trip = TripId();
-            await fixture.Database.Save(Api.CompletedTrip(trip, 1500));
+            var credit = TripId();
+            await fixture.Database.Save(Api.CompletedTrip(
+                trip,
+                1500,
+                referralCreditAuthority: Api.ReferralAuthority(credit, trip, 500)));
 
             var responses = await Task.WhenAll(
                 Enumerable.Range(0, 8).Select(_ => client.Dispatch()));
 
             responses.Should().OnlyContain(r => r.StatusCode == HttpStatusCode.OK);
             (await CaptureCount(trip)).Should().Be(1);
+            (await fixture.Database.Count<PaymentEventOutbox>(
+                item => item.TripId == trip,
+                Cancellation.Token())).Should().Be(1);
+            (await client.Capture(trip))!.Adjustment!.CreditId.Should()
+                .Be(Common.Identity.IdEncoding.Encode(credit));
         }
     }
 
@@ -255,36 +266,128 @@ public sealed class DispatchCapturesTests(PaymentsTestFixture fixture) : IAsyncL
         }
     }
 
-    /// <summary>
-    /// Quantified over adjustments and reasons, for the same cause as above: the tag said
-    /// `Invariant` and the test exercised one.
-    /// </summary>
     [Fact]
-    [Covers("payments/capture", "adjusted-capture-records-reason", Scope.Component, Quantification.Universal)]
-    public async Task An_adjusted_capture_records_whatever_reason_applies()
+    [Covers("payments/capture", "adjusted-capture-records-reason", Scope.Component,
+        Quantification.Universal, Oracle.Relational)]
+    [Covers("referrals/rewards", "owned-credit-reduces-capture", Scope.Component,
+        Quantification.Universal, Oracle.Relational)]
+    public async Task An_authorized_referral_credit_reduces_and_explains_the_capture()
     {
         var client = fixture.HttpClient.CreateClient();
         var random = new Random(1234);
 
-        foreach (var reason in new[] { "goodwill-credit", "route-dispute", "promo", "tax-correction" })
+        foreach (var currency in new[] { "EUR", "USD", "JPY" })
         {
             for (var trial = 0; trial < 6; trial++)
             {
                 var trip = TripId();
-                var quoted = random.NextInt64(1_000_000, 5_000_000);
-                var adjustment = random.NextInt64(-500_000, 500_000);
-                if (adjustment == 0) adjustment = 1;
-                await fixture.Database.Save(Api.CompletedTrip(trip, quoted));
+                var creditId = TripId();
+                var quoted = random.NextInt64(1_000, 5_000_000);
+                var credit = random.NextInt64(1, quoted + 1);
+                var authority = Api.ReferralAuthority(creditId, trip, credit, currency);
+                await fixture.Database.Save(Api.CompletedTrip(trip, quoted, currency, authority));
 
-                await client.Dispatch(adjustmentReason: reason, adjustmentMinor: adjustment);
+                await client.Dispatch();
 
                 var capture = await client.Capture(trip);
                 capture.Should().NotBeNull();
-                capture!.AmountMinor.Should().Be(quoted + adjustment);
-                capture.AmountMinor.Should().NotBe(quoted);
-                capture.AdjustmentReason.Should().Be(reason);
+                capture!.OriginalFareMinor.Should().Be(quoted);
+                capture.AmountMinor.Should().Be(quoted - credit);
+                capture.Currency.Should().Be(currency);
+                capture.Adjustment.Should().Be(new GetCapture.Adjustment(
+                    "referral-credit",
+                    -credit,
+                    Common.Identity.IdEncoding.Encode(creditId)));
+
+                var status = await (await client.GetStatus(trip)).Read<GetPaymentStatus.Response>();
+                status.OriginalFareMinor.Should().Be(quoted);
+                status.AmountMinor.Should().Be(quoted - credit);
+                status.Adjustment.Should().Be(new GetPaymentStatus.Adjustment(
+                    "referral-credit",
+                    -credit,
+                    Common.Identity.IdEncoding.Encode(creditId)));
+                fixture.Provider.Captures[^1].AmountMinor.Should().Be(quoted - credit);
+
+                var captureEvent = await fixture.Database.SingleOrDefault<PaymentEventOutbox>(
+                    item => item.TripId == trip,
+                    Cancellation.Token());
+                captureEvent.Should().NotBeNull();
+                captureEvent!.OriginalFareMinor.Should().Be(quoted);
+                captureEvent.ReferralCreditMinor.Should().Be(credit);
+                captureEvent.CapturedAmountMinor.Should().Be(quoted - credit);
+                captureEvent.ReferralCreditId.Should().Be(creditId);
             }
         }
+    }
+
+    [Fact]
+    [Covers("referrals/rewards", "forged-credit-authority-is-rejected", Scope.Component,
+        Quantification.Universal, Oracle.Metamorphic)]
+    public async Task Mutated_or_foreign_authority_never_reaches_the_provider()
+    {
+        var client = fixture.HttpClient.CreateClient();
+        var trip = TripId();
+        var credit = TripId();
+        const long fare = 2_000;
+        const long value = 500;
+        var valid = Api.ReferralAuthority(credit, trip, value);
+        await fixture.Database.Save(Api.CompletedTrip(trip, fare, referralCreditAuthority: valid));
+        await client.Dispatch();
+        fixture.Provider.Calls.Should().Be(1);
+
+        var invalidAuthorities = new Func<long, string>[]
+        {
+            nextTrip => (valid[0] == 'a' ? 'b' : 'a') + valid[1..],
+            nextTrip => Api.ReferralAuthority(TripId(), nextTrip, value, key: "foreign-key"),
+            nextTrip => Api.ReferralAuthority(TripId(), nextTrip + 1, value),
+            nextTrip => Api.ReferralAuthority(TripId(), nextTrip, value, "USD"),
+            nextTrip => Api.ReferralAuthority(TripId(), nextTrip, fare + 1),
+        };
+
+        foreach (var authority in invalidAuthorities)
+        {
+            await fixture.Reset(Cancellation.Token());
+            var invalidTrip = TripId();
+            await fixture.Database.Save(Api.CompletedTrip(
+                invalidTrip,
+                fare,
+                referralCreditAuthority: authority(invalidTrip)));
+
+            var dispatch = await (await client.Dispatch()).Read<DispatchCaptures.Response>();
+
+            dispatch.Should().Be(new DispatchCaptures.Response(Captured: 0, Quarantined: 1, Deferred: 0));
+            fixture.Provider.Calls.Should().Be(0);
+            (await CaptureCount(invalidTrip)).Should().Be(0);
+            (await client.Failures(invalidTrip)).Should()
+                .Equal("payment:capture:create:invalid_referral_credit");
+        }
+    }
+
+    [Fact]
+    public async Task One_credit_id_cannot_adjust_another_trip()
+    {
+        var client = fixture.HttpClient.CreateClient();
+        var credit = TripId();
+        var firstTrip = TripId();
+        var secondTrip = TripId();
+        await fixture.Database.Save(
+            Api.CompletedTrip(
+                firstTrip,
+                2_000,
+                referralCreditAuthority: Api.ReferralAuthority(credit, firstTrip, 500)),
+            Api.CompletedTrip(
+                secondTrip,
+                3_000,
+                referralCreditAuthority: Api.ReferralAuthority(credit, secondTrip, 500)));
+
+        var dispatch = await (await client.Dispatch()).Read<DispatchCaptures.Response>();
+
+        dispatch.Should().Be(new DispatchCaptures.Response(Captured: 1, Quarantined: 1, Deferred: 0));
+        fixture.Provider.Calls.Should().Be(1);
+        (await CaptureCount(firstTrip)).Should().Be(1);
+        (await CaptureCount(secondTrip)).Should().Be(0);
+        (await client.Failures(secondTrip)).Should()
+            .Equal("payment:capture:create:invalid_referral_credit");
     }
 
     [Fact]
@@ -301,6 +404,9 @@ public sealed class DispatchCapturesTests(PaymentsTestFixture fixture) : IAsyncL
 
         (await client.Capture(trip)).Should().BeNull();
         (await client.Failures(trip)).Should().Equal("declined");
+        (await fixture.Database.Count<PaymentEventOutbox>(
+            item => item.TripId == trip,
+            Cancellation.Token())).Should().Be(0);
     }
 
     [Fact]

@@ -92,6 +92,7 @@ public static class AcceptOffer
                 State = assignment.To,
                 QuoteToken = trip.QuoteToken,
                 PaymentMethod = "default",
+                ReferralCreditAuthority = trip.ReferralCreditAuthority,
                 OccurredAt = clock.Now,
             });
 

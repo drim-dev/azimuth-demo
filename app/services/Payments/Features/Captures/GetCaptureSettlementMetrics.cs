@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Payments.Database;
 using Payments.Features.Captures.Options;
+using Payments.Features.Events;
 
 namespace Payments.Features.Captures;
 
@@ -27,7 +28,8 @@ public static class GetCaptureSettlementMetrics
         PaymentsDbContext db,
         Clock clock,
         IOptions<CaptureSettlementOptions> options,
-        CaptureSettlementState state) : IRequestHandler<Request, string>
+        CaptureSettlementState captureState,
+        PaymentEventRelayState eventState) : IRequestHandler<Request, string>
     {
         public async Task<string> Handle(Request request, CancellationToken ct)
         {
@@ -41,13 +43,25 @@ public static class GetCaptureSettlementMetrics
             var oldestAge = pending.Count == 0
                 ? 0
                 : Math.Max(0, (now - pending.Min()).TotalSeconds);
-            var lastSuccess = state.LastSuccess?.ToUnixTimeSeconds() ?? 0;
+            var captureLastSuccess = captureState.LastSuccess?.ToUnixTimeSeconds() ?? 0;
+            var pendingEvents = await db.PaymentEvents
+                .AsNoTracking()
+                .Where(item => item.PublishedAt == null)
+                .Select(item => item.OccurredAt)
+                .ToListAsync(ct);
+            var oldestEventAge = pendingEvents.Count == 0
+                ? 0
+                : Math.Max(0, (now - pendingEvents.Min()).TotalSeconds);
+            var eventLastSuccess = eventState.LastSuccess?.ToUnixTimeSeconds() ?? 0;
 
             var output = new StringBuilder();
             Gauge(output, "payments_capture_pending_intents", pending.Count);
             Gauge(output, "payments_capture_overdue_intents", overdue);
             Gauge(output, "payments_capture_oldest_pending_age_seconds", oldestAge);
-            Gauge(output, "payments_capture_worker_last_success_timestamp_seconds", lastSuccess);
+            Gauge(output, "payments_capture_worker_last_success_timestamp_seconds", captureLastSuccess);
+            Gauge(output, "payments_event_outbox_pending", pendingEvents.Count);
+            Gauge(output, "payments_event_outbox_oldest_pending_age_seconds", oldestEventAge);
+            Gauge(output, "payments_event_relay_last_success_timestamp_seconds", eventLastSuccess);
             return output.ToString();
         }
 

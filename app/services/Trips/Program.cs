@@ -2,6 +2,7 @@ using Common.Exceptions;
 using Common.Http;
 using Common.Identity;
 using Common.Messaging;
+using Common.Referrals;
 using Common.Time;
 using Common.Validation;
 using FluentValidation;
@@ -11,6 +12,7 @@ using Pricing;
 using Trips.Database;
 using Trips.Features.Events;
 using Trips.Features.Events.Options;
+using Trips.Features.Referrals;
 
 // The trip service. Slice 1 (D16.2): pricing lives here as a module and is split out in slice 3.
 
@@ -37,10 +39,15 @@ builder.Services.AddSingleton(new RabbitMqAddress(
     ?? string.Empty));
 builder.Services.AddSingleton<TripEventRelayState>();
 builder.Services.AddHostedService<TripEventRelay>();
+builder.Services.AddHostedService<PaymentLifecycleConsumer>();
 builder.Services.AddSingleton(new QuoteTokenCodec(
     builder.Configuration["QuoteSigningKey"]
     ?? Environment.GetEnvironmentVariable("QUOTE_SIGNING_KEY")
     ?? "azimuth-demo-signing-key"));
+builder.Services.AddSingleton(new ReferralCreditAuthorityCodec(
+    builder.Configuration["ReferralCreditSigningKey"]
+    ?? Environment.GetEnvironmentVariable("REFERRAL_CREDIT_SIGNING_KEY")
+    ?? "azimuth-demo-referral-credit-signing-key"));
 
 builder.Services.AddExceptionHandler<DomainExceptionHandler>();
 builder.Services.AddProblemDetails();
