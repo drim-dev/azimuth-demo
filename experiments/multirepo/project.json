@@ -1,0 +1,59 @@
+{
+  "format": "azimuth-project",
+  "version": 1,
+  "project": "rides",
+  "repositories": [
+    { "id": "rides-backend", "required": true },
+    { "id": "rides-experience", "required": true },
+    { "id": "rides-operations", "required": true },
+    { "id": "rides-assurance", "required": true }
+  ],
+  "areas": [
+    { "id": "shared", "repository": "rides-backend", "mounts": [
+      { "id": "code", "path": "app/services/Common" },
+      { "id": "testing", "path": "app/services/Common.Testing" }
+    ] },
+    { "id": "pricing", "repository": "rides-backend", "mounts": [
+      { "id": "code", "path": "app/services/Pricing" },
+      { "id": "tests", "path": "app/services/Pricing.Tests" }
+    ] },
+    { "id": "trips", "repository": "rides-backend", "mounts": [
+      { "id": "code", "path": "app/services/Trips" },
+      { "id": "tests", "path": "app/services/Trips.Tests" }
+    ] },
+    { "id": "payments", "repository": "rides-backend", "mounts": [
+      { "id": "code", "path": "app/services/Payments" },
+      { "id": "tests", "path": "app/services/Payments.Tests" }
+    ] },
+    { "id": "analytics", "repository": "rides-backend", "mounts": [
+      { "id": "code", "path": "app/services/Analytics" },
+      { "id": "tests", "path": "app/services/Analytics.Tests" }
+    ] },
+    { "id": "rider-experience", "repository": "rides-experience", "mounts": [
+      { "id": "code", "path": "app/web/rider" }
+    ] },
+    { "id": "driver-experience", "repository": "rides-experience", "mounts": [
+      { "id": "code", "path": "app/web/driver" }
+    ] },
+    { "id": "monitoring", "repository": "rides-operations", "mounts": [
+      { "id": "rules", "path": "app/monitoring" }
+    ] },
+    { "id": "system-e2e", "repository": "rides-assurance", "mounts": [
+      { "id": "tests", "path": "app/e2e" }
+    ] }
+  ],
+  "model_sources": [
+    { "id": "system-intent", "repository": "rides-backend", "path": "azimuth/model", "required": true },
+    { "id": "experience-intent", "repository": "rides-experience", "path": "azimuth/model", "required": true }
+  ],
+  "standards": {
+    "repository": "rides-backend",
+    "path": "azimuth/standards/verification.md"
+  },
+  "required_receipts": [
+    {
+      "id": "full-stack",
+      "subjects": ["rides-backend", "rides-experience", "rides-operations", "rides-assurance"]
+    }
+  ]
+}

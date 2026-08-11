@@ -19,10 +19,10 @@ same skills through symlinks under `.claude/skills/`.
 | `AGENTS.md` | canonical repository instructions for coding agents |
 | `.agents/skills/` | canonical Agent Skills; `.claude/skills/` holds compatibility symlinks |
 | `docs/framework.md` | what the framework *is*, as it currently stands. Derived; start here. |
-| `docs/decisions.md` | decisions D1–D32 and their rationale. Authoritative. |
+| `docs/decisions.md` | decisions D1–D34 and their rationale. Authoritative. |
 | `docs/concern-catalog.md` | 18 cross-cutting concerns from the domain; the evidence the design was drawn from |
 | `docs/glossary.md` | bounded definitions. Authoritative for terminology. |
-| `docs/status.md` | the decisions checked against their own falsifiers. Two have fired. |
+| `docs/status.md` | the decisions checked against their own falsifiers, including failures. |
 | `docs/change-process.md` | operating guidance for change delivery, evidence work and rollout |
 | `azimuth/README.md` | artifact layout and model-package discovery contract |
 | `azimuth/model/` | accepted intent, mechanism, evidence and judgment packages |
@@ -30,6 +30,7 @@ same skills through symlinks under `.claude/skills/`.
 | `azimuth/standards/verification.md` | evidence required by criticality |
 | `azimuth/changes/` | experimental current-to-target change lifecycle and archive |
 | `tools/azimuth/README.md` | what the tool checks today, and what it does not check yet |
+| `experiments/multirepo/` | executable federation hypotheses, fault matrix and replication protocol |
 
 The three facets are sibling `spec.md`, `design.md` and `verification.md` files under a package in
 `azimuth/model/`; `judgments.md` holds the agent tier. Criticality decides which files a claim owes
@@ -93,6 +94,15 @@ These are the ones that are easy to get wrong.
   one consumer. Do not build migrations.
 - **Every feature of the fixture must be justified by a concern or hard case it instantiates.** The
   failure mode of this phase is the fixture becoming the product.
+- **A local project check is not a complete check.** In a federated project, report missing workset
+  inputs and never finalize from `--local` output. Repository, mount and path are locators; source
+  identity is the declared area plus typed address (D33).
+- **Model authority follows intent, not checkout location.** Do not copy a system-owned spec into a
+  frontend model source merely because frontend code realizes it. A spec has one model-source
+  authority; a change and its realization may span repositories.
+- **Change authority is singular in a complete project account.** Repository observations enumerate
+  tracked active and archived changes. Do not create a local proposal for a work package; complete
+  assembly rejects a change id observed under more than one repository authority.
 
 ## Commits
 

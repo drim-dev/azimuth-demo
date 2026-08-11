@@ -455,7 +455,7 @@ pub fn completion_issues(root: &Path, report: &Report) -> Vec<String> {
     if outcome.is_empty() {
         issues.push("outcome.md is missing".into());
     } else {
-        for heading in ["## Departures", "## Residual decisions", "## Measurements"] {
+        for heading in ["## Departures", "## Residual decisions"] {
             if !outcome.lines().any(|line| line.trim() == heading) {
                 issues.push(format!("outcome.md is missing `{heading}`"));
             }
@@ -559,7 +559,7 @@ mod tests {
         fs::write(root.join("plan.md"), "- [x] Complete.\n").unwrap();
         fs::write(
             root.join("outcome.md"),
-            "# Outcome: x\n\nStatus: accepted\n\n## Departures\n\nNone.\n\n## Residual decisions\n\nNone.\n\n## Measurements\n\nNone.\n",
+            "# Outcome: x\n\nStatus: accepted\n\n## Departures\n\nNone.\n\n## Residual decisions\n\nNone.\n",
         )
         .unwrap();
         let report = inspect(&root, &Model::default()).unwrap();

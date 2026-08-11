@@ -168,10 +168,16 @@ Archiving records semantic acceptance of the codebase, not universal production 
 archive remains immutable if production later teaches the team something new; a fix, rollback or
 changed claim is another change.
 
-The `Measurements` section required by this repository's experimental finalizer measures Azimuth
-itself. It is not a proposed field for ordinary production changes. Product and operational
-metrics belong to their product and delivery systems unless a result changes an accepted
-assurance decision.
+For a federated project, integration retains the complete accepted-active workset, commits the
+archive-only move in the singular authority repository, reruns composed evidence for that new tuple
+and passes both worksets to `azimuth project accept-change`. The command verifies completion,
+singular authority, unchanged archive content, no unrelated revision movement and no source/model
+edits in the archive commit before it emits the post-archive project snapshot. Azimuth does not make
+the Git commit or mint the external execution receipt.
+
+The optional `Measurements` section used by this repository measures Azimuth itself. It is not a
+field for ordinary production changes. Product and operational metrics belong to their product and
+delivery systems unless a result changes an accepted assurance decision.
 
 ### 10. Roll out the accepted artifact
 

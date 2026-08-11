@@ -133,8 +133,9 @@ Before accepting a change:
 3. Apply lasting evidence deviations and residuals to sibling `verification.md`.
 4. Record departures from the proposal and why they occurred.
 5. Set the proposal status to `accepted and complete` and complete every plan item.
-6. Write `outcome.md` with `Status: accepted` plus `## Departures`, `## Residual decisions` and
-   `## Measurements`. Empty-but-explicit sections are preferable to invented content.
+6. Write `outcome.md` with `Status: accepted`, `## Departures` and `## Residual decisions`.
+   Empty-but-explicit sections are preferable to invented content. Framework experiments may add
+   `## Measurements`; production changes do not owe it.
 
 Then run:
 
@@ -148,6 +149,24 @@ writes the SHA-256 model fingerprint and summary. Archive verifies that this fil
 moving the directory to `azimuth/changes/archive/YYYY-MM-DD-<change-id>/`. The commands derive no
 explanations and accept no risk.
 
+In a federated project, repository-local finalization is not project acceptance. Integration keeps
+the complete accepted-active workset, commits the directory move in its singular authority
+repository, reruns required composed evidence for the resulting revision tuple, and runs:
+
+```text
+azimuth project accept-change \
+  --project <project.json> \
+  --before <accepted-active-workset.json> \
+  --after <tested-archive-workset.json> \
+  --change <change-id> \
+  --date <YYYY-MM-DD> \
+  --out <project-snapshot.json>
+```
+
+The command rejects duplicate change authority, changed archive content, unrelated repository
+movement and any other tracked edit hidden in the archive commit. It verifies the two immutable
+accounts but does not create Git commits or execution receipts.
+
 Rejected and abandoned changes are archived too, with their outcome and reason, but update no
 current facet. The command currently automates accepted changes only; other dispositions remain a
 manual move until one is observed.
@@ -155,9 +174,8 @@ manual move until one is observed.
 ## What this experiment measures
 
 This section evaluates Azimuth in this repository. It is not a proposed field for every production
-change. The current experimental finalizer requires `## Measurements` so that framework costs and
-findings cannot be omitted from the fixture outcomes; a production distribution should remove
-that requirement unless it is deliberately running the same adoption experiment.
+change. Experimental outcomes use `## Measurements` so framework costs and findings are not
+reconstructed from memory; the finalizer does not require that section from production changes.
 
 Record separately for routine, standard and critical claims:
 

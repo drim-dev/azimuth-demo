@@ -214,6 +214,51 @@ falsifier; they do not by themselves establish a fourth facet.
 
 ## Tooling and process
 
+**Project** — the complete Azimuth assurance account assembled from one or more repositories and
+model sources. Completeness is declared by a project catalog rather than inferred from whichever
+inputs happen to be present (D33).
+
+**Repository** — an independent version-control and delivery boundary. It owns areas and may own
+model sources, but neither claims nor changes are confined to one repository.
+
+**Area** — a stable namespace for implementation or evidence sources, owned by one repository in a
+project snapshot. Its named mounts locate code, tests, migrations or non-code artifacts. It is not a
+domain spec and does not mean evidence `Scope: component`.
+
+**Typed source address** — an extractor-defined address such as a .NET symbol, TypeScript export,
+Next route or PostgreSQL index. `(area, address kind, address)` is stable source identity; repository,
+mount and path are locators.
+
+**Model source** — the authority that owns a set of intent packages. Model-source ownership follows
+intent accountability, not code placement; one source owns a spec even when its realizations span
+many repositories.
+
+**Project reference** — a versioned repository-local locator for the singular project catalog and,
+optionally, an integration workset. It identifies the current repository so `project locate` can
+derive its areas and model sources. It is not a second topology authority.
+
+**Workset** — concrete repository checkouts and pinned manifests used for one assembly. A workset
+may be partial. Its presence never redefines which inputs make the project complete.
+
+**Repository manifest** — a versioned, revision-bound observation emitted by one repository. It
+names its areas, model-source digests, active and archived changes, producer and typed linkage
+records.
+
+**Change authority** — the one repository observation that contains a change id, whether active or
+archived. A change may receive work from many repositories but complete assembly permits only one
+authority for its proposal and history (D34).
+
+**Execution receipt** — a content-addressed result of composed evidence naming the exact repository
+revisions observed. It is distinct from a manual evidence receipt about a claim.
+
+**Project snapshot** — a finalization record over a complete, clean assembly: catalog digest and
+area topology, repository revisions, manifest and receipt digests, and the derived model
+fingerprint.
+
+**Project acceptance** — the machine-checked transition from one complete accepted-active workset
+to one complete tested-archive workset. It proves an unchanged change directory moved within its
+singular authority and that no other tracked content entered the archive revision (D34).
+
 **Change** — the temporal envelope from an accepted current model to a proposed target model.
 Carries intent deltas, solution design where needed, implementation work and verification
 obligations. Proposed facts do not become current facts until completion (D21). A change is a

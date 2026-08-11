@@ -41,3 +41,20 @@ bindings and evidence rather than inferred from directory proximity.
 
 Format contracts live in `formats/`. Proposed states and immutable history live in `changes/`.
 Neither is scanned as the accepted current model.
+
+## Federated placement
+
+In a multi-repository project, each repository may own one or more model roots with the same package
+contract. A project catalog calls each root a model source and assigns it one intent authority.
+Spec identity remains declared globally: two model sources cannot own the same spec.
+
+Source code and evidence are grouped into stable areas with named mounts. Areas are not inferred
+from this package tree and do not replace domain-oriented spec ids. Complete assembly and exact
+revision receipts are described by D33 and `tools/azimuth/README.md`. Each product checkout carries
+a small `azimuth/project-reference.json`; `azimuth project locate` resolves the singular catalog
+and reports that repository's exact areas and model sources.
+
+Repository observations also enumerate the exact tracked active and archived change directories
+(D34). Complete assembly rejects duplicate change ids across repositories. Project-aware acceptance
+compares complete accepted-active and tested-archive worksets; a local archive cannot substitute for
+that account.

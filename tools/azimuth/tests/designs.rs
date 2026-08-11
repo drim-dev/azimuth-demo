@@ -85,6 +85,7 @@ fn model(design_source: &str, plan_source: &str) -> Model {
                     unique: (mechanism.kind == Enforcement::Constraint).then_some(true),
                     columns: vec![],
                     predicate: None,
+                    source: None,
                 })
             })
             .collect();
@@ -260,6 +261,7 @@ fn a_code_mechanism_may_derive_its_binding_from_an_implementation_tag() {
         file: "alpha.cs".into(),
         lang: "csharp".into(),
         source_fingerprint: "abc".into(),
+        source: None,
     });
     m.artifacts.push(Artifact {
         id: "dotnet-symbol:Alpha.Insert".into(),
@@ -268,6 +270,7 @@ fn a_code_mechanism_may_derive_its_binding_from_an_implementation_tag() {
         unique: None,
         columns: vec![],
         predicate: None,
+        source: None,
     });
 
     assert!(!kinds(&m)
@@ -288,6 +291,7 @@ fn a_mechanism_must_resolve_to_one_atomic_implementation() {
         file: "alpha.cs".into(),
         lang: "csharp".into(),
         source_fingerprint: "abc".into(),
+        source: None,
     });
     let hole = rtm(&m)
         .into_iter()
@@ -320,6 +324,7 @@ fn mechanism_links_to_an_unknown_design_identity_are_dangling() {
         file: "alpha.cs".into(),
         lang: "csharp".into(),
         source_fingerprint: "abc".into(),
+        source: None,
     });
     m.mechanism_covers.push(MechanismCover {
         spec: "alpha".into(),
@@ -328,6 +333,7 @@ fn mechanism_links_to_an_unknown_design_identity_are_dangling() {
         file: "alpha.test.cs".into(),
         lang: "csharp".into(),
         source_fingerprint: "def".into(),
+        source: None,
         scope: None,
         quantification: None,
         oracle: None,

@@ -1,0 +1,7 @@
+{
+  "format": "azimuth-project-reference",
+  "version": 1,
+  "project": "rides",
+  "repository": "__REPOSITORY__",
+  "catalog": "__CATALOG__"
+}

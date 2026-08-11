@@ -10,6 +10,7 @@ pub mod change;
 pub mod check;
 pub mod design;
 pub mod diag;
+pub mod federation;
 pub mod fingerprint;
 pub mod json;
 pub mod judgment;
@@ -60,18 +61,13 @@ pub fn load(
 
     let mut errors = Vec::new();
 
-    // Without a standards file nothing is known to require, so `wrong-form` cannot fire. Say so
-    // rather than reporting a clean run that only looks clean.
+    // Routine is intrinsically intent-only. Other levels need the project mapping before a clean
+    // result can mean that the required evidence form was checked.
     if standards_path.exists() {
         match plan::load_standards(standards_path) {
             Ok(s) => model.standards = Some(s),
             Err(mut d) => errors.append(&mut d),
         }
-    } else if model_dir.exists() {
-        warnings.push(Diag::file(
-            &standards_path.display().to_string(),
-            "no standards file; no evidence standard is known, so wrong-form cannot be reported",
-        ));
     }
 
     match judgment::load(model_dir) {
@@ -145,9 +141,178 @@ pub fn load(
             .retain(|s| only.iter().any(|p| selects(p, &s.spec)));
     }
 
+    if model.standards.is_none() && needs_standards(&model) {
+        warnings.push(Diag::file(
+            &standards_path.display().to_string(),
+            "no standards file; evidence-form checks are incomplete for non-routine claims",
+        ));
+    }
+
     warnings.extend(package_location_warnings(&model));
 
     Ok(Loaded { model, warnings })
+}
+
+/// Loads the model assembled from a multi-repository workset. Model sources remain independently
+/// owned directories; concatenating them into a synthetic tree would hide duplicate ownership and
+/// make physical checkout layout part of identity.
+pub fn load_assembly(
+    assembly: &federation::Assembly,
+    only: &[String],
+) -> Result<Loaded, Vec<Diag>> {
+    let mut model = Model::default();
+    let mut warnings = Vec::new();
+    let mut errors = Vec::new();
+
+    for root in &assembly.model_roots {
+        match spec::load_specs(root) {
+            Ok(loaded) => {
+                warnings.extend(loaded.warnings);
+                for spec in loaded.specs {
+                    if let Some(previous) = model.specs.iter().find(|item| item.id == spec.id) {
+                        errors.push(Diag::at(
+                            &spec.path,
+                            1,
+                            format!(
+                                "model-source-ownership-conflict: spec `{}` is already declared by {}",
+                                spec.id, previous.path
+                            ),
+                        ));
+                    } else {
+                        model.specs.push(spec);
+                    }
+                }
+            }
+            Err(mut diagnostics) => errors.append(&mut diagnostics),
+        }
+        match judgment::load(root) {
+            Ok(items) => extend_unique_facets(
+                &mut model.judgments,
+                items,
+                |item| &item.spec,
+                |item| &item.path,
+                "judgments",
+                &mut errors,
+            ),
+            Err(mut diagnostics) => errors.append(&mut diagnostics),
+        }
+        match design::load_designs(root) {
+            Ok(items) => extend_unique_facets(
+                &mut model.designs,
+                items,
+                |item| &item.spec,
+                |item| &item.path,
+                "design",
+                &mut errors,
+            ),
+            Err(mut diagnostics) => errors.append(&mut diagnostics),
+        }
+        match plan::load_plans(root) {
+            Ok(items) => extend_unique_facets(
+                &mut model.plans,
+                items,
+                |item| &item.spec,
+                |item| &item.path,
+                "verification",
+                &mut errors,
+            ),
+            Err(mut diagnostics) => errors.append(&mut diagnostics),
+        }
+    }
+
+    if let Some(path) = &assembly.standards_path {
+        match plan::load_standards(path) {
+            Ok(standards) => model.standards = Some(standards),
+            Err(mut diagnostics) => errors.append(&mut diagnostics),
+        }
+    }
+
+    for manifest in &assembly.manifests {
+        append_manifest(&mut model, manifest);
+    }
+    if !errors.is_empty() {
+        return Err(errors);
+    }
+
+    if !only.is_empty() {
+        model
+            .specs
+            .retain(|item| only.iter().any(|pattern| selects(pattern, &item.id)));
+        model
+            .judgments
+            .retain(|item| only.iter().any(|pattern| selects(pattern, &item.spec)));
+        model
+            .designs
+            .retain(|item| only.iter().any(|pattern| selects(pattern, &item.spec)));
+        model
+            .plans
+            .retain(|item| only.iter().any(|pattern| selects(pattern, &item.spec)));
+        model
+            .realizes
+            .retain(|item| only.iter().any(|pattern| selects(pattern, &item.spec)));
+        model
+            .covers
+            .retain(|item| only.iter().any(|pattern| selects(pattern, &item.spec)));
+        model
+            .mechanism_implementations
+            .retain(|item| only.iter().any(|pattern| selects(pattern, &item.spec)));
+        model
+            .mechanism_covers
+            .retain(|item| only.iter().any(|pattern| selects(pattern, &item.spec)));
+    }
+    if model.standards.is_none() && needs_standards(&model) {
+        warnings.push(Diag::file(
+            "project",
+            "standards input is outside this local assembly; evidence-form checks are incomplete for non-routine claims",
+        ));
+    }
+    warnings.extend(package_location_warnings(&model));
+    Ok(Loaded { model, warnings })
+}
+
+fn needs_standards(model: &Model) -> bool {
+    model
+        .claims()
+        .any(|claim| claim.requirement.criticality != Some(model::Criticality::Routine))
+}
+
+fn append_manifest(model: &mut Model, manifest: &manifest::Manifest) {
+    model.realizes.extend(manifest.realizes.clone());
+    model.covers.extend(manifest.covers.clone());
+    model
+        .mechanism_implementations
+        .extend(manifest.mechanism_implementations.clone());
+    model
+        .mechanism_covers
+        .extend(manifest.mechanism_covers.clone());
+    model.class_members.extend(manifest.class_members.clone());
+    model.enumerations.extend(manifest.enumerations.clone());
+    model.artifacts.extend(manifest.artifacts.clone());
+}
+
+fn extend_unique_facets<T>(
+    target: &mut Vec<T>,
+    incoming: Vec<T>,
+    id: impl Fn(&T) -> &String,
+    path: impl Fn(&T) -> &String,
+    kind: &str,
+    errors: &mut Vec<Diag>,
+) {
+    for item in incoming {
+        if let Some(previous) = target.iter().find(|previous| id(previous) == id(&item)) {
+            errors.push(Diag::at(
+                path(&item),
+                1,
+                format!(
+                    "model-source-ownership-conflict: {kind} for `{}` is already declared by {}",
+                    id(&item),
+                    path(previous)
+                ),
+            ));
+        } else {
+            target.push(item);
+        }
+    }
 }
 
 fn package_location_warnings(model: &Model) -> Vec<Diag> {

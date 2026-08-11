@@ -1505,6 +1505,111 @@ files within one facet rather than a split into independently named specs.
 
 ---
 
+## D33 — Projects assemble revision-bound repository observations through stable areas *(experimental 2026-08-11)*
+
+**Decision.** A project is the complete assurance account; a repository is an independent source
+and delivery boundary; an area is a stable namespace for implementation and evidence sources. An
+area belongs to exactly one repository in one project snapshot and has named locator mounts such as
+`code`, `tests` and `migrations`. Claims and changes may span areas; an area does not replace a
+domain spec and does not mean evidence `Scope: component`.
+
+Source identity is `(area, typed address)`. Repository, revision, mount and file path locate that
+source but are not its identity. A whole-area move therefore preserves bindings and judgment
+freshness when source fingerprints are unchanged. Splitting or merging an area changes identity and
+must be explicit; treating it as a path move would conceal a semantic ownership transition.
+
+**Assembly.** A project catalog declares its repositories, areas, model sources, verification
+policy and required composed receipts. A workset selects concrete Git revisions and pins repository
+manifest and receipt digests. Each repository manifest names the revision observed, the areas and
+model-source digests it owns, and typed source records. A complete check fails closed on an absent
+or conflicting required input. A local check may be clean while declaring project completeness
+unknown; it cannot finalize the project.
+
+Model sources are federated by intent authority rather than inferred from code location. One claim
+has one model-source authority even when its realization spans several repositories. This keeps a
+repository-local routine change local. A mandatory centralized model repository remains a valid
+assembly topology, but the comparative fixture shows that it makes experience-local routine intent
+nonlocal and is therefore not the default.
+
+Composed execution evidence names the exact repository revisions it observed. A receipt for one
+revision tuple cannot cover another; receipt ids and subjects are closed-world sets. Complete
+finalization rederives the model and its checks, then records repository revisions, manifest
+digests, receipt digests and the derived model fingerprint. Dirty, partial, untracked or ignored
+model inputs cannot be finalized. Repository-relative catalog paths and tracked source locators are
+enforced. The remaining trust boundary is the producing CI's semantic extraction: digests detect
+substitution after selection, not a malicious producer that lies about what a tracked symbol does.
+
+**Validation.** Twenty-eight conformance scenarios create independent Git repositories and exercise
+local and complete assembly, centralized and federated model ownership, a routine local change, a
+critical cross-repository claim, missing and conflicting inputs, revision and digest skew, duplicate
+spec ownership, exact receipt subjects, repository path escape attempts, extractor observation,
+whole-area relocation and a 50-repository/5,000-source scale case. A direct monorepo control derives
+the same claims, relations and holes as the split fixture.
+
+The first cold-agent pass correctly inferred routine obligations but could not discover its exact
+area or model authority: the materializer had misplaced experience intent and supplied neither a
+catalog nor a local locator. That is a recorded falsification, not a documentation footnote. The
+materializer now puts intent under its declared authority and every checkout carries a versioned
+project reference and executable locator. On the corrected baseline, all six cold-protocol tasks
+completed without a structural corrective prompt, duplicate authority or false finalization. This
+supports agent routing in the fixture, not organizational adoption. Singular cross-repository
+*change* authority was still policy rather than a federation invariant at this point; D34 later
+closed F7 by deriving active and archived authority from every repository observation.
+
+The critical cold task also found an ordering gap between project acceptance and repository-local
+change archive. Archiving changes the authority repository's revision, so a receipt and snapshot
+created before archive cannot describe the post-archive tuple. D34 retains both exact evidence runs
+and makes their relationship one project-aware acceptance operation.
+
+**What would falsify it.** The model fails if a partial workset can finalize; if evidence can move
+between revision tuples; if a whole-area relocation requires tag churn; if routine local intent
+requires another repository under the federated topology; if area splits are frequent enough that
+identity migration dominates ordinary work; or if independent agents cannot find authority without
+coordinator-specific prompting.
+
+---
+
+## D34 — Project acceptance binds one change to two revision tuples *(2026-08-11)*
+
+**Decision.** Every repository observation enumerates the tracked directories under
+`azimuth/changes/` as active or archived change authorities. Complete assembly compares that
+declaration with the checkout and rejects the same change id in two repositories or states. A work
+package therefore cannot acquire a competing proposal merely because it is implemented elsewhere.
+
+`azimuth project accept-change` consumes two complete worksets: the accepted active state and the
+tested archived state. It does not create a Git commit or manufacture an execution receipt. Instead,
+it verifies the boundary those external systems establish:
+
+- both accounts are complete, clean, hole-free and covered by their exact required receipts;
+- the pre-archive change has one authority and satisfies the accepted-change completion contract;
+- the same directory content appears once at the requested dated archive path;
+- the authority repository advances while every unrelated repository revision stays fixed;
+- no tracked content outside the accepted change directory changes in the authority repository;
+- no other change authority moves or changes during the transition.
+
+The resulting project snapshot is post-archive and records the archive identity and digest plus the
+pre-archive revision tuple. This is one machine assertion over two immutable accounts, not a claim
+that Git can atomically commit several repositories. Integration remains responsible for creating
+the archive commit, running composed evidence on it and supplying the resulting receipt.
+
+**Why.** D33's first implementation could prove either tuple independently but left their
+relationship in prose. Automatically committing from the assurance tool would cross the boundary
+between semantic acceptance and source-control policy, while reusing the pre-archive receipt would
+weaken exact-revision evidence. Comparing two accounts preserves both boundaries and makes the
+archive-only transition checkable.
+
+**Validation.** The federation suite now derives changes from real Git checkouts, rejects an
+omitted active change and duplicate authorities, accepts a content-preserving active-to-archive
+transition, and rejects a product edit hidden in the archive revision. The accepted snapshot carries
+both revision accounts. This closes F7 and the D33 archive-ordering residue at the machine tier.
+
+**What would falsify it.** The decision fails if a duplicate proposal can be hidden from a complete
+manifest, if acceptance succeeds without fresh post-archive composed evidence, if unrelated source
+changes can enter the archive revision, or if practical integrations cannot retain both candidate
+checkouts long enough to construct the two worksets.
+
+---
+
 ## Method
 
 **Concern catalog first, notation last.** No mechanism enters the model until **≥2 structurally

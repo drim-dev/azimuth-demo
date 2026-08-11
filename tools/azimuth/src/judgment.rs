@@ -132,9 +132,14 @@ impl FingerprintInput {
             site.observed_at.as_deref().unwrap_or(""),
             site.expires_at
         );
+        let identity = site
+            .source
+            .as_ref()
+            .map(|source| source.key())
+            .unwrap_or_else(|| format!("{}#{}|{}", site.file, site.site, site.lang));
         Self {
             role: FingerprintInputRole::Evidence,
-            identity: format!("{}#{}|{}|{}", site.file, site.site, site.lang, form),
+            identity: format!("{identity}|{form}"),
             file: site.file.clone(),
             source_fingerprint: (!site.source_fingerprint.is_empty())
                 .then(|| site.source_fingerprint.clone()),
@@ -142,9 +147,14 @@ impl FingerprintInput {
     }
 
     pub fn realization(site: &crate::model::Site) -> Self {
+        let identity = site
+            .source
+            .as_ref()
+            .map(|source| source.key())
+            .unwrap_or_else(|| format!("{}#{}|{}", site.file, site.site, site.lang));
         Self {
             role: FingerprintInputRole::Realization,
-            identity: format!("{}#{}|{}|realization", site.file, site.site, site.lang),
+            identity: format!("{identity}|realization"),
             file: site.file.clone(),
             source_fingerprint: (!site.source_fingerprint.is_empty())
                 .then(|| site.source_fingerprint.clone()),
@@ -152,15 +162,19 @@ impl FingerprintInput {
     }
 
     pub fn mechanism(implementation: &crate::model::MechanismImplementation) -> Self {
+        let identity = implementation
+            .source
+            .as_ref()
+            .map(|source| source.key())
+            .unwrap_or_else(|| {
+                format!(
+                    "{}#{}|{}",
+                    implementation.file, implementation.binding, implementation.lang
+                )
+            });
         Self {
             role: FingerprintInputRole::Mechanism,
-            identity: format!(
-                "{}#{}|{}|{}",
-                implementation.file,
-                implementation.binding,
-                implementation.lang,
-                implementation.mechanism
-            ),
+            identity: format!("{identity}|{}", implementation.mechanism),
             file: implementation.file.clone(),
             source_fingerprint: (!implementation.source_fingerprint.is_empty())
                 .then(|| implementation.source_fingerprint.clone()),

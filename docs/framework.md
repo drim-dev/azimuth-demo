@@ -308,6 +308,38 @@ and TypeScript.
 The export is a first-class artifact (D10): checks, dashboards, PR annotations and the agent tier
 are all consumers of it, and nothing re-parses specs.
 
+### Multi-repository assembly
+
+A project may be assembled from independent repositories without making paths global identity
+(D33). The project catalog declares required repositories, stable areas, model-source authorities,
+verification policy and composed receipts. A workset supplies concrete Git revisions and pins the
+content digests of repository manifests and execution receipts.
+
+Every federated source has identity `(area, typed address)`. Repository, mount and path are locators.
+Moving an unchanged area between repositories therefore preserves linkage and judgment freshness;
+splitting or merging an area is an explicit identity transition. Areas describe where source and
+evidence originate, while specs remain organized by problem domain and `Scope: component` remains
+an evidence form.
+
+Model sources are federated by intent authority. Code in `rider-experience` may realize a
+system-owned payments claim without copying that claim into an experience spec; experience-only
+durable behaviour may be owned locally under `experience/**`. Duplicate spec ownership fails.
+
+`azimuth project check` distinguishes a complete account from a useful local result. Missing
+required inputs fail a complete assembly, while a local check reports project completeness as
+unknown and cannot finalize. Execution receipts bind composed evidence to exact revision tuples,
+and project finalization refuses partial or dirty worksets. A small repository-local project
+reference locates the singular catalog and tells an entering agent its repository id; `project
+locate` then reports the exact owned areas and model sources. The locator is duplicated, the
+authority is not.
+
+Project acceptance consumes the complete pre-archive and post-archive accounts in one
+`project accept-change` operation (D34). Integration still creates the Git archive commit and runs
+the post-archive evidence because Azimuth neither owns source-control policy nor manufactures
+receipts. The command proves that one completed active change moved unchanged to one dated archive,
+that unrelated revisions and source content did not move, and that both exact tuples are complete.
+Its output is the post-archive project snapshot with the pre-archive revisions recorded.
+
 **Machine-checkable design boundary.** Design entries bind to compiler/schema artifacts. The tool
 confirms .NET symbol existence and compares migration-derived index uniqueness, ordered columns and
 predicates. It does not infer “only caller,” shared transaction or semantic correctness from a
@@ -335,6 +367,8 @@ remain absent. A general typed realization graph remains a proposal: the route e
 that derived surface membership does not imply semantic requirement discovery. D27's mechanism
 identity has one product use; its application relation remains unresolved. D28 now makes declared
 realization sites agent-auditable without claiming that the machine understands their semantics.
+Multi-repository assembly is machine-tested through D33, including real Git histories and fault
+injection; independent-team and cold-agent usability remain external validation work.
 
 **Open.** Five of the seven questions recorded in `decisions.md` remain open — question 2 was closed
 by D26 and question 3 by D15 — and they are open because they need evidence from the fixture, not

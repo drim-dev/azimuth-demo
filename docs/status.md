@@ -436,3 +436,48 @@ path-independent declared identity and navigation warnings for misplaced facets.
 This validates semantic preservation and basic discovery, not repository ergonomics. D32 remains
 falsifiable if real contributors treat packages as miscellaneous feature folders, infer relations
 from proximity or duplicate cross-cutting mechanisms to keep them locally visible.
+
+## Update after federation trial *(2026-08-11)*
+
+D33 is implemented in the core and exercised by 28 conformance scenarios over independent temporary
+Git repositories. Complete assembly pins repository manifests, tracked model-source contents and
+closed-world composed execution receipts to exact revisions. Missing inputs, ownership conflicts,
+revision/digest skew, path and symbolic-link escapes, non-versioned model inputs, duplicate spec
+authority and unsupported protocol versions fail closed. Finalization itself re-runs semantic model
+validation.
+A complete area relocation preserved the affected judgment fingerprint, a direct monorepo control
+derived the same claims, relations and holes, and a 50-repository/5,000-source case completed inside
+the test's 30-second bound.
+
+The centralized-model control assembled correctly but made an experience-local routine spec
+invisible without the model-owning repository. The federated control kept that intent local. The
+real rider application added `experience/display-density` as a routine spec with zero linkage,
+design, verification or judgment declarations; type checking and production build pass.
+
+The first cold-agent trial correctly selected the routine obligations but could not discover its
+exact area or model-source authority. A second found path-base and executable gaps. The split now
+moves experience intent and change history to its authority, carries a versioned repository-local
+project reference and provides `project locate` through a lab wrapper. On that corrected baseline,
+all six cold-protocol tasks completed without a structural corrective prompt, duplicate authority or
+false finalization. They covered routine and standard ownership, operations evidence, a critical
+change, separate backend/experience work packages and a backend-only hole presented from assurance.
+This supports agent-tier routing in the fixture, not broad organizational usability.
+Singular active change-proposal authority also remains policy rather than a machine invariant.
+Manifest truth assumes trusted producing CI: digests prevent later substitution but do not
+authenticate a dishonest extractor's semantic report.
+
+The critical cold task exposed one further process gap: archiving a change advances its authority
+repository after any pre-archive receipt.
+
+## Update after project-aware change acceptance *(2026-08-11)*
+
+D34 adds three federation scenarios, bringing the suite to **31**. Repository observations now
+enumerate and verify the actual tracked change tree. An omitted active change and duplicate
+cross-repository authority both fail complete assembly.
+
+`project accept-change` validates the complete pre-archive and post-archive worksets together. The
+positive case moves one completed change unchanged to its dated archive and records both revision
+accounts. The adverse case carries a fresh post-archive receipt but also edits product code; it is
+rejected because the authority repository changed outside the accepted change directory. F7 and
+the archive-ordering gap are therefore mechanically closed. Git commit creation and receipt
+production remain external by design.

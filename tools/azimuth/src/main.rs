@@ -15,6 +15,14 @@ USAGE
     azimuth check [<check-id>...] [options]
     azimuth export [options]
     azimuth judge [options]
+    azimuth project check --project <file> --workset <file> [--local <repository>]
+    azimuth project export --project <file> --workset <file> [--local <repository>]
+    azimuth project finalize --project <file> --workset <file> --out <snapshot.json>
+    azimuth project accept-change --project <file> --before <workset> --after <workset>
+        --change <id> --date <YYYY-MM-DD> --out <snapshot.json>
+    azimuth project observe --project <file> --repository <id> --root <dir>
+        --producer <name/version> --manifest <file>... --out <repository.json>
+    azimuth project locate --reference <project-reference.json>
     azimuth change check <dir> [options]
     azimuth change finalize <dir> [options]
     azimuth change archive <dir> --date <YYYY-MM-DD> [options]
@@ -71,6 +79,9 @@ fn run(args: &[String]) -> Result<ExitCode, String> {
     if command == "change" {
         return command_change(&args[1..]);
     }
+    if command == "project" {
+        return command_project(&args[1..]);
+    }
     let options = parse_options(&args[1..])?;
 
     match command.as_str() {
@@ -79,6 +90,318 @@ fn run(args: &[String]) -> Result<ExitCode, String> {
         "judge" => command_judge(options),
         other => Err(format!("unknown command `{other}`\n\n{USAGE}")),
     }
+}
+
+struct ProjectOptions {
+    project: PathBuf,
+    workset: PathBuf,
+    local: Option<String>,
+    only: Vec<String>,
+    out: Option<PathBuf>,
+}
+
+fn command_project(args: &[String]) -> Result<ExitCode, String> {
+    let Some(operation) = args.first() else {
+        return Err(format!("project needs an operation\n\n{USAGE}"));
+    };
+    if operation == "observe" {
+        return command_project_observe(&args[1..]);
+    }
+    if operation == "locate" {
+        return command_project_locate(&args[1..]);
+    }
+    if operation == "accept-change" {
+        return command_project_accept_change(&args[1..]);
+    }
+    let mut project = None;
+    let mut workset = None;
+    let mut local = None;
+    let mut only = Vec::new();
+    let mut out = None;
+    let mut index = 1;
+    while index < args.len() {
+        let value = |name: &str| {
+            args.get(index + 1)
+                .cloned()
+                .ok_or_else(|| format!("`{name}` needs a value"))
+        };
+        match args[index].as_str() {
+            "--project" => {
+                project = Some(PathBuf::from(value("--project")?));
+                index += 2;
+            }
+            "--workset" => {
+                workset = Some(PathBuf::from(value("--workset")?));
+                index += 2;
+            }
+            "--local" => {
+                local = Some(value("--local")?);
+                index += 2;
+            }
+            "--only" => {
+                only.push(value("--only")?);
+                index += 2;
+            }
+            "--out" => {
+                out = Some(PathBuf::from(value("--out")?));
+                index += 2;
+            }
+            other => return Err(format!("unknown project option `{other}`")),
+        }
+    }
+    let options = ProjectOptions {
+        project: project.ok_or("project command needs `--project <file>`")?,
+        workset: workset.ok_or("project command needs `--workset <file>`")?,
+        local,
+        only,
+        out,
+    };
+    let assembly = match azimuth::federation::assemble(
+        &options.project,
+        &options.workset,
+        options.local.as_deref(),
+    ) {
+        Ok(assembly) => assembly,
+        Err(diags) => {
+            report(&diags, "error");
+            eprintln!(
+                "\n{} project assembly error(s); no model was derived",
+                diags.len()
+            );
+            return Ok(ExitCode::from(2));
+        }
+    };
+    let loaded = match azimuth::load_assembly(&assembly, &options.only) {
+        Ok(loaded) => loaded,
+        Err(diags) => {
+            report(&diags, "error");
+            return Ok(ExitCode::from(2));
+        }
+    };
+    report(&loaded.warnings, "warning");
+    let holes = check::rtm(&loaded.model);
+    match operation.as_str() {
+        "check" => {
+            report_holes(&loaded.model, &holes, &["rtm"]);
+            if assembly.complete {
+                println!(
+                    "project `{}` complete · {} repository input(s)",
+                    assembly.project.id,
+                    assembly.repositories.len()
+                );
+            } else {
+                println!(
+                    "local result for `{}` · project completeness: unknown",
+                    assembly.local_repository.as_deref().unwrap_or("-")
+                );
+                if !assembly.missing_inputs.is_empty() {
+                    println!(
+                        "missing workset inputs: {}",
+                        assembly.missing_inputs.join(", ")
+                    );
+                }
+            }
+            let summary = check::summarize(&loaded.model, &holes);
+            Ok(if summary.errors > 0 {
+                ExitCode::from(1)
+            } else {
+                ExitCode::SUCCESS
+            })
+        }
+        "export" => {
+            let json = loaded.model.to_json(&holes).to_string_pretty();
+            match options.out {
+                Some(path) => std::fs::write(&path, json)
+                    .map_err(|error| format!("cannot write {}: {error}", path.display()))?,
+                None => print!("{json}"),
+            }
+            Ok(ExitCode::SUCCESS)
+        }
+        "finalize" => {
+            if options.local.is_some() || !assembly.complete {
+                eprintln!("error: a partial project assembly cannot be finalized");
+                return Ok(ExitCode::from(1));
+            }
+            let summary = check::summarize(&loaded.model, &holes);
+            if summary.errors > 0 || summary.warnings > 0 || !loaded.warnings.is_empty() {
+                eprintln!(
+                    "error: project model has {} error(s), {} warning(s)",
+                    summary.errors,
+                    summary.warnings + loaded.warnings.len()
+                );
+                return Ok(ExitCode::from(1));
+            }
+            let Some(path) = options.out else {
+                return Err("project finalize needs `--out <snapshot.json>`".into());
+            };
+            let snapshot = match assembly.snapshot_json() {
+                Ok(snapshot) => snapshot,
+                Err(error) => {
+                    eprintln!("error: {error}");
+                    return Ok(ExitCode::from(1));
+                }
+            };
+            std::fs::write(&path, snapshot)
+                .map_err(|error| format!("cannot write {}: {error}", path.display()))?;
+            println!("finalized project `{}`", assembly.project.id,);
+            Ok(ExitCode::SUCCESS)
+        }
+        other => Err(format!("unknown project operation `{other}`")),
+    }
+}
+
+fn command_project_accept_change(args: &[String]) -> Result<ExitCode, String> {
+    let mut project = None;
+    let mut before = None;
+    let mut after = None;
+    let mut change = None;
+    let mut date = None;
+    let mut out = None;
+    let mut index = 0;
+    while index < args.len() {
+        let value = |name: &str| {
+            args.get(index + 1)
+                .cloned()
+                .ok_or_else(|| format!("`{name}` needs a value"))
+        };
+        match args[index].as_str() {
+            "--project" => project = Some(PathBuf::from(value("--project")?)),
+            "--before" => before = Some(PathBuf::from(value("--before")?)),
+            "--after" => after = Some(PathBuf::from(value("--after")?)),
+            "--change" => change = Some(value("--change")?),
+            "--date" => date = Some(value("--date")?),
+            "--out" => out = Some(PathBuf::from(value("--out")?)),
+            other => return Err(format!("unknown project accept-change option `{other}`")),
+        }
+        index += 2;
+    }
+    let project = project.ok_or("project accept-change needs `--project <file>`")?;
+    let before = before.ok_or("project accept-change needs `--before <workset>`")?;
+    let after = after.ok_or("project accept-change needs `--after <workset>`")?;
+    let change = change.ok_or("project accept-change needs `--change <id>`")?;
+    let date = date.ok_or("project accept-change needs `--date <YYYY-MM-DD>`")?;
+    if !valid_date(&date) {
+        return Err(format!(
+            "invalid archive date `{date}`; expected YYYY-MM-DD"
+        ));
+    }
+    let out = out.ok_or("project accept-change needs `--out <snapshot.json>`")?;
+    let snapshot =
+        match azimuth::federation::accept_change(&project, &before, &after, &change, &date) {
+            Ok(snapshot) => snapshot,
+            Err(diags) => {
+                report(&diags, "error");
+                return Ok(ExitCode::from(1));
+            }
+        };
+    std::fs::write(&out, snapshot)
+        .map_err(|error| format!("cannot write {}: {error}", out.display()))?;
+    println!("accepted and archived `{change}` in project account");
+    Ok(ExitCode::SUCCESS)
+}
+
+fn command_project_locate(args: &[String]) -> Result<ExitCode, String> {
+    if args.len() != 2 || args[0] != "--reference" {
+        return Err("project locate needs `--reference <project-reference.json>`".into());
+    }
+    let reference_path = PathBuf::from(&args[1]);
+    let reference = match azimuth::federation::load_project_reference(&reference_path) {
+        Ok(reference) => reference,
+        Err(diags) => {
+            report(&diags, "error");
+            return Ok(ExitCode::from(2));
+        }
+    };
+    let catalog = azimuth::federation::load_project(&reference.catalog).map_err(|diags| {
+        diags
+            .into_iter()
+            .map(|diag| diag.to_string())
+            .collect::<Vec<_>>()
+            .join("\n")
+    })?;
+    println!("project: {}", reference.project);
+    println!("repository: {}", reference.repository);
+    println!("catalog: {}", reference.catalog.display());
+    match &reference.workset {
+        Some(workset) => println!("workset: {}", workset.display()),
+        None => println!("workset: supplied by integration"),
+    }
+    let areas = catalog
+        .areas
+        .iter()
+        .filter(|area| area.repository == reference.repository)
+        .map(|area| area.id.as_str())
+        .collect::<Vec<_>>();
+    let model_sources = catalog
+        .model_sources
+        .iter()
+        .filter(|source| source.repository == reference.repository)
+        .map(|source| format!("{}:{}", source.id, source.path))
+        .collect::<Vec<_>>();
+    println!("areas: {}", display_values(&areas));
+    println!("model sources: {}", display_values(&model_sources));
+    Ok(ExitCode::SUCCESS)
+}
+
+fn display_values<T: std::fmt::Display>(values: &[T]) -> String {
+    if values.is_empty() {
+        "none".into()
+    } else {
+        values
+            .iter()
+            .map(ToString::to_string)
+            .collect::<Vec<_>>()
+            .join(", ")
+    }
+}
+
+fn command_project_observe(args: &[String]) -> Result<ExitCode, String> {
+    let mut project = None;
+    let mut repository = None;
+    let mut root = None;
+    let mut producer = None;
+    let mut manifests = Vec::new();
+    let mut out = None;
+    let mut index = 0;
+    while index < args.len() {
+        let value = |name: &str| {
+            args.get(index + 1)
+                .cloned()
+                .ok_or_else(|| format!("`{name}` needs a value"))
+        };
+        match args[index].as_str() {
+            "--project" => project = Some(PathBuf::from(value("--project")?)),
+            "--repository" => repository = Some(value("--repository")?),
+            "--root" => root = Some(PathBuf::from(value("--root")?)),
+            "--producer" => producer = Some(value("--producer")?),
+            "--manifest" => manifests.push(PathBuf::from(value("--manifest")?)),
+            "--out" => out = Some(PathBuf::from(value("--out")?)),
+            other => return Err(format!("unknown project observe option `{other}`")),
+        }
+        index += 2;
+    }
+    let project = project.ok_or("project observe needs `--project <file>`")?;
+    let repository = repository.ok_or("project observe needs `--repository <id>`")?;
+    let root = root.ok_or("project observe needs `--root <dir>`")?;
+    let producer = producer.ok_or("project observe needs `--producer <name/version>`")?;
+    let out = out.ok_or("project observe needs `--out <repository.json>`")?;
+    let observation = match azimuth::federation::observe_repository(
+        &project,
+        &repository,
+        &root,
+        &producer,
+        &manifests,
+    ) {
+        Ok(observation) => observation,
+        Err(diags) => {
+            report(&diags, "error");
+            return Ok(ExitCode::from(2));
+        }
+    };
+    std::fs::write(&out, observation)
+        .map_err(|error| format!("cannot write {}: {error}", out.display()))?;
+    println!("observed repository `{repository}` as {}", out.display());
+    Ok(ExitCode::SUCCESS)
 }
 
 fn command_change(args: &[String]) -> Result<ExitCode, String> {
@@ -336,6 +659,48 @@ fn report(diags: &[Diag], label: &str) {
     for d in diags {
         eprintln!("{label}: {d}");
     }
+}
+
+fn report_holes(model: &azimuth::model::Model, holes: &[check::Hole], selected: &[&str]) {
+    for hole in holes {
+        let where_ = if hole.line > 0 {
+            format!("{}:{}", hole.path, hole.line)
+        } else {
+            hole.path.clone()
+        };
+        let claim = hole.claim.clone().unwrap_or_else(|| "-".into());
+        let level = hole
+            .criticality
+            .map(|criticality| format!(" ({})", criticality.name()))
+            .unwrap_or_default();
+        println!(
+            "{where_}: {} {} {claim}{level}\n    {}",
+            hole.severity.name(),
+            hole.kind.name(),
+            hole.detail
+        );
+    }
+    let summary = check::summarize(model, holes);
+    let by_kind = check::counts_by_kind(holes)
+        .into_iter()
+        .map(|(kind, count)| format!("{count} {kind}"))
+        .collect::<Vec<_>>();
+    println!();
+    println!(
+        "{} claims in {} spec(s) · checks: {}",
+        summary.claims,
+        model.specs.len(),
+        selected.join(", ")
+    );
+    if by_kind.is_empty() {
+        println!("no holes");
+    } else {
+        println!("{}", by_kind.join(" · "));
+    }
+    println!(
+        "{} error(s), {} warning(s)",
+        summary.errors, summary.warnings
+    );
 }
 
 fn command_check(options: Options) -> Result<ExitCode, String> {

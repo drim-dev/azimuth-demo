@@ -15,6 +15,14 @@ azimuth judge                          # claims with the fingerprint a judgment 
 azimuth change check azimuth/changes/<id>      # target projection and applied-state report
 azimuth change finalize azimuth/changes/<id>   # gate completion and write finalization.json
 azimuth change archive azimuth/changes/<id> --date YYYY-MM-DD
+azimuth project check --project project.json --workset workset.json
+azimuth project check --project project.json --workset workset.json --local experience
+azimuth project locate --reference azimuth/project-reference.json
+azimuth project observe --project project.json --repository experience --root . \
+  --producer azimuth-emit-typescript/0.1.0 --manifest web.json --out experience.json
+azimuth project finalize --project project.json --workset workset.json --out snapshot.json
+azimuth project accept-change --project project.json --before active.json --after archived.json \
+  --change <id> --date YYYY-MM-DD --out snapshot.json
 ```
 
 Exit codes: `0` clean, `1` errors found, `2` the model could not be derived.
@@ -28,6 +36,21 @@ Accepted artifacts default to sibling files discovered recursively under `azimut
 root is overridable with `--model`; evidence policy defaults to
 `azimuth/standards/verification.md` and is overridable with `--standards`. Manifests are passed with
 `--manifest`, repeatable.
+
+Federated projects use a versioned project catalog plus a workset. Repository manifests carry
+typed `(area, address)` source identity, observed Git revision, owned model-source digests and a
+producer identity. Worksets pin their content digests. A complete assembly rejects missing inputs,
+non-versioned model content, ownership conflicts, revision skew and composed receipts whose exact
+subject set does not match the selected revision tuple. Repository-local references make the
+owning catalog, areas and model sources discoverable without duplicating authority. A local
+assembly is explicitly incomplete and cannot be finalized. See `experiments/multirepo/` for the
+executable conformance trial.
+
+Repository observations derive their complete tracked change tree. Complete assembly rejects an
+omitted or duplicate change authority. `project accept-change` verifies one content-preserving
+active-to-archive move across complete pre-archive and post-archive worksets, including fresh exact
+receipts, and rejects any other tracked edit in the archive revision. It emits the post-archive
+snapshot. Git commits and external receipts remain integration inputs rather than tool side effects.
 
 `rtm` is currently the only check. It is still one check among several by design (D9) — the check
 set is per-project (D9.3), ids are a public interface (D9.1), and severity comes from criticality
@@ -60,6 +83,8 @@ rather than from the check (D9.2).
 - **`model.rs`** holds the derived model and writes the export (D10).
 - **`change.rs`** projects additive and criticality-transition intent deltas, preflights accepted
   completion, fingerprints the derived model and gates deterministic archiving (D21.4, D24).
+- **`federation.rs`** assembles revision-bound repository observations, enforces singular change
+  authority and verifies accepted active-to-archive transitions (D33, D34).
 
 Four behaviours worth knowing:
 

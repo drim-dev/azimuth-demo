@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import './globals.css';
+import { DisplayDensityControl } from './display-density-control';
 
 export const metadata: Metadata = {
   title: 'Ride — rider',
@@ -12,8 +13,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <header className="masthead">
           <div className="masthead__inner">
-            <p className="masthead__title">Ride</p>
-            <span className="masthead__tag">rider</span>
+            <div className="masthead__identity">
+              <p className="masthead__title">Ride</p>
+              <span className="masthead__tag">rider</span>
+            </div>
+            <DisplayDensityControl />
           </div>
         </header>
         <main>{children}</main>

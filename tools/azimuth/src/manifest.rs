@@ -11,12 +11,12 @@ use crate::diag::Diag;
 use crate::json::{self, Json};
 use crate::model::{
     Artifact, ClassMember, Enumeration, MechanismCover, MechanismImplementation, Oracle,
-    Quantification, Scope, Site,
+    Quantification, Scope, Site, SourceIdentity,
 };
 use std::fs;
 use std::path::Path;
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct Manifest {
     pub realizes: Vec<Site>,
     pub covers: Vec<Site>,
@@ -45,6 +45,9 @@ pub fn parse(path: &str, root: &Json) -> Result<Manifest, Vec<Diag>> {
         "covers",
         "mechanism_implementations",
         "mechanism_covers",
+        "class_members",
+        "enumerations",
+        "artifacts",
     ]
     .iter()
     .all(|key| root.get(key).is_none())
@@ -108,6 +111,7 @@ pub fn parse(path: &str, root: &Json) -> Result<Manifest, Vec<Diag>> {
                 binding: binding.unwrap_or_default(),
                 file: file.unwrap_or_default(),
                 lang: lang.unwrap_or_default(),
+                source: source_identity(path, &where_, item, &mut errors),
                 source_fingerprint,
             });
         }
@@ -166,6 +170,7 @@ pub fn parse(path: &str, root: &Json) -> Result<Manifest, Vec<Diag>> {
                 site: site.unwrap_or_default(),
                 file: file.unwrap_or_default(),
                 lang: lang.unwrap_or_default(),
+                source: source_identity(path, &where_, item, &mut errors),
                 source_fingerprint,
                 scope,
                 quantification,
@@ -195,6 +200,7 @@ pub fn parse(path: &str, root: &Json) -> Result<Manifest, Vec<Diag>> {
                 site: site.unwrap_or_default(),
                 file: file.unwrap_or_default(),
                 lang: lang.unwrap_or_default(),
+                source: source_identity(path, &where_, item, &mut errors),
             });
         }
     }
@@ -221,6 +227,7 @@ pub fn parse(path: &str, root: &Json) -> Result<Manifest, Vec<Diag>> {
                 kind: kind.unwrap_or_default(),
                 source: source.unwrap_or_default(),
                 source_fingerprint: source_fingerprint.unwrap_or_default(),
+                identity: source_identity(path, &where_, item, &mut errors),
             });
         }
     }
@@ -287,6 +294,7 @@ pub fn parse(path: &str, root: &Json) -> Result<Manifest, Vec<Diag>> {
                 unique,
                 columns,
                 predicate,
+                source: source_identity(path, &where_, item, &mut errors),
             });
         }
     }
@@ -465,6 +473,7 @@ fn site(
         ));
     }
 
+    let source = source_identity(path, &where_, item, &mut errors);
     if !errors.is_empty() {
         return Err(errors);
     }
@@ -474,6 +483,7 @@ fn site(
         site: site_name.unwrap_or_default(),
         file: file.unwrap_or_default(),
         lang: lang.unwrap_or_default(),
+        source,
         source_fingerprint,
         evidence_kind,
         evidence_outcome,
@@ -482,6 +492,49 @@ fn site(
         scope,
         quantification,
         oracle,
+    })
+}
+
+fn source_identity(
+    path: &str,
+    where_: &str,
+    item: &Json,
+    errors: &mut Vec<Diag>,
+) -> Option<SourceIdentity> {
+    let fields = ["area", "address_kind", "address", "mount"];
+    let present = fields
+        .iter()
+        .filter(|field| item.get(field).is_some())
+        .count();
+    if present == 0 {
+        return None;
+    }
+    if present != fields.len() {
+        errors.push(Diag::expecting(
+            path,
+            0,
+            format!("{where_} has a partial federated source identity"),
+            "`area`, `address_kind`, `address` and `mount` together",
+        ));
+        return None;
+    }
+    let area = string_field(path, where_, item, "area", errors)?;
+    let kind = string_field(path, where_, item, "address_kind", errors)?;
+    let address = string_field(path, where_, item, "address", errors)?;
+    let mount = string_field(path, where_, item, "mount", errors)?;
+    if area.is_empty() || kind.is_empty() || address.is_empty() || mount.is_empty() {
+        errors.push(Diag::at(
+            path,
+            0,
+            format!("{where_} federated source identity contains an empty field"),
+        ));
+        return None;
+    }
+    Some(SourceIdentity {
+        area,
+        kind,
+        address,
+        mount,
     })
 }
 

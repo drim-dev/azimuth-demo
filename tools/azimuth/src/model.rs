@@ -222,6 +222,26 @@ pub struct Spec {
     pub requirements: Vec<Requirement>,
 }
 
+/// Stable identity of a compiler/schema source inside a federated Azimuth project.
+///
+/// `area + kind + address` is semantic identity. `mount` and the relation's existing `file`
+/// field are locators: moving an unchanged area or changing a checkout layout must not manufacture
+/// a different realization or expire a judgment. Legacy single-repository manifests omit this
+/// value and retain their file/site identity until they are emitted through a repository manifest.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct SourceIdentity {
+    pub area: String,
+    pub kind: String,
+    pub address: String,
+    pub mount: String,
+}
+
+impl SourceIdentity {
+    pub fn key(&self) -> String {
+        format!("{}|{}|{}", self.area, self.kind, self.address)
+    }
+}
+
 /// A tag site, from a manifest. `realizes` and `covers` differ only in the form fields, which are
 /// absent on code: form is how a test checks, not a property of code.
 #[derive(Debug, Clone)]
@@ -231,6 +251,7 @@ pub struct Site {
     pub site: String,
     pub file: String,
     pub lang: String,
+    pub source: Option<SourceIdentity>,
     /// Hash of the compiler-resolved source site. An empty value means the extractor could not
     /// isolate the site, so judgment freshness falls back to the whole file.
     pub source_fingerprint: String,
@@ -252,6 +273,7 @@ pub struct MechanismImplementation {
     pub binding: String,
     pub file: String,
     pub lang: String,
+    pub source: Option<SourceIdentity>,
     pub source_fingerprint: String,
 }
 
@@ -264,6 +286,7 @@ pub struct MechanismCover {
     pub site: String,
     pub file: String,
     pub lang: String,
+    pub source: Option<SourceIdentity>,
     pub source_fingerprint: String,
     pub scope: Option<Scope>,
     pub quantification: Option<Quantification>,
@@ -282,6 +305,7 @@ pub struct ClassMember {
     pub site: String,
     pub file: String,
     pub lang: String,
+    pub source: Option<SourceIdentity>,
 }
 
 /// Evidence that a class was enumerated from a system-produced source rather than reconstructed
@@ -292,6 +316,7 @@ pub struct Enumeration {
     pub kind: String,
     pub source: String,
     pub source_fingerprint: String,
+    pub identity: Option<SourceIdentity>,
 }
 
 /// A machine-addressable artifact emitted from a compiler or schema model. Optional properties
@@ -304,6 +329,7 @@ pub struct Artifact {
     pub unique: Option<bool>,
     pub columns: Vec<String>,
     pub predicate: Option<String>,
+    pub source: Option<SourceIdentity>,
 }
 
 #[derive(Debug, Default)]
@@ -640,17 +666,40 @@ impl Model {
                 ),
             ),
             (
+                "class_members",
+                Json::Arr(
+                    self.class_members
+                        .iter()
+                        .map(|member| {
+                            let mut fields = vec![
+                                ("class".to_string(), Json::str(&member.class)),
+                                ("site".to_string(), Json::str(&member.site)),
+                                ("file".to_string(), Json::str(&member.file)),
+                                ("lang".to_string(), Json::str(&member.lang)),
+                            ];
+                            append_source(&mut fields, member.source.as_ref());
+                            Json::Obj(fields)
+                        })
+                        .collect(),
+                ),
+            ),
+            (
                 "enumerations",
                 Json::Arr(
                     self.enumerations
                         .iter()
                         .map(|e| {
-                            Json::obj(vec![
-                                ("class", Json::str(&e.class)),
-                                ("kind", Json::str(&e.kind)),
-                                ("source", Json::str(&e.source)),
-                                ("source_fingerprint", Json::str(&e.source_fingerprint)),
-                            ])
+                            let mut fields = vec![
+                                ("class".to_string(), Json::str(&e.class)),
+                                ("kind".to_string(), Json::str(&e.kind)),
+                                ("source".to_string(), Json::str(&e.source)),
+                                (
+                                    "source_fingerprint".to_string(),
+                                    Json::str(&e.source_fingerprint),
+                                ),
+                            ];
+                            append_source(&mut fields, e.identity.as_ref());
+                            Json::Obj(fields)
                         })
                         .collect(),
                 ),
@@ -662,23 +711,24 @@ impl Model {
                         .iter()
                         .map(|artifact| {
                             let mut fields = vec![
-                                ("id", Json::str(&artifact.id)),
-                                ("kind", Json::str(&artifact.kind)),
-                                ("file", Json::str(&artifact.file)),
+                                ("id".to_string(), Json::str(&artifact.id)),
+                                ("kind".to_string(), Json::str(&artifact.kind)),
+                                ("file".to_string(), Json::str(&artifact.file)),
                             ];
                             if let Some(unique) = artifact.unique {
-                                fields.push(("unique", Json::Bool(unique)));
+                                fields.push(("unique".to_string(), Json::Bool(unique)));
                             }
                             if !artifact.columns.is_empty() {
                                 fields.push((
-                                    "columns",
+                                    "columns".to_string(),
                                     Json::Arr(artifact.columns.iter().map(Json::str).collect()),
                                 ));
                             }
                             if let Some(predicate) = &artifact.predicate {
-                                fields.push(("predicate", Json::str(predicate)));
+                                fields.push(("predicate".to_string(), Json::str(predicate)));
                             }
-                            Json::obj(fields)
+                            append_source(&mut fields, artifact.source.as_ref());
+                            Json::Obj(fields)
                         })
                         .collect(),
                 ),
@@ -714,9 +764,11 @@ impl Model {
                         ("rung", Json::Num(m.kind.rung() as f64)),
                         (
                             "binding",
-                            (bindings.len() == 1)
-                                .then(|| Json::str(bindings[0]))
-                                .unwrap_or(Json::Null),
+                            if bindings.len() == 1 {
+                                Json::str(bindings[0])
+                            } else {
+                                Json::Null
+                            },
                         ),
                         (
                             "expected_unique",
@@ -755,6 +807,12 @@ fn site_json(s: &Site) -> Json {
             Json::str(&s.source_fingerprint),
         ));
     }
+    if let Some(source) = &s.source {
+        pairs.push(("area".to_string(), Json::str(&source.area)));
+        pairs.push(("address_kind".to_string(), Json::str(&source.kind)));
+        pairs.push(("address".to_string(), Json::str(&source.address)));
+        pairs.push(("mount".to_string(), Json::str(&source.mount)));
+    }
     if let Some(value) = &s.evidence_kind {
         pairs.push(("evidence_kind".to_string(), Json::str(value)));
     }
@@ -780,14 +838,19 @@ fn site_json(s: &Site) -> Json {
 }
 
 fn mechanism_implementation_json(item: &MechanismImplementation) -> Json {
-    Json::obj(vec![
-        ("spec", Json::str(&item.spec)),
-        ("mechanism", Json::str(&item.mechanism)),
-        ("binding", Json::str(&item.binding)),
-        ("file", Json::str(&item.file)),
-        ("lang", Json::str(&item.lang)),
-        ("source_fingerprint", Json::str(&item.source_fingerprint)),
-    ])
+    let mut fields = vec![
+        ("spec".to_string(), Json::str(&item.spec)),
+        ("mechanism".to_string(), Json::str(&item.mechanism)),
+        ("binding".to_string(), Json::str(&item.binding)),
+        ("file".to_string(), Json::str(&item.file)),
+        ("lang".to_string(), Json::str(&item.lang)),
+        (
+            "source_fingerprint".to_string(),
+            Json::str(&item.source_fingerprint),
+        ),
+    ];
+    append_source(&mut fields, item.source.as_ref());
+    Json::Obj(fields)
 }
 
 fn mechanism_cover_json(item: &MechanismCover) -> Json {
@@ -814,5 +877,15 @@ fn mechanism_cover_json(item: &MechanismCover) -> Json {
     if let Some(oracle) = item.oracle {
         fields.push(("oracle".to_string(), Json::str(oracle.name())));
     }
+    append_source(&mut fields, item.source.as_ref());
     Json::Obj(fields)
+}
+
+fn append_source(fields: &mut Vec<(String, Json)>, source: Option<&SourceIdentity>) {
+    if let Some(source) = source {
+        fields.push(("area".to_string(), Json::str(&source.area)));
+        fields.push(("address_kind".to_string(), Json::str(&source.kind)));
+        fields.push(("address".to_string(), Json::str(&source.address)));
+        fields.push(("mount".to_string(), Json::str(&source.mount)));
+    }
 }
