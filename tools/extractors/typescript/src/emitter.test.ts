@@ -196,6 +196,16 @@ test('tsx parses', () => {
   assert.equal(result.realizes[0].site, 'View');
 });
 
+test('javascript uses the same compiler parser but keeps its language identity', () => {
+  const result = scanText(
+    `export function handler() { realizes('a', 's'); }`,
+    'service.js',
+  );
+
+  assert.equal(result.realizes[0].lang, 'javascript');
+  assert.equal(result.realizes[0].site, 'handler');
+});
+
 // Nothing outside a marker call is a tag. A string that merely mentions one is prose.
 test('a mention of a marker in a string is not a tag', () => {
   const result = scanText(`const doc = "call realizes('a', 's') to tag a site";`, 'a.ts');

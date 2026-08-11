@@ -122,9 +122,20 @@ archive only when the proposal declared it necessary evidence before implementat
 
 Criticality changes through the same lifecycle without changing claim identity. A raise derives
 new linkage, mechanism and evidence obligations; a lowering records why those obligations no longer
-apply and what would raise the requirement again. The provisional manual protocol is in
-`azimuth/changes/README.md`. Its syntax is deliberately not part of the framework yet: one measured
-feature must use it before the parser or archive command is designed (D21.3).
+apply and what would raise the requirement again. The parsed protocol and its lifecycle commands are
+in `azimuth/changes/README.md` (D21.4, D35).
+
+### Exploration before a change
+
+An exploration is a non-normative project account for research and decisions whose consequences
+may span several changes (D36). It lives under `azimuth/explorations/<id>/`, can terminate without
+a change, and never participates in current-model checks. Once its direction is confirmed,
+individual change proposals carry the specific exploration decisions they implement. This keeps
+uncertainty and rejected alternatives available without allowing them to masquerade as accepted
+intent or current design.
+
+The `azimuth-explore` skill owns the research/discussion boundary. Routine work whose intent is
+already clear can still begin directly with a lightweight change.
 
 ---
 

@@ -1,0 +1,58 @@
+name: Azimuth CLI release
+
+on:
+  push:
+    tags:
+      - "azimuth-v*"
+
+permissions:
+  contents: write
+
+jobs:
+  crate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo test --manifest-path tools/azimuth/Cargo.toml
+      - run: cargo package --manifest-path tools/azimuth/Cargo.toml
+      - run: cargo publish --manifest-path tools/azimuth/Cargo.toml
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+
+  binaries:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            binary: azimuth
+          - os: macos-14
+            target: aarch64-apple-darwin
+            binary: azimuth
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            binary: azimuth.exe
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - run: cargo build --release --target ${{ matrix.target }} --manifest-path tools/azimuth/Cargo.toml
+      - uses: actions/upload-artifact@v4
+        with:
+          name: azimuth-${{ matrix.target }}
+          path: tools/azimuth/target/${{ matrix.target }}/release/${{ matrix.binary }}
+
+  release:
+    needs: [crate, binaries]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      - run: find artifacts -maxdepth 2 -type f -print
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/**/*

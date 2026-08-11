@@ -89,6 +89,27 @@ closed when the build manifest is absent or a route cannot be resolved to projec
 the extractor supplies machine addresses after Prometheus has validated the files, not a substitute
 YAML interpretation.
 
+The same compiler parser accepts `.js`, `.jsx`, `.mjs` and `.cjs` and emits `lang: javascript`.
+JavaScript is an explicit mode of this extractor, not a copied text scanner.
+
+## Go, JVM, Python, Rust and C++
+
+The polyglot conformance experiment adds five extractor paths and language-native annotation
+packages:
+
+- Go uses typed no-op calls resolved against the enclosing Go AST function.
+- Java and Kotlin use repeatable runtime annotations read from compiled JVM classes. Source lookup
+  fails on ambiguity; fingerprints conservatively cover the complete source file.
+- Python uses no-op decorators parsed by the standard `ast` module.
+- Rust uses inert procedural attributes, requires the crate to compile, and binds attributes to
+  their enclosing function in the source accepted by that build.
+- C++ uses `clang::annotate`; the extractor consumes Clang's semantic AST rather than matching
+  macros as text. Its fingerprint conservatively covers the complete source file.
+
+`experiments/polyglot/check.sh` builds seven services, runs their evidence, emits seven manifests
+through six extractor implementations and proves that their union closes one unchanged Azimuth
+model.
+
 ### External manual results
 
 `azimuth-import-manual <export.json> <manifest.json>` converts a provider-neutral manual-run export

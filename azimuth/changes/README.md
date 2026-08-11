@@ -49,6 +49,7 @@ azimuth/changes/<change-id>/
 ├── design.md            # optional solution design
 ├── verification.md      # deviations and obligations introduced by the design
 ├── plan.md              # transient implementation order and work
+├── work-packages.md      # optional dependency DAG and exclusive worker paths
 ├── outcome.md           # authored departures, residual decisions and measurements
 └── finalization.json    # derived; written by `azimuth change finalize`
 ```
@@ -60,6 +61,15 @@ because its change contains a solution design.
 
 This is not a required seven-file ceremony. Omit a file that carries no
 non-derivable information and record whether its absence caused a problem.
+
+`work-packages.md` is used only when independent execution is real. Every `## Work package: <id>`
+declares `Status: pending | in-progress | complete`, `Depends on:`, `Owns:`, `Objective:` and
+`Evidence:`. `azimuth change work-packages` rejects dependency cycles, unknown dependencies and
+overlapping ownership, then identifies the eligible frontier. `Owns:` contains comma-separated,
+repository-relative path roots, not globs; absolute and parent-traversing paths are rejected.
+Unknown and duplicate fields also fail rather than being treated as prose. `azimuth change
+instructions` produces the bounded prompt consumed by the portable coordinator skill. The CLI does
+not spawn a vendor-specific agent process.
 
 ## Parsed intent deltas
 

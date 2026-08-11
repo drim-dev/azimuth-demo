@@ -16,6 +16,9 @@ azimuth/
 ├── changes/
 │   ├── <active-change>/
 │   └── archive/
+├── explorations/
+│   ├── <active-exploration>/
+│   └── archive/
 └── formats/
     ├── spec.md
     ├── design.md
@@ -41,6 +44,11 @@ bindings and evidence rather than inferred from directory proximity.
 
 Format contracts live in `formats/`. Proposed states and immutable history live in `changes/`.
 Neither is scanned as the accepted current model.
+
+An exploration is project-level research and decision shaping above individual changes. Its
+required anchor is `exploration.md`; optional `research.md` and `change-map.md` appear only when
+the material warrants them. It can produce several changes, an experiment or no work. A downstream
+proposal points to the exploration and decision ids it carries; the reverse map is derived.
 
 ## Federated placement
 

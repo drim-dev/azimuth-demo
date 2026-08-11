@@ -1,0 +1,4 @@
+interface:
+  display_name: "Azimuth Explore"
+  short_description: "Research and shape a multi-change initiative"
+  default_prompt: "Use $azimuth-explore to research and shape this idea before creating changes."

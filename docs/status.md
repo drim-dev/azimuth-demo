@@ -481,3 +481,19 @@ accounts. The adverse case carries a fresh post-archive receipt but also edits p
 rejected because the authority repository changed outside the accepted change directory. F7 and
 the archive-ordering gap are therefore mechanically closed. Git commit creation and receipt
 production remain external by design.
+
+## Update after authoring and polyglot tooling *(2026-08-11)*
+
+D35 adds additive project initialization, exploration and change scaffolding/discovery, change
+status rendering, and a machine-validated work-package frontier. Five shared skills now cover
+exploration, proposal, application, coordination and archive; Claude Code and Codex resolve the
+same canonical files. The coordinator delegates through the host runtime rather than pretending
+the CLI can spawn a vendor-neutral agent process. CLI and DAG tests pass. External publication has
+not occurred; `cargo package` passes and a tagged workflow is ready to publish the crate and three
+native binary targets when the repository owner supplies a registry token.
+
+D37 adds seven independently buildable identity services in Go, Java, Kotlin, Python, JavaScript,
+Rust and C++. Six extractor paths emit their seven realization sites and seven evidence sites into
+one unchanged manifest contract. The composed synthetic model reports **7 claims, zero holes, zero
+errors and zero warnings**. This validates language-extension mechanics, not production-codebase
+adoption. JVM and C++ fingerprints remain intentionally conservative at whole-source-file scope.

@@ -70,3 +70,6 @@ cargo run --quiet --manifest-path tools/azimuth/Cargo.toml -- check \
   --manifest "$OUT/dotnet.json" \
   --manifest "$OUT/web.json" \
   "$@"
+
+echo "== polyglot extractor conformance =="
+./experiments/polyglot/check.sh

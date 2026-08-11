@@ -1,0 +1,9 @@
+[package]
+name = "azimuth-emit-rust"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+
+[[bin]]
+name = "azimuth-emit-rust"
+path = "src/main.rs"

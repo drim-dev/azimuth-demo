@@ -19,7 +19,7 @@ same skills through symlinks under `.claude/skills/`.
 | `AGENTS.md` | canonical repository instructions for coding agents |
 | `.agents/skills/` | canonical Agent Skills; `.claude/skills/` holds compatibility symlinks |
 | `docs/framework.md` | what the framework *is*, as it currently stands. Derived; start here. |
-| `docs/decisions.md` | decisions D1–D34 and their rationale. Authoritative. |
+| `docs/decisions.md` | decisions D1–D37 and their rationale. Authoritative. |
 | `docs/concern-catalog.md` | 18 cross-cutting concerns from the domain; the evidence the design was drawn from |
 | `docs/glossary.md` | bounded definitions. Authoritative for terminology. |
 | `docs/status.md` | the decisions checked against their own falsifiers, including failures. |
@@ -29,8 +29,10 @@ same skills through symlinks under `.claude/skills/`.
 | `azimuth/formats/` | parser contracts for the three facets and agent judgments |
 | `azimuth/standards/verification.md` | evidence required by criticality |
 | `azimuth/changes/` | experimental current-to-target change lifecycle and archive |
+| `azimuth/explorations/` | non-normative research and decisions above one or more changes |
 | `tools/azimuth/README.md` | what the tool checks today, and what it does not check yet |
 | `experiments/multirepo/` | executable federation hypotheses, fault matrix and replication protocol |
+| `experiments/polyglot/` | executable Go/JVM/Python/JavaScript/Rust/C++ extractor conformance |
 
 The three facets are sibling `spec.md`, `design.md` and `verification.md` files under a package in
 `azimuth/model/`; `judgments.md` holds the agent tier. Criticality decides which files a claim owes
@@ -103,6 +105,12 @@ These are the ones that are easy to get wrong.
 - **Change authority is singular in a complete project account.** Repository observations enumerate
   tracked active and archived changes. Do not create a local proposal for a work package; complete
   assembly rejects a change id observed under more than one repository authority.
+- **Exploration precedes commitment.** Put multi-change research and user-owned decisions under
+  `azimuth/explorations/`; do not let an exploration assert current truth or hide inside its first
+  change. Use `azimuth-explore` when the direction is materially uncertain.
+- **Agent teams follow the work-package DAG.** Validate `work-packages.md` before delegation.
+  Shared contracts and change artifacts stay coordinator-owned; workers edit only their declared
+  non-overlapping paths and never finalize or archive.
 
 ## Commits
 

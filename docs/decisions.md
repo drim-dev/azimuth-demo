@@ -1610,6 +1610,81 @@ checkouts long enough to construct the two worksets.
 
 ---
 
+## D35 — Authoring is a thin CLI over owned artifacts *(2026-08-11)*
+
+**Decision.** Add `init`, exploration creation/discovery, and change create/list/show/status to the
+Rust CLI. Scaffolding is additive and idempotent, never overwrites an authored artifact, and creates
+only the lightweight required shape. Proposal, apply and archive remain separate agent skills
+because their hard work is semantic judgment, code modification and evidence review rather than
+filesystem mechanics.
+
+**Why.** The OpenSpec comparison found a real asymmetry: Azimuth had a stronger validation and
+acceptance tier but a weaker entry path. Requiring agents to remember directory names and headings
+adds error without adding judgment. Conversely, a CLI that writes product code or explanations
+would manufacture decisions that the framework exists to expose.
+
+**Validation.** CLI tests initialize an empty project, create and discover a minimal change, render
+its account, and emit eligible work-package instructions. `cargo package` verifies that the core is
+a standalone zero-dependency crate. Tagged publication is automated but remains an explicit
+repository-owner action because registry publication reserves an external name permanently.
+
+**What would falsify it.** The surface is wrong if routine authoring still requires knowledge not
+discoverable from `azimuth --help`, if scaffolding overwrites user text, or if agents routinely need
+to bypass the generated lightweight shape.
+
+---
+
+## D36 — Exploration is project-level and non-normative *(2026-08-11)*
+
+**Decision.** Materially uncertain or multi-change work may begin under
+`azimuth/explorations/<id>/`. `exploration.md` is the only anchor; research and change-map siblings
+are optional. An exploration may yield several changes, an experiment, abandonment or no change.
+It never enters the accepted model and does not become the authority for behaviour or mechanisms.
+
+Downstream proposals carry the exploration and decision ids they implement. The reverse map is
+derived. Exploration finishes when its decision frontier has dispositions and the resulting work
+is identified; it does not stay active until every downstream change ships.
+
+**Why.** Referral-module design, curriculum design and large refactoring share an epistemic unit
+but not one semantic transition. Putting that unit in the first change makes later changes depend
+on history they do not own. Putting proposed architecture in current design asserts mechanisms
+before they exist. A separate non-normative account preserves research and rejected alternatives
+without weakening either boundary.
+
+**Validation.** `azimuth-explore` separates researched facts from user-owned decisions and hard
+gates change creation on confirmed shared understanding. The CLI scaffolds and discovers the
+package. The next real multi-change initiative must measure whether the artifact prevents repeated
+research or merely creates another stale summary.
+
+**What would falsify it.** Delete the concept if explorations normally map one-to-one to changes,
+if accepted implementation repeatedly reads requirements only from exploration prose, or if the
+archive becomes a second roadmap whose status must be maintained manually.
+
+---
+
+## D37 — Language support is an extractor property, not a core feature *(2026-08-11)*
+
+**Decision.** Retain one language-neutral manifest and add ecosystem-native annotation and
+extraction paths. Java/Kotlin share compiled JVM metadata; TypeScript/JavaScript share the compiler
+parser while preserving language identity. Go, Python, Rust and C++ use their native AST,
+decorator, attribute or compiler-annotation boundaries. The core remains unchanged.
+
+**Validation.** Seven independently buildable identity services contribute seven standard claims
+through six extractor implementations. Their compiled or syntax-checked tests pass and the union
+of the emitted manifests produces seven realized and covered claims with zero holes. Go, Python,
+JavaScript and Rust fingerprint the enclosing symbol; JVM and C++ conservatively fingerprint the
+whole source file.
+
+**What this establishes.** The manifest seam survives languages with no decorators, dynamic
+decorators, runtime annotations, procedural attributes and compiler annotations. It does not
+establish production adoption or semantic equivalence between extractor front ends.
+
+**What would falsify it.** The architecture fails if a new language requires domain logic in the
+core, if compiler-valid tags disappear silently, or if two ecosystems cannot express the same
+relation without changing the manifest contract.
+
+---
+
 ## Method
 
 **Concern catalog first, notation last.** No mechanism enters the model until **≥2 structurally

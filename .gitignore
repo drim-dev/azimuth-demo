@@ -1,7 +1,10 @@
 .serena/
 target/
+build/
 node_modules/
 dist/
+.gradle/
+__pycache__/
 .next/
 next-env.d.ts
 bin/

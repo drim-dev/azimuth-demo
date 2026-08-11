@@ -1,7 +1,7 @@
 //! The `azimuth` CLI.
 //!
-//! `azimuth` is the tool; `rtm` is one check among several (D9). Commands are `azimuth check`,
-//! `azimuth check <id>` and `azimuth export`.
+//! `azimuth` is the tool; `rtm` is one check among several (D9). The same binary owns deterministic
+//! checking, change authoring and lifecycle gates, exploration discovery, and federated assembly.
 
 use azimuth::check;
 use azimuth::diag::Diag;
@@ -15,6 +15,9 @@ USAGE
     azimuth check [<check-id>...] [options]
     azimuth export [options]
     azimuth judge [options]
+    azimuth init [--root <azimuth-dir>]
+    azimuth explore create <id> [--title <text>] [--explorations <dir>]
+    azimuth explore list|show [<id>] [--explorations <dir>]
     azimuth project check --project <file> --workset <file> [--local <repository>]
     azimuth project export --project <file> --workset <file> [--local <repository>]
     azimuth project finalize --project <file> --workset <file> --out <snapshot.json>
@@ -24,6 +27,11 @@ USAGE
         --producer <name/version> --manifest <file>... --out <repository.json>
     azimuth project locate --reference <project-reference.json>
     azimuth change check <dir> [options]
+    azimuth change create <id> [--title <text>] [--changes <dir>]
+    azimuth change list [--changes <dir>]
+    azimuth change show|status <id-or-dir> [--changes <dir>] [options]
+    azimuth change work-packages <id-or-dir> [--changes <dir>]
+    azimuth change instructions <id-or-dir> --package <id> [--changes <dir>]
     azimuth change finalize <dir> [options]
     azimuth change archive <dir> --date <YYYY-MM-DD> [options]
 
@@ -79,6 +87,12 @@ fn run(args: &[String]) -> Result<ExitCode, String> {
     if command == "change" {
         return command_change(&args[1..]);
     }
+    if command == "init" {
+        return command_init(&args[1..]);
+    }
+    if command == "explore" {
+        return command_explore(&args[1..]);
+    }
     if command == "project" {
         return command_project(&args[1..]);
     }
@@ -90,6 +104,110 @@ fn run(args: &[String]) -> Result<ExitCode, String> {
         "judge" => command_judge(options),
         other => Err(format!("unknown command `{other}`\n\n{USAGE}")),
     }
+}
+
+fn command_init(args: &[String]) -> Result<ExitCode, String> {
+    let root = match args {
+        [] => PathBuf::from("azimuth"),
+        [option, value] if option == "--root" => PathBuf::from(value),
+        _ => return Err("init accepts only `--root <azimuth-dir>`".into()),
+    };
+    let created = azimuth::workflow::initialize(&root)?;
+    if created.is_empty() {
+        println!("Azimuth is already initialized at {}", root.display());
+    } else {
+        println!("initialized Azimuth at {}", root.display());
+        for path in created {
+            println!("  {}", path.display());
+        }
+    }
+    Ok(ExitCode::SUCCESS)
+}
+
+fn command_explore(args: &[String]) -> Result<ExitCode, String> {
+    let Some(operation) = args.first() else {
+        return Err("explore needs create, list or show".into());
+    };
+    let mut explorations = PathBuf::from("azimuth/explorations");
+    let mut positional = Vec::new();
+    let mut title = None;
+    let mut index = 1;
+    while index < args.len() {
+        match args[index].as_str() {
+            "--explorations" => {
+                explorations = PathBuf::from(argument_value(args, index, "--explorations")?);
+                index += 2;
+            }
+            "--title" => {
+                title = Some(argument_value(args, index, "--title")?);
+                index += 2;
+            }
+            value if value.starts_with('-') => {
+                return Err(format!("unknown explore option `{value}`"));
+            }
+            value => {
+                positional.push(value.to_string());
+                index += 1;
+            }
+        }
+    }
+    match operation.as_str() {
+        "create" => {
+            let id = positional.first().ok_or("explore create needs an id")?;
+            if positional.len() != 1 {
+                return Err("explore create accepts one id".into());
+            }
+            let root = azimuth::workflow::create_exploration(
+                &explorations,
+                id,
+                title.as_deref().unwrap_or(id),
+            )?;
+            println!("created exploration `{id}` at {}", root.display());
+            Ok(ExitCode::SUCCESS)
+        }
+        "list" => {
+            if !positional.is_empty() {
+                return Err("explore list accepts no id".into());
+            }
+            let entries = match std::fs::read_dir(&explorations) {
+                Ok(entries) => entries,
+                Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+                    return Ok(ExitCode::SUCCESS)
+                }
+                Err(error) => {
+                    return Err(format!("cannot read {}: {error}", explorations.display()))
+                }
+            };
+            let mut ids = entries
+                .flatten()
+                .filter(|entry| entry.path().join("exploration.md").is_file())
+                .map(|entry| entry.file_name().to_string_lossy().to_string())
+                .collect::<Vec<_>>();
+            ids.sort();
+            for id in ids {
+                println!("{id}");
+            }
+            Ok(ExitCode::SUCCESS)
+        }
+        "show" => {
+            let id = positional.first().ok_or("explore show needs an id")?;
+            if positional.len() != 1 {
+                return Err("explore show accepts one id".into());
+            }
+            let path = explorations.join(id).join("exploration.md");
+            let source = std::fs::read_to_string(&path)
+                .map_err(|error| format!("cannot read {}: {error}", path.display()))?;
+            print!("{source}");
+            Ok(ExitCode::SUCCESS)
+        }
+        other => Err(format!("unknown explore operation `{other}`")),
+    }
+}
+
+fn argument_value(args: &[String], index: usize, name: &str) -> Result<String, String> {
+    args.get(index + 1)
+        .cloned()
+        .ok_or_else(|| format!("`{name}` needs a value"))
 }
 
 struct ProjectOptions {
@@ -405,25 +523,141 @@ fn command_project_observe(args: &[String]) -> Result<ExitCode, String> {
 }
 
 fn command_change(args: &[String]) -> Result<ExitCode, String> {
-    if args.len() < 2 {
-        return Err(format!(
-            "change needs an operation and directory\n\n{USAGE}"
-        ));
-    }
-    let operation = &args[0];
-    let root = PathBuf::from(&args[1]);
+    let Some(operation) = args.first() else {
+        return Err(format!("change needs an operation\n\n{USAGE}"));
+    };
+    let mut changes = PathBuf::from("azimuth/changes");
+    let mut title = None;
+    let mut package = None;
     let mut option_args = Vec::new();
+    let mut positional = Vec::new();
     let mut date = None;
-    let mut index = 2;
+    let mut index = 1;
     while index < args.len() {
-        if args[index] == "--date" {
-            date = args.get(index + 1).cloned();
-            index += 2;
-        } else {
-            option_args.push(args[index].clone());
-            index += 1;
+        match args[index].as_str() {
+            "--date" => {
+                date = Some(argument_value(args, index, "--date")?);
+                index += 2;
+            }
+            "--changes" => {
+                changes = PathBuf::from(argument_value(args, index, "--changes")?);
+                index += 2;
+            }
+            "--title" => {
+                title = Some(argument_value(args, index, "--title")?);
+                index += 2;
+            }
+            "--package" => {
+                package = Some(argument_value(args, index, "--package")?);
+                index += 2;
+            }
+            value if value.starts_with('-') => {
+                option_args.push(value.to_string());
+                if ["--model", "--standards", "--manifest", "--only", "--out"].contains(&value) {
+                    option_args.push(argument_value(args, index, value)?);
+                    index += 2;
+                } else {
+                    index += 1;
+                }
+            }
+            value => {
+                positional.push(value.to_string());
+                index += 1;
+            }
         }
     }
+
+    match operation.as_str() {
+        "create" => {
+            let id = one_position(&positional, "change create needs one id")?;
+            let root =
+                azimuth::workflow::create_change(&changes, id, title.as_deref().unwrap_or(id))?;
+            println!("created change `{id}` at {}", root.display());
+            return Ok(ExitCode::SUCCESS);
+        }
+        "list" => {
+            if !positional.is_empty() {
+                return Err("change list accepts no id".into());
+            }
+            for summary in azimuth::workflow::list_changes(&changes)? {
+                println!(
+                    "{}\t{}\t{}\t{}",
+                    summary.id,
+                    if summary.archived {
+                        "archived"
+                    } else {
+                        "active"
+                    },
+                    summary.status,
+                    summary.path.display()
+                );
+            }
+            return Ok(ExitCode::SUCCESS);
+        }
+        "show" => {
+            let value = one_position(&positional, "change show needs one id or directory")?;
+            let root = azimuth::workflow::resolve_change(&changes, value)?;
+            print!("{}", azimuth::workflow::render_change(&root)?);
+            return Ok(ExitCode::SUCCESS);
+        }
+        "work-packages" => {
+            let value = one_position(
+                &positional,
+                "change work-packages needs one id or directory",
+            )?;
+            let root = azimuth::workflow::resolve_change(&changes, value)?;
+            let packages =
+                azimuth::workflow::load_work_packages(&root).map_err(|errors| errors.join("\n"))?;
+            let eligible = azimuth::workflow::eligible_packages(&packages)
+                .into_iter()
+                .map(|item| item.id.clone())
+                .collect::<std::collections::BTreeSet<_>>();
+            for item in packages {
+                println!(
+                    "{}\t{}\t{}\t{}",
+                    item.id,
+                    item.status.name(),
+                    if eligible.contains(item.id.as_str()) {
+                        "eligible"
+                    } else {
+                        "waiting"
+                    },
+                    if item.depends_on.is_empty() {
+                        "none".into()
+                    } else {
+                        item.depends_on.join(",")
+                    }
+                );
+            }
+            return Ok(ExitCode::SUCCESS);
+        }
+        "instructions" => {
+            let value = one_position(&positional, "change instructions needs one id or directory")?;
+            let package = package.ok_or("change instructions needs `--package <id>`")?;
+            let root = azimuth::workflow::resolve_change(&changes, value)?;
+            let packages =
+                azimuth::workflow::load_work_packages(&root).map_err(|errors| errors.join("\n"))?;
+            let selected = packages
+                .iter()
+                .find(|item| item.id == package)
+                .ok_or_else(|| format!("unknown work package `{package}`"))?;
+            if !azimuth::workflow::eligible_packages(&packages)
+                .iter()
+                .any(|item| item.id == package)
+            {
+                return Err(format!("work package `{package}` is not eligible"));
+            }
+            print!(
+                "{}",
+                azimuth::workflow::package_instructions(&root, selected)
+            );
+            return Ok(ExitCode::SUCCESS);
+        }
+        _ => {}
+    }
+
+    let value = one_position(&positional, "change operation needs one id or directory")?;
+    let root = azimuth::workflow::resolve_change(&changes, value)?;
     let options = parse_options(&option_args)?;
     let loaded = match azimuth::load(
         &options.model,
@@ -449,7 +683,7 @@ fn command_change(args: &[String]) -> Result<ExitCode, String> {
     let holes = check::rtm(&loaded.model);
 
     match operation.as_str() {
-        "check" => {
+        "check" | "status" => {
             println!("change `{}`", report.id);
             for addition in &report.additions {
                 let state = if addition.applied {
@@ -578,6 +812,13 @@ fn command_change(args: &[String]) -> Result<ExitCode, String> {
             Ok(ExitCode::SUCCESS)
         }
         other => Err(format!("unknown change operation `{other}`")),
+    }
+}
+
+fn one_position<'a>(values: &'a [String], error: &str) -> Result<&'a str, String> {
+    match values {
+        [value] => Ok(value),
+        _ => Err(error.into()),
     }
 }
 

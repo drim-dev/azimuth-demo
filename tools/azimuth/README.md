@@ -5,6 +5,10 @@ model for everything else to consume.
 
 No dependencies (D17). `cargo build` needs nothing but a toolchain.
 
+Install a checkout with `cargo install --path tools/azimuth`. The crate is release-shaped as
+`azimuth` 0.1.0; `cargo package` verifies its standalone contents. A tagged-release workflow can
+publish the crate and native binaries once the repository owner supplies the registry token.
+
 ## Use
 
 ```
@@ -12,6 +16,16 @@ azimuth check                          # all checks, azimuth/model by default
 azimuth check rtm --only 'billing/**'  # one check, scoped by id
 azimuth export --out model.json
 azimuth judge                          # claims with the fingerprint a judgment must carry
+azimuth init                           # additive, idempotent project initialization
+azimuth explore create <id> --title <text>
+azimuth explore list
+azimuth explore show <id>
+azimuth change create <id> --title <text>
+azimuth change list
+azimuth change show <id>
+azimuth change status <id>
+azimuth change work-packages <id>
+azimuth change instructions <id> --package <package-id>
 azimuth change check azimuth/changes/<id>      # target projection and applied-state report
 azimuth change finalize azimuth/changes/<id>   # gate completion and write finalization.json
 azimuth change archive azimuth/changes/<id> --date YYYY-MM-DD
@@ -85,6 +99,9 @@ rather than from the check (D9.2).
   completion, fingerprints the derived model and gates deterministic archiving (D21.4, D24).
 - **`federation.rs`** assembles revision-bound repository observations, enforces singular change
   authority and verifies accepted active-to-archive transitions (D33, D34).
+- **`workflow.rs`** initializes a project, scaffolds and discovers changes and explorations, and
+  validates dependency-ordered work packages with non-overlapping path ownership. It emits a
+  portable worker instruction; native agent runtimes perform any actual delegation.
 
 Four behaviours worth knowing:
 

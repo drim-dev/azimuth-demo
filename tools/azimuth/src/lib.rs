@@ -19,6 +19,7 @@ pub mod manifest;
 pub mod model;
 pub mod plan;
 pub mod spec;
+pub mod workflow;
 
 use diag::Diag;
 use model::Model;

@@ -15,8 +15,6 @@ import * as path from 'node:path';
 import { createHash } from 'node:crypto';
 import * as ts from 'typescript';
 
-const LANG = 'typescript';
-
 const SCOPES = ['unit', 'component', 'e2e'] as const;
 const QUANTIFICATIONS = ['example', 'universal'] as const;
 const ORACLES = [
@@ -112,6 +110,7 @@ export interface ScanResult {
 }
 
 export function scanText(text: string, file: string): ScanResult {
+  const lang = languageOf(file);
   const result: ScanResult = {
     realizes: [],
     covers: [],
@@ -134,7 +133,7 @@ export function scanText(text: string, file: string): ScanResult {
         scenario: args[1],
         site: site.name,
         file,
-        lang: LANG,
+        lang,
         source_fingerprint: site.fingerprint,
       });
       return;
@@ -169,7 +168,7 @@ export function scanText(text: string, file: string): ScanResult {
         scenario,
         site: site.name,
         file,
-        lang: LANG,
+        lang,
         source_fingerprint: site.fingerprint,
         scope,
         quantification,
@@ -190,9 +189,9 @@ export function scanText(text: string, file: string): ScanResult {
       result.mechanismImplementations.push({
         spec: args[0],
         mechanism: args[1],
-        binding: typescriptBinding(file, site.name),
+        binding: symbolBinding(lang, file, site.name),
         file,
-        lang: LANG,
+        lang,
         source_fingerprint: site.fingerprint,
       });
       return;
@@ -232,7 +231,7 @@ export function scanText(text: string, file: string): ScanResult {
         mechanism,
         site: site.name,
         file,
-        lang: LANG,
+        lang,
         source_fingerprint: site.fingerprint,
         scope,
         quantification,
@@ -244,8 +243,12 @@ export function scanText(text: string, file: string): ScanResult {
   return result;
 }
 
-function typescriptBinding(file: string, site: string): string {
-  return `typescript-symbol:${file}#${site}`;
+function symbolBinding(lang: string, file: string, site: string): string {
+  return `${lang}-symbol:${file}#${site}`;
+}
+
+function languageOf(file: string): 'javascript' | 'typescript' {
+  return /\.(jsx?|mjs|cjs)$/.test(file) ? 'javascript' : 'typescript';
 }
 
 function visit(node: ts.Node, fn: (node: ts.Node) => void): void {
@@ -383,7 +386,7 @@ export function emit(roots: string[], repoRoot: string): { manifest: Manifest; w
     manifest.artifacts.push(
       ...result.mechanismImplementations.map((entry) => ({
         id: entry.binding,
-        kind: 'typescript-symbol',
+        kind: `${entry.lang}-symbol`,
         file: entry.file,
       })),
     );
