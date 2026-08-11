@@ -40,13 +40,12 @@ pub fn selects(pattern: &str, spec_id: &str) -> bool {
 }
 
 pub fn load(
-    specs_dir: &Path,
-    verification_dir: &Path,
-    design_dir: &Path,
+    model_dir: &Path,
+    standards_path: &Path,
     manifests: &[std::path::PathBuf],
     only: &[String],
 ) -> Result<Loaded, Vec<Diag>> {
-    let loaded = spec::load_specs(specs_dir)?;
+    let loaded = spec::load_specs(model_dir)?;
     let mut model = Model {
         specs: loaded.specs,
         ..Default::default()
@@ -63,20 +62,19 @@ pub fn load(
 
     // Without a standards file nothing is known to require, so `wrong-form` cannot fire. Say so
     // rather than reporting a clean run that only looks clean.
-    let standards_path = verification_dir.join("standards.md");
     if standards_path.exists() {
-        match plan::load_standards(&standards_path) {
+        match plan::load_standards(standards_path) {
             Ok(s) => model.standards = Some(s),
             Err(mut d) => errors.append(&mut d),
         }
-    } else if verification_dir.exists() {
+    } else if model_dir.exists() {
         warnings.push(Diag::file(
             &standards_path.display().to_string(),
             "no standards file; no evidence standard is known, so wrong-form cannot be reported",
         ));
     }
 
-    match judgment::load(&verification_dir.join("judgments")) {
+    match judgment::load(model_dir) {
         Ok(js) => {
             model.judgments = js;
             if !only.is_empty() {
@@ -88,7 +86,7 @@ pub fn load(
         Err(mut d) => errors.append(&mut d),
     }
 
-    match design::load_designs(design_dir) {
+    match design::load_designs(model_dir) {
         Ok(designs) => {
             model.designs = designs;
             if !only.is_empty() {
@@ -100,7 +98,7 @@ pub fn load(
         Err(mut d) => errors.append(&mut d),
     }
 
-    match plan::load_plans(verification_dir) {
+    match plan::load_plans(model_dir) {
         Ok(plans) => {
             model.plans = plans;
             if !only.is_empty() {
@@ -147,5 +145,57 @@ pub fn load(
             .retain(|s| only.iter().any(|p| selects(p, &s.spec)));
     }
 
+    warnings.extend(package_location_warnings(&model));
+
     Ok(Loaded { model, warnings })
+}
+
+fn package_location_warnings(model: &Model) -> Vec<Diag> {
+    let mut warnings = Vec::new();
+    for design in &model.designs {
+        warn_if_not_sibling(model, &design.spec, &design.path, "design", &mut warnings);
+    }
+    for plan in &model.plans {
+        warn_if_not_sibling(
+            model,
+            &plan.spec,
+            &plan.path,
+            "verification plan",
+            &mut warnings,
+        );
+    }
+    for judgments in &model.judgments {
+        warn_if_not_sibling(
+            model,
+            &judgments.spec,
+            &judgments.path,
+            "judgments",
+            &mut warnings,
+        );
+    }
+    warnings
+}
+
+fn warn_if_not_sibling(
+    model: &Model,
+    spec_id: &str,
+    artifact_path: &str,
+    artifact_kind: &str,
+    warnings: &mut Vec<Diag>,
+) {
+    let Some(spec) = model.specs.iter().find(|spec| spec.id == spec_id) else {
+        return;
+    };
+    if Path::new(&spec.path).parent() == Path::new(artifact_path).parent() {
+        return;
+    }
+    warnings.push(Diag::at(
+        artifact_path,
+        1,
+        format!(
+            "{artifact_kind} for `{spec_id}` is not beside {}; ids are path-independent, so this \
+             is a navigation hint only",
+            spec.path
+        ),
+    ));
 }

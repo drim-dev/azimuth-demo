@@ -2,7 +2,7 @@
 
 Working material that belongs to none of the three facets. **Nothing here is authoritative.**
 `docs/decisions.md` is authoritative for decisions, `docs/glossary.md` for terminology, and
-`specs/`, `design/`, `verification/` for claims, mechanisms and evidence. A file here is a proposal,
+the packages in `azimuth/model/` for claims, mechanisms and evidence. A file here is a proposal,
 an observation, or notes on something outside the framework entirely.
 
 **Items graduate out.** A proposal that gets decided moves to `docs/decisions.md` and the copy here
@@ -27,16 +27,16 @@ either genuinely out of scope or a proposal nobody has been willing to decide.
 
 ## Where this came from
 
-A session across 2026-08-06 and 07 that began by judging `specs/trips/request.md` with the agent
-tier and turned into an examination of the quantification field itself. Four artifacts from it are
-*not* here, because they have homes:
+A session across 2026-08-06 and 07 that began by judging the `trips/request` package `spec.md` with
+the agent tier and turned into an examination of the quantification field itself. Four artifacts
+from it are *not* here, because they have homes:
 
-- The eight `trips/request` judgments — `verification/judgments/trips/request.md`. Two `sound`, two
+- The eight `trips/request` judgments—`azimuth/model/trips/request/judgments.md`. Two `sound`, two
   `toothless`, four `dishonest-tag`.
-- The nine `trips/rider-view` judgments — `verification/judgments/trips/rider-view.md`. Three
+- The nine `trips/rider-view` judgments — `azimuth/model/trips/rider-view/judgments.md`. Three
   `sound`, three `toothless`, two `spec-gap`, one `dishonest-tag`; the first pass to produce all
   four verdict kinds. The actions they imply — a plan residual for `driver-position-follows-driver`,
-  which no fixture path can trigger, and scenarios for the pushed-observation modes `design/` names
+  which no fixture path can trigger, and scenarios for the pushed-observation modes designs name
   — live in that file and are not restated here.
 - The rename decided from it — **D19** and **D19.1** in `docs/decisions.md`.
 - The authoring skill written in response — `.agents/skills/azimuth-cover/`, with its own falsifier

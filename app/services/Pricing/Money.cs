@@ -12,7 +12,7 @@ namespace Pricing;
 /// strength there and no runtime test.
 /// <para>
 /// Currency agreement is checked at runtime rather than in the type system. See the residue in
-/// <c>design/pricing/quote.md</c>.
+/// <c>azimuth/model/pricing/quote/design.md</c>.
 /// </para>
 /// </remarks>
 [Realizes("pricing/quote", "total-in-minor-units")]

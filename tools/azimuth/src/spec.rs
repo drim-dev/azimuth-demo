@@ -1,8 +1,8 @@
 //! The spec parser.
 //!
-//! Replaces the alpha's OpenSpec reader (D11, D2.2). The grammar is `specs/README.md`, and it is
-//! deliberately rigid so that a strict line-oriented parser is straightforward without a parser
-//! crate (D17).
+//! Replaces the alpha's OpenSpec reader (D11, D2.2). The grammar is documented beside the model
+//! packages, and it is deliberately rigid so that a strict line-oriented parser is straightforward
+//! without a parser crate (D17).
 //!
 //! Two failure modes are kept apart on purpose:
 //!
@@ -90,9 +90,7 @@ fn collect_markdown(dir: &Path, out: &mut Vec<PathBuf>) -> std::io::Result<()> {
         let path = entry.path();
         if path.is_dir() {
             collect_markdown(&path, out)?;
-        } else if path.extension().and_then(|e| e.to_str()) == Some("md")
-            && path.file_name().and_then(|n| n.to_str()) != Some("README.md")
-        {
+        } else if path.file_name().and_then(|n| n.to_str()) == Some("spec.md") {
             out.push(path);
         }
     }
@@ -100,9 +98,9 @@ fn collect_markdown(dir: &Path, out: &mut Vec<PathBuf>) -> std::io::Result<()> {
 }
 
 fn expected_id_from_path(root: &Path, path: &Path) -> Option<String> {
-    let rel = path.strip_prefix(root).ok()?;
-    let s = rel.to_str()?.strip_suffix(".md")?;
-    Some(s.replace('\\', "/"))
+    let rel = path.parent()?.strip_prefix(root).ok()?;
+    let id = rel.to_str()?.replace('\\', "/");
+    (!id.is_empty()).then_some(id)
 }
 
 pub fn parse_spec(path: &str, source: &str) -> Result<Spec, Vec<Diag>> {

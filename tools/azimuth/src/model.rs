@@ -416,10 +416,18 @@ impl Model {
             return inputs;
         };
         if let Some(standards) = &self.standards {
-            inputs.push(crate::judgment::FingerprintInput::file(&standards.path));
+            inputs.push(crate::judgment::FingerprintInput::model_artifact(
+                "verification",
+                "standards",
+                &standards.path,
+            ));
         }
         if let Some(plan) = self.plan_for(spec) {
-            inputs.push(crate::judgment::FingerprintInput::file(&plan.path));
+            inputs.push(crate::judgment::FingerprintInput::model_artifact(
+                "verification",
+                spec,
+                &plan.path,
+            ));
             if let Some(evidence) = plan
                 .entry(scenario)
                 .and_then(|entry| entry.evidence.as_ref())
@@ -466,7 +474,11 @@ impl Model {
                 }
             }
             if has_entry {
-                inputs.push(crate::judgment::FingerprintInput::file(&design.path));
+                inputs.push(crate::judgment::FingerprintInput::model_artifact(
+                    "design",
+                    spec,
+                    &design.path,
+                ));
             }
         }
         inputs.sort_by(|a, b| a.identity.cmp(&b.identity));

@@ -8,13 +8,13 @@ No dependencies (D17). `cargo build` needs nothing but a toolchain.
 ## Use
 
 ```
-azimuth check                          # all checks, specs/ by default
+azimuth check                          # all checks, azimuth/model by default
 azimuth check rtm --only 'billing/**'  # one check, scoped by id
 azimuth export --out model.json
 azimuth judge                          # claims with the fingerprint a judgment must carry
-azimuth change check changes/<id>      # target projection and applied-state report
-azimuth change finalize changes/<id>   # gate completion and write finalization.json
-azimuth change archive changes/<id> --date YYYY-MM-DD
+azimuth change check azimuth/changes/<id>      # target projection and applied-state report
+azimuth change finalize azimuth/changes/<id>   # gate completion and write finalization.json
+azimuth change archive azimuth/changes/<id> --date YYYY-MM-DD
 ```
 
 Exit codes: `0` clean, `1` errors found, `2` the model could not be derived.
@@ -23,8 +23,11 @@ Selection operates on **ids**, not paths (`--only 'billing/**'`), so it keeps wo
 is reorganized. Ids in this file are illustrative: the tool knows nothing about any particular
 corpus (D2).
 
-Inputs default to `specs/`, `verification/` and `design/`, each overridable; judgments are read
-from `<verification>/judgments`. Manifests are passed with `--manifest`, repeatable.
+Accepted artifacts default to sibling files discovered recursively under `azimuth/model/`:
+`spec.md`, optional `design.md`, optional `verification.md` and optional `judgments.md`. The model
+root is overridable with `--model`; evidence policy defaults to
+`azimuth/standards/verification.md` and is overridable with `--standards`. Manifests are passed with
+`--manifest`, repeatable.
 
 `rtm` is currently the only check. It is still one check among several by design (D9) — the check
 set is per-project (D9.3), ids are a public interface (D9.1), and severity comes from criticality
@@ -32,15 +35,16 @@ rather than from the check (D9.2).
 
 ## What it does now
 
-- **`spec.rs`** parses the format in `specs/README.md`. Strict: an unrecognized construct fails the
-  parse with file, line and what was expected. A missing *declaration* is different — a
+- **`spec.rs`** parses the format in `azimuth/formats/spec.md`. Strict: an unrecognized construct
+  fails the parse with file, line and what was expected. A missing *declaration* is different—a
   requirement without `Criticality:` parses and becomes an `unclassified` hole (D6.2 vs D11).
 - **`manifest.rs`** reads linkage manifests, keyed on the pair `(spec, scenario)` (D2.2). The
   alpha's triple is rejected with an explanation rather than silently accepted, so a stale emitter
   cannot produce tags that look fine and are not. Manifests also carry derived enumeration
   witnesses, compiler/schema artifacts, mechanism implementations and mechanism evidence.
-- **`plan.rs`** parses `verification/standards.md` and the plans. Entries are deviations only — a
-  claim with no entry is not unplanned, the standard applies. `Scope`/`Quantification`/`Oracle`
+- **`plan.rs`** parses `azimuth/standards/verification.md` and sibling verification plans. Entries
+  are deviations only—a claim with no entry is not unplanned, the standard applies.
+  `Scope`/`Quantification`/`Oracle`
   state the *required* form; `Evidence` and its `Strength` declare a *provided* item, and
   `Strength` alone is an error because it reads as either.
 - **`design.rs`** parses the mechanism facet. Entries key on the requirement — one index makes all

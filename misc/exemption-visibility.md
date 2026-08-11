@@ -56,7 +56,7 @@ find them.
 
 ## Related — an unspecified boundary the exemptions are standing in for
 
-The validator tests are exempt for a good reason: `specs/trips/request.md` owns no claim about
+The validator tests are exempt for a good reason: package `trips/request` owns no claim about
 request *shape*. Its three requirements are about quotes, trips and active-trip uniqueness. Tagging
 `A_request_names_its_rider` to `request-admitted-with-valid-quote` would be a false linkage.
 
@@ -74,7 +74,7 @@ A client branches on those codes. Found while writing
 empty string from its range because it behaves differently — the test knows about a boundary the
 spec does not state.
 
-**Candidate spec change, not confirmed:** a scenario in `specs/trips/request.md` fixing which
+**Candidate spec change, not confirmed:** a scenario in package `trips/request` fixing which
 malformed inputs are refused as ill-formed and which as unknown. It is the same shape as the two
 `spec-gap` verdicts in `trips/rider-view` — code right, tests fine, reader surprised — but it has
 not been through a judging pass and should not be treated as a finding until it has. The honest

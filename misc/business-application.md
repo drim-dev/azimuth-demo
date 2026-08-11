@@ -12,9 +12,10 @@ failed. The chronic disease of consulting is unfalsifiable success claims — "i
 the evidence exists, then check against it. It also protects the consultant: a criterion agreed in
 week one cannot be relocated in week twelve.
 
-**Criticality → required evidence, decided once.** `verification/standards.md` is a policy pattern,
-not a testing idea: state per tier what a claim owes, once, rather than negotiating per claim. In a
-curriculum: which assertions need a citation, which need a worked demonstration, which need neither.
+**Criticality → required evidence, decided once.** `azimuth/standards/verification.md` is a policy
+pattern, not a testing idea: state per tier what a claim owes, once, rather than negotiating per
+claim. In a curriculum: which assertions need a citation, which need a worked demonstration, which
+need neither.
 It avoids both failure modes — everything cited is unreadable, nothing cited is punditry — and
 D6.1's argument for why a default is legitimate here transfers intact.
 

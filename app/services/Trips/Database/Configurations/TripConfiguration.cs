@@ -47,9 +47,10 @@ public sealed class TripConfiguration : IEntityTypeConfiguration<Trip>
         // trips/request#second-request-rejected-while-active. Two requests arriving together both
         // read "no active trip"; this is what actually holds the line.
         //
-        // Note the coupling flagged in design/trips/request.md: the predicate depends on the set of
-        // terminal states, which trips/lifecycle owns. Adding a state and forgetting to classify it
-        // here silently widens or narrows the rule, and nothing currently catches that.
+        // Note the coupling flagged in azimuth/model/trips/request/design.md: the predicate depends
+        // on the set of terminal states, which trips/lifecycle owns. Adding a state and forgetting
+        // to classify it here silently widens or narrows the rule, and nothing currently catches
+        // that.
         builder.HasIndex(t => t.RiderId)
             .IsUnique()
             .HasFilter("state NOT IN ('completed', 'cancelled')")

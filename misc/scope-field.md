@@ -1,8 +1,9 @@
 # Does the `Scope` field earn its place?
 
 **Status: two observations and an open question. No proposal.** From working through
-`verification/trips/request.md` on 2026-08-07. This points the opposite way from most of `misc/`: it
-is evidence that an *existing* field may not be doing work, not an argument for a new one.
+`azimuth/model/trips/request/verification.md` on 2026-08-07. This points the opposite way from most
+of `misc/`: it is evidence that an *existing* field may not be doing work, not an argument for a
+new one.
 
 ## Observation 1 — the harness decided the scope, not the claims
 
@@ -70,12 +71,13 @@ corpus-wide answer is not obviously zero.
 
 ## Related — plan hygiene in the same file
 
-`verification/trips/request.md`'s entry for `request-rejected-with-unknown-quote` now carries **no
-fields**. It was added on 2026-08-07 as a revision marker after the `Oracle: contract` requirement
+The `request-rejected-with-unknown-quote` entry in
+`azimuth/model/trips/request/verification.md` now carries **no fields**. It was added on 2026-08-07
+as a revision marker after the `Oracle: contract` requirement
 turned out to describe a service boundary that does not exist. Per the format, an entry states only
 what it changes, so an entry that changes nothing is prose in a file meant to hold deviations —
-`verification/README.md`'s "plan being used as an inventory" failure, in miniature.
+`azimuth/formats/verification.md`'s "plan being used as an inventory" failure, in miniature.
 
 It is defensible under "mark revisions; do not silently rewrite", and the finding is also recorded
-permanently in `verification/judgments/trips/request.md`. Once that record is trusted, deleting the
+permanently in `azimuth/model/trips/request/judgments.md`. Once that record is trusted, deleting the
 entry is the tidier call.

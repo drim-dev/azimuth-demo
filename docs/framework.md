@@ -1,9 +1,9 @@
 # Azimuth — what the framework is
 
 Status: **derived**. This document states the framework as it currently stands. It is assembled
-from [`decisions.md`](./decisions.md), [`glossary.md`](./glossary.md), the three facet READMEs and
-[`tools/azimuth/README.md`](../tools/azimuth/README.md); where it disagrees with any of them, they
-win and this file is wrong. Terminology is bounded by the glossary.
+from [`decisions.md`](./decisions.md), [`glossary.md`](./glossary.md), the three format contracts
+and [`tools/azimuth/README.md`](../tools/azimuth/README.md); where it disagrees with any of them,
+they win and this file is wrong. Terminology is bounded by the glossary.
 
 It exists because those documents describe the framework by *decision* and by *facet*, and nothing
 described it as a whole. A decision log records how a design was argued into existence, not what it
@@ -56,15 +56,15 @@ information (D13).
 
 | Facet | Records | Lives in | Keys on |
 |---|---|---|---|
-| Intent | what must be true, over what domain, how much it matters | `specs/` | scenario |
-| Mechanism | what makes it true, and how strongly | `design/` | requirement |
-| Evidence | how we know, and how freshly | `verification/` | scenario |
+| Intent | what must be true, over what domain, how much it matters | `spec.md` | scenario |
+| Mechanism | what makes it true, and how strongly | `design.md` | requirement |
+| Evidence | how we know, and how freshly | `verification.md` | scenario |
 
 **Intent.** A spec is a named group of requirements; a requirement is one SHALL rule carrying
 criticality; a scenario is a claim in GIVEN/WHEN/THEN form. Scenario ids are unique per spec rather
 than per requirement, which is what makes splitting or merging a requirement free — scenarios move
 between parents without touching a tag. Ids are declared in headings and never derived from paths,
-so moving a file breaks nothing (`specs/README.md`).
+so moving a package breaks nothing (`azimuth/formats/spec.md`).
 
 **Mechanism.** An entry declares a stable mechanism identity, enforcement kind and rationale, then
 resolves it to exactly one current artifact. A non-code artifact may be bound explicitly; a code
@@ -77,11 +77,25 @@ exists — existing evidence is derived from `covers` tags, and hand-listing it 
 copy that drifts (D4.5). A claim with no plan entry is not unplanned; it means the project standard
 applies unmodified.
 
-**Residue** is the fourth thing in `design/` and is deliberately outside the model: orientation,
+**Residue** is the fourth thing in `design.md` and is deliberately outside the model: orientation,
 danger zones, deliberately broken corners, what is absent and why. It participates in no check and
 is derivable by nothing. It is named explicitly so the design file does not become a dumping
 ground, and it is distinct from a verification *residual*, which records missing evidence. The
 first is knowledge; the second is a gap.
+
+**Accountability.** The model requires no roles (D3.1). Operating guidance calls the accountable
+capabilities `intent owner`, `mechanism owner` and `evidence owner`; analyst or product, developer
+and QA or quality engineer are a common mapping rather than a required organization. Ownership
+means answering for a facet's sufficiency and freshness, not exclusive authorship. Test code may
+be implemented by a developer, quality engineer or agent; the evidence owner must still be able to
+judge whether it supports the claim, and ordinary engineering review still applies to the code
+(D30).
+
+**Physical layout.** The facets are logically separate and physically colocated (D32). Each spec
+anchors a package at `azimuth/model/<spec-id>/spec.md`; optional siblings are `design.md`,
+`verification.md` and `judgments.md`. Their declared spec ids remain authoritative and directory
+proximity creates no semantic edge. Exact filenames make discovery closed, while optional files
+keep routine intent and standard defaults lightweight.
 
 ---
 
@@ -92,17 +106,25 @@ deltas, solution design where needed, implementation work and verification oblig
 is the current model with those deltas applied; current checks do not treat planned facts as facts
 about the running system (D21).
 
-Change design and current design have different lifetimes. `changes/<id>/design.md` may name
-alternatives, components and mechanisms that do not exist yet. `design/<spec-id>.md` may name only
-mechanisms that were actually built and currently support accepted claims. Completion distils the
-current facets from the result and archives the whole change—including rejected alternatives,
-departures and work—as the semantic record of the transition.
+Change design and current design have different lifetimes. `azimuth/changes/<id>/design.md` may
+name alternatives, components and mechanisms that do not exist yet. A current package's
+`design.md` may name only mechanisms that were actually built and support accepted claims.
+Completion distils the current facets from the result and archives the whole change—including
+rejected alternatives, departures and work—as the semantic record of the transition.
+
+A change is not a Git branch or a rollout (D31). Several short-lived work-package branches and
+repositories may contribute to one semantic transition; one release may contain several accepted
+changes. The current facets describe accepted behaviour of the codebase, not the percentage of a
+production population already running it. Archive therefore normally follows engineering
+acceptance and pre-production evidence. Deployment promotes an immutable mainline or established
+release-candidate artifact through limited and wider exposure. Production observation delays
+archive only when the proposal declared it necessary evidence before implementation.
 
 Criticality changes through the same lifecycle without changing claim identity. A raise derives
 new linkage, mechanism and evidence obligations; a lowering records why those obligations no longer
 apply and what would raise the requirement again. The provisional manual protocol is in
-`changes/README.md`. Its syntax is deliberately not part of the framework yet: one measured feature
-must use it before the parser or archive command is designed (D21.3).
+`azimuth/changes/README.md`. Its syntax is deliberately not part of the framework yet: one measured
+feature must use it before the parser or archive command is designed (D21.3).
 
 ---
 
@@ -182,8 +204,8 @@ strength ladder, so the machine validates the name and never ranks or gates it:
 | `model-based` | An exact expected result computed by an independent model |
 | `contract` | An agreed interface or protocol contract |
 
-The project standard (`verification/standards.md`) maps criticality to required evidence once,
-rather than per claim:
+The project standard (`azimuth/standards/verification.md`) maps criticality to required evidence
+once, rather than per claim:
 
 | Level | Strength | Quantification | Residual |
 |---|---|---|---|
@@ -253,9 +275,10 @@ Two tiers produce findings:
 - The **machine tier** is deterministic. It finds structural holes, cannot be argued with, and
   cannot establish truth.
 - The **agent tier** judges what the machine cannot: whether every declared realization site
-  establishes part of the predicate, whether a test is toothy, whether its form tag is honest, and
-  whether a required behaviour is missing from the spec. Its outputs audit the declared account and
-  can withdraw trust; they never cover a claim (D14, revised by D18 and D28). Freshness follows
+  establishes part of the predicate, whether evidence is toothy, whether its declared form is
+  honest, and whether a required behaviour is missing from the spec. Its outputs audit the
+  declared account and can withdraw trust; they never cover a claim (D14, revised by D18 and D28).
+  Freshness follows
   compiler-resolved realization and evidence sites and conservatively falls back to complete files.
   A judgment whose inputs have changed is reported as
   `stale-judgment` rather than silently trusted — which is why a refactor invalidates prior
@@ -352,8 +375,8 @@ to evidence; conformance checking already compares an asserted architecture agai
 The claim to novelty is narrow, and only one part of it currently survives contact with evidence:
 **a claim quantified over a set of sites is not established by evidence about one site, however
 good that evidence is** — and per-scenario tracing structurally cannot notice the difference. That
-is demonstrated once, by its author, in `verification/trips/rider-view.md`. Everything beyond it is
-unmeasured.
+is demonstrated once, by its author, in
+`azimuth/model/trips/rider-view/verification.md`. Everything beyond it is unmeasured.
 
 ## What is not claimed
 

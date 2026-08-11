@@ -68,7 +68,7 @@ impl fmt::Display for Diag {
 /// Identifier charset, shared by spec, requirement and scenario ids.
 ///
 /// Lowercase kebab-case. Spec ids additionally admit `/` as a namespace separator — the slash is
-/// part of the id string, never derived from the filesystem (D11, specs/README.md).
+/// part of the id string, never derived from the filesystem (D11, azimuth/formats/spec.md).
 pub fn validate_id(id: &str, allow_slash: bool) -> Result<(), String> {
     if id.is_empty() {
         return Err("id is empty".into());

@@ -21,7 +21,7 @@ the fingerprint cannot tell a rewritten test from a renamed token.
 The fingerprint covers the claim text and the evidence files. **It does not cover the verification
 plan.**
 
-Measured: a `Scope: component` entry was added to `verification/trips/request.md` for
+Measured: a `Scope: component` entry was added to `azimuth/model/trips/request/verification.md` for
 `request-admitted-after-terminal`, changing that claim's required form from the inherited `unit`.
 The fingerprint before and after is byte-identical — `42dfddab6442d5f1` — and the verdict stayed
 `sound` without being re-examined.

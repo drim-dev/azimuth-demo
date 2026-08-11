@@ -7,8 +7,8 @@ namespace Trips.Tests;
 
 /// <summary>
 /// Claims whose truth needs nothing real. Under D15 that is exactly what <c>unit</c> means, and it
-/// is the default in <c>verification/standards.md</c> — raised per claim only where truth depends
-/// on persistence, concurrency, or composition.
+/// is the default in <c>azimuth/standards/verification.md</c> — raised per claim only where truth
+/// depends on persistence, concurrency, or composition.
 /// </summary>
 public sealed class MoneyTests
 {
@@ -53,7 +53,7 @@ public sealed class MoneyTests
 
     /// <summary>
     /// Currency agreement is checked at runtime, not in the type system — see the residue in
-    /// design/pricing/quote.md, which this test is the evidence for.
+    /// azimuth/model/pricing/quote/design.md, which this test is the evidence for.
     /// </summary>
     [Fact]
     public void Summing_a_mix_of_currencies_is_refused()

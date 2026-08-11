@@ -11,7 +11,7 @@ those propositions. The historical analysis follows.
 
 ## What was found
 
-Three entries in `design/` named mechanisms that do not exist:
+Three package design entries named mechanisms that do not exist:
 
 | Entry | Claimed | Actual |
 |---|---|---|

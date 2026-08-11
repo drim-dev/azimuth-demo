@@ -3,8 +3,8 @@
 Fixture-local. Every citation here points into this repo's corpus and carries no normative content —
 `SKILL.md` is complete without it. Delete this file when extracting the skill.
 
-Each case names a real judgment in `verification/judgments/`, so the reasoning can be read beside
-the code rather than taken on trust.
+Each case names a real package `judgments.md`, so the reasoning can be read beside the code rather
+than taken on trust.
 
 ## Shape A — derived enumeration
 
@@ -20,8 +20,8 @@ filter and the test still passes while every rider who completes a trip is locke
 
 The honest form is a loop over `TripStateMachine.States.Where(TripStateMachine.IsTerminal)` — **two
 cases, fewer than a hand-written table**, and universal anyway because a third terminal state
-arrives already covered. `design/trips/request.md` predicted this drift for future states; it was
-already true of the existing two.
+arrives already covered. `azimuth/model/trips/request/design.md` predicted this drift for future
+states; it was already true of the existing two.
 
 ## Shape B — generated space, computed oracle
 
@@ -78,16 +78,18 @@ was inflated.
 
 ## The refusal path, twice
 
-**`trips/dispatch#expired-offer-withdrawn`** — `verification/trips/dispatch.md` sets
+**`trips/dispatch#expired-offer-withdrawn`** —
+`azimuth/model/trips/dispatch/verification.md` sets
 `Quantification: example` with `Residual: offer expiry is checked at a single boundary instant, not
 across the range of clock skew…` and accepts it because *"clock-skew handling is not yet designed…
 inventing evidence for an undesigned mechanism would be worse than recording the gap."*
 
-**`trips/driver-view#rider-contact-confined-to-held-trips`** — `verification/trips/driver-view.md`
-drops to `example` with `Residual: the class is checked structurally; no test enumerates every
-driver-facing surface`, accepted because an enumeration of today's surfaces would restate the
-structural check and rot the day one is added. This is the missing-enumerator case from `SKILL.md`'s
-shape A, resolved by refusing rather than by hand-listing.
+**`trips/driver-view#rider-contact-confined-to-held-trips`** —
+`azimuth/model/trips/driver-view/verification.md` drops to `example` with `Residual: the class is
+checked structurally; no test enumerates every driver-facing surface`, accepted because an
+enumeration of today's surfaces would restate the structural check and rot the day one is added.
+This is the missing-enumerator case from `SKILL.md`'s shape A, resolved by refusing rather than by
+hand-listing.
 
 Both are plan entries. Neither is a tag.
 

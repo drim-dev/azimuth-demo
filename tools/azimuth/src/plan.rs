@@ -345,20 +345,9 @@ fn collect(dir: &Path, out: &mut Vec<PathBuf>) -> std::io::Result<()> {
     for entry in fs::read_dir(dir)? {
         let entry = entry?;
         let path = entry.path();
-        let name = path
-            .file_name()
-            .and_then(|n| n.to_str())
-            .unwrap_or_default()
-            .to_string();
-        // The agent tier's output lives under verification/ but is not a plan.
         if path.is_dir() {
-            if name != "judgments" {
-                collect(&path, out)?;
-            }
-        } else if path.extension().and_then(|e| e.to_str()) == Some("md")
-            && name != "README.md"
-            && name != "standards.md"
-        {
+            collect(&path, out)?;
+        } else if path.file_name().and_then(|n| n.to_str()) == Some("verification.md") {
             out.push(path);
         }
     }

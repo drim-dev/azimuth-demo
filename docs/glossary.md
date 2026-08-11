@@ -66,6 +66,11 @@ both sides of the relation.
 corners, what is absent and why. Outside the model, in no check, and underivable by anything.
 Named so that the design artifact does not become a dumping ground.
 
+**Facet owner** — whoever is accountable for the sufficiency and freshness of one facet in a
+particular organization. `Intent owner`, `mechanism owner` and `evidence owner` name
+accountabilities, not required job titles or exclusive authorship rights. Ownership is an optional
+layer outside the core model (D3.1, D30).
+
 ---
 
 ## Evidence
@@ -211,7 +216,8 @@ falsifier; they do not by themselves establish a fourth facet.
 
 **Change** — the temporal envelope from an accepted current model to a proposed target model.
 Carries intent deltas, solution design where needed, implementation work and verification
-obligations. Proposed facts do not become current facts until completion (D21).
+obligations. Proposed facts do not become current facts until completion (D21). A change is a
+semantic transition, not a Git branch, merge request, artifact, environment or rollout (D31).
 
 **Archive** — the immutable semantic record of a completed, rejected or abandoned change. A
 completed change updates the current facets before it is archived; a rejected or abandoned one
@@ -223,10 +229,14 @@ It gates the mechanical archive move and contains no authored risk decision.
 **Machine tier** — the deterministic checks. Finds structural holes. Cannot be argued with, and
 cannot establish truth.
 
+**Model package** — the physical directory `azimuth/model/<spec-id>/` anchored by `spec.md`, with
+optional sibling `design.md`, `verification.md` and `judgments.md`. Declared ids remain semantic
+identity; colocation is navigation and creates no assurance relation (D32).
+
 **Agent tier** — the judgment pass: does each realization site establish part of the predicate, is
-a test toothy, is its form tag honest, and is a required behaviour missing from the spec. A
-judgment never establishes the claim; its negative verdicts create holes and its fingerprint
-expires when a relation or source it examined changes (D18, D28).
+the covering evidence toothy, is its declared form honest, and is a required behaviour missing
+from the spec. A judgment never establishes the claim; its negative verdicts create holes and its
+fingerprint expires when a relation or source it examined changes (D18, D28, D30).
 
 **Export** — the derived model, serialized. Checks, dashboards, PR annotations and the agent tier
 are all consumers of it; nothing re-parses specs.
@@ -234,8 +244,9 @@ are all consumers of it; nothing re-parses specs.
 **Check** — one derivation over the model or over the code, with a stable public id. `rtm` is one
 check among several, not the product.
 
-**Change** — the unit in which intent, mechanism and evidence move together. The natural review
-boundary and the natural unit for the adoption ratchet.
+**Rollout** — exposure of an accepted artifact across environments or user populations. Normally
+outside the change model. A production observation enters change acceptance only when the proposal
+declared it necessary evidence before implementation (D31).
 
 **Steel thread** — one scenario carried end to end through every layer before any breadth, so
 that the fan-out exists in week one.

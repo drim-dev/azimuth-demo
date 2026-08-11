@@ -2,7 +2,7 @@
 
 **Status: three observations. The proposal that was here is decided as D19** *(revised — the file
 opened "one proposal and three observations; nothing here is decided", which stopped being true when
-the rename landed)*. Prompted by the agent-tier pass over `specs/trips/request.md`, which returned
+the rename landed)*. Prompted by the agent-tier pass over the `trips/request` package, which returned
 four `dishonest-tag` verdicts out of eight claims, every one of them on `Quantification`.
 
 Sections 1 and 2 are the argument D19 rests on and name the *old* value throughout, deliberately:
@@ -22,8 +22,8 @@ not, and `docs/framework.md`'s prior-art section does not currently name the fie
   address the general claim directly.
 - **Criticality → required evidence.** DO-178C maps DAL A–E to required verification objectives;
   assurance cases (GSN, ISO/IEC 15026-2) record structured argument from claim to evidence. This is
-  `verification/standards.md`'s ancestry, and it is stronger prior art than anything supporting the
-  quantification field itself.
+  `azimuth/standards/verification.md`'s ancestry, and it is stronger prior art than anything
+  supporting the quantification field itself.
 - **Oracle taxonomies.** Barr et al.'s oracle survey (IEEE TSE 2015) gives specified / derived /
   pseudo / metamorphic oracles, which the `Oracle` field maps onto closely. The `Oracle` field is
   better anchored in the literature than `Quantification` is.
@@ -65,9 +65,9 @@ The practical case for having the field at all, since "test critical things hard
 **Buys:**
 
 - **A baseline for a deviation to be recorded against.** `Residual:` needs something to be residual
-  *to*. `verification/trips/dispatch.md` can write "checked at a single boundary instant, not across
-  the range of clock skew" only because a stated form exists to fall short of. Without the field
-  that gap is untyped prose, or nothing.
+  *to*. `azimuth/model/trips/dispatch/verification.md` can write "checked at a single boundary
+  instant, not across the range of clock skew" only because a stated form exists to fall short of.
+  Without the field that gap is untyped prose, or nothing.
 - **A checkable sentence form.** "This test isn't thorough enough" is an opinion. "The tag says
   `invariant`; the test fixes every input and asserts `Be(1500)`" is a fact a reader can confirm
   without agreeing with the judge about anything. All five outstanding `dishonest-tag` verdicts have
@@ -101,7 +101,7 @@ pattern held for a third spec, on evidence written months apart. D18.1 already d
 form: **a standard that is expensive to satisfy honestly is cheap to satisfy dishonestly.**
 
 The `trips/rider-view` pass is the first to produce `spec-gap` verdicts, and they came from a
-different place: `design/` named a mechanism and a failure mode that no scenario describes, so no
+different place: a design named a mechanism and a failure mode that no scenario describes, so no
 evidence was ever required for it. That is the mechanism facet doing the job D3 claims for it — weak
 evidence, one spec, but it is the first time the second facet has caught something the other two
 could not.
@@ -150,10 +150,10 @@ which is the wrong-axis failure `azimuth-cover` predicts.
 ### 6.2 Why a field is the wrong shape for it
 
 **The axis is already in the model.** It is the quantifier phrase in the WHEN — "any further ride
-request", "has reached a terminal state", "delivered more than once" — and `specs/README.md` already
-requires the WHEN to quantify rather than instantiate. A field on the evidence declaring the axis
-would be a second copy of what the spec states, which is the drift `verification/README.md` refuses
-for evidence lists (D4.5).
+request", "has reached a terminal state", "delivered more than once"—and
+`azimuth/formats/spec.md` already requires the WHEN to quantify rather than instantiate. A field on
+the evidence declaring the axis would be a second copy of what the spec states, which is the drift
+`azimuth/formats/verification.md` refuses for evidence lists (D4.5).
 
 **What is missing is a comparison, not a fact.** Did the test's variation match the claim's
 quantifier? That is the shape of `wrong-form`: computed from two artifacts, not declared in one.

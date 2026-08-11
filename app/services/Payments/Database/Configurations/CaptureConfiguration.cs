@@ -41,7 +41,7 @@ public sealed class CaptureConfiguration : IEntityTypeConfiguration<Capture>
         // payments/capture#captured-once. Two workers processing the same completion both read "no
         // capture"; this is what actually holds the line, against paths that did not exist when it
         // was written. Partial, because a voided capture stays as a row so that a disputed trip's
-        // history is legible — see the residue in design/payments/capture.md.
+        // history is legible — see the residue in azimuth/model/payments/capture/design.md.
         builder.HasIndex(c => c.TripId)
             .IsUnique()
             .HasFilter("NOT voided")

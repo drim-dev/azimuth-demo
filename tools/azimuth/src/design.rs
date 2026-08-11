@@ -191,9 +191,7 @@ fn collect(dir: &Path, out: &mut Vec<PathBuf>) -> std::io::Result<()> {
         let path = entry.path();
         if path.is_dir() {
             collect(&path, out)?;
-        } else if path.extension().and_then(|e| e.to_str()) == Some("md")
-            && path.file_name().and_then(|n| n.to_str()) != Some("README.md")
-        {
+        } else if path.file_name().and_then(|n| n.to_str()) == Some("design.md") {
             out.push(path);
         }
     }

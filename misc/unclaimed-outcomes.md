@@ -26,9 +26,9 @@ is the refusal codes: the thing a client branches on.
 member of a site class that discharges nothing.
 
 **It needs no new artifact type and no spec change.** In particular, scenarios must not start naming
-error codes — `specs/README.md` requires them to be declarative, "THEN the request is rejected", not
-mechanical. The linkage already exists in the other direction: `Realizes` on the member that emits
-the outcome. `RequestRide.RequestHandler.Handle` carries eight `Realizes` tags and emits four
+error codes—`azimuth/formats/spec.md` requires them to be declarative, "THEN the request is
+rejected", not mechanical. The linkage already exists in the other direction: `Realizes` on the
+member that emits the outcome. `RequestRide.RequestHandler.Handle` carries eight `Realizes` tags and emits four
 refusals, so its outcomes are claimed. `Common/Exceptions/DomainExceptionHandler` emits
 `validation:request:validate:invalid` and carries none, so that outcome is claimed by nothing —
 which is exactly the question that started this.

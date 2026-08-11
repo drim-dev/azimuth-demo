@@ -1,13 +1,13 @@
 //! The agent tier's output.
 //!
 //! D14 said agent judgments are evidence items. Implementing it showed that reading is wrong: a
-//! judgment that a test is toothy is not independent evidence *of* a claim — treat it as such and a
-//! claim with no tests but a judgment becomes covered, which is nonsense.
+//! judgment that a test is toothy is not independent evidence *of* a claim — treat it as such and
+//! a claim with no tests but a judgment becomes covered, which is nonsense.
 //!
 //! A judgment audits the claim's declared account. It qualifies covering evidence and realization
 //! relations, and its value is negative: it can take a claim that looks complete and report it as a
-//! hole. That is the seam the machine tier cannot reach — the machine makes structure checkable, it
-//! does not make truth checkable, and a tag is only as honest as whoever wrote it.
+//! hole. That is the seam the machine tier cannot reach — the machine makes structure checkable,
+//! it does not make truth checkable, and a tag is only as honest as whoever wrote it.
 //!
 //! Freshness is a fingerprint over everything the judgment looked at. Compiler-resolved evidence
 //! and realization sites are isolated from unrelated edits in a shared file; inputs without a
@@ -24,7 +24,7 @@ const LABELS: &[&str] = &["Verdict", "Fingerprint", "Judged", "Judge"];
 pub enum Verdict {
     /// The evidence discriminates, and the tags describe it honestly.
     Sound,
-    /// Tests exist and pass, but would also pass against an implementation that is wrong.
+    /// Evidence exists and reads as passing, but would also pass against a system that is wrong.
     Toothless,
     /// A tag declares a stronger form than the test actually has.
     DishonestTag,
@@ -107,6 +107,15 @@ impl FingerprintInput {
         Self {
             role: FingerprintInputRole::Context,
             identity: path.to_string(),
+            file: path.to_string(),
+            source_fingerprint: None,
+        }
+    }
+
+    pub fn model_artifact(facet: &str, id: &str, path: &str) -> Self {
+        Self {
+            role: FingerprintInputRole::Context,
+            identity: format!("{facet}/{id}.md"),
             file: path.to_string(),
             source_fingerprint: None,
         }
@@ -216,9 +225,7 @@ fn collect(dir: &Path, out: &mut Vec<PathBuf>) -> std::io::Result<()> {
         let path = entry.path();
         if path.is_dir() {
             collect(&path, out)?;
-        } else if path.extension().and_then(|e| e.to_str()) == Some("md")
-            && path.file_name().and_then(|n| n.to_str()) != Some("README.md")
-        {
+        } else if path.file_name().and_then(|n| n.to_str()) == Some("judgments.md") {
             out.push(path);
         }
     }
@@ -416,6 +423,35 @@ mod fingerprint_tests {
 
         assert_ne!(before, fingerprint("claim", vec![input]));
         fs::remove_file(path).unwrap();
+    }
+
+    #[test]
+    fn moving_a_model_artifact_preserves_its_fingerprint() {
+        let first = temporary_file();
+        let second = temporary_file();
+        fs::write(&first, "same model content").unwrap();
+        fs::write(&second, "same model content").unwrap();
+
+        let before = fingerprint(
+            "claim",
+            vec![FingerprintInput::model_artifact(
+                "design",
+                "alpha/beta",
+                &first.display().to_string(),
+            )],
+        );
+        let after = fingerprint(
+            "claim",
+            vec![FingerprintInput::model_artifact(
+                "design",
+                "alpha/beta",
+                &second.display().to_string(),
+            )],
+        );
+
+        assert_eq!(before, after);
+        fs::remove_file(first).unwrap();
+        fs::remove_file(second).unwrap();
     }
 
     #[test]

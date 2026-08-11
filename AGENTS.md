@@ -19,20 +19,23 @@ same skills through symlinks under `.claude/skills/`.
 | `AGENTS.md` | canonical repository instructions for coding agents |
 | `.agents/skills/` | canonical Agent Skills; `.claude/skills/` holds compatibility symlinks |
 | `docs/framework.md` | what the framework *is*, as it currently stands. Derived; start here. |
-| `docs/decisions.md` | numbered decisions D1–D21, with rationale and consequences. Authoritative. |
+| `docs/decisions.md` | decisions D1–D32 and their rationale. Authoritative. |
 | `docs/concern-catalog.md` | 18 cross-cutting concerns from the domain; the evidence the design was drawn from |
 | `docs/glossary.md` | bounded definitions. Authoritative for terminology. |
 | `docs/status.md` | the decisions checked against their own falsifiers. Two have fired. |
-| `specs/` | the intent facet. `specs/README.md` is the parser contract. |
-| `design/` | the mechanism facet (D3). `design/README.md` is the format and the enforcement ladder. |
-| `verification/` | the evidence facet (D3). `verification/standards.md` maps criticality to required evidence. |
-| `changes/` | experimental current-to-target change lifecycle and archive |
+| `docs/change-process.md` | operating guidance for change delivery, evidence work and rollout |
+| `azimuth/README.md` | artifact layout and model-package discovery contract |
+| `azimuth/model/` | accepted intent, mechanism, evidence and judgment packages |
+| `azimuth/formats/` | parser contracts for the three facets and agent judgments |
+| `azimuth/standards/verification.md` | evidence required by criticality |
+| `azimuth/changes/` | experimental current-to-target change lifecycle and archive |
 | `tools/azimuth/README.md` | what the tool checks today, and what it does not check yet |
 
-The three facets are `specs/`, `design/` and `verification/`. Criticality decides which of them a
-claim owes (D6.5, D20): a routine claim deliberately stops at intent and owes no tags. An
-untagged test is ordinary project evidence outside Azimuth's model, not an exemption or a hole.
-`verification/standards.md` answers what evidence a standard or critical claim requires.
+The three facets are sibling `spec.md`, `design.md` and `verification.md` files under a package in
+`azimuth/model/`; `judgments.md` holds the agent tier. Criticality decides which files a claim owes
+(D6.5, D20): a routine claim deliberately stops at intent and owes no tags. An untagged test is
+ordinary project evidence outside Azimuth's model, not an exemption or a hole. The project-level
+`azimuth/standards/verification.md` answers what evidence a standard or critical claim requires.
 
 Read `docs/decisions.md` before proposing anything structural. Most questions that look open have
 been decided, and several have been decided *and revised* — the revision history is deliberate and

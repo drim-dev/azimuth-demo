@@ -233,7 +233,7 @@ the evidence exists, per the method.
 
 #### M15 — Proxy contact numbers through a communications choke point
 
-- **Concerns.** C2 — the worked example in `design/README.md` for one rule held up by *two*
+- **Concerns.** C2 — the worked example in `azimuth/formats/design.md` for one rule held up by *two*
   mechanisms (a choke point and a representation constraint). The corpus has no instance of a
   multi-mechanism entry, so the format's own illustrating case is unexercised.
 - **Scale.** A communications service exceeds D1's 3–4 service cap. Build it as a module inside

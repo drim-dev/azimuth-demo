@@ -28,8 +28,9 @@ about named members.** Not because the tests are weak. Because naming is how tes
 ## Why this is not fatal to the claim
 
 The class *is* derived elsewhere. Membership comes from `Realizes` tags, and `invariant-breach`
-reports a member that discharges nothing (D13.1, D13.2). And `design/trips/rider-view.md` carries
-two mechanisms at the top of the enforcement ladder: `DriverPosition` has no serializer, and no
+reports a member that discharges nothing (D13.1, D13.2). The package design at
+`azimuth/model/trips/rider-view/design.md` carries two mechanisms at the top of the enforcement
+ladder: `DriverPosition` has no serializer, and no
 rider-facing route returns a position at all.
 
 So the claim's universality is real and it rests on **the derived enumerator plus the mechanism**,

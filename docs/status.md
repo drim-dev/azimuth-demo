@@ -83,9 +83,9 @@ falsifier, and it is still open.
 ## What was actually demonstrated
 
 **The site-class result, and it is the only strong one.** The residual in
-`verification/trips/rider-view.md` predicted, before any application code existed, that a new
-rider-reachable surface would satisfy every behavioural claim and leak anyway. Slice 2 built the
-receipt; the matrix reported 23 errors before and 23 after. The invariant designed against that
+`azimuth/model/trips/rider-view/verification.md` predicted, before any application code existed,
+that a new rider-reachable surface would satisfy every behavioural claim and leak anyway. Slice 2
+built the receipt; the matrix reported 23 errors before and 23 after. The invariant designed against that
 evidence found all seven sites in the class and named the three that leaked.
 
 That is a pre-registered prediction, confirmed, catching a real privacy defect that would have
@@ -110,8 +110,8 @@ and that the action was verifiable — the weakest link in a self-declared syste
 is unfalsifiable, and here it was not. It is *not* a defect found: every mutation was injected by
 the same author, the implementation was correct before and after, and the currency of the ceremony
 falsifier is defects the framework caught in the product. Two of the three mutations correspond to
-drift `design/trips/request.md` predicted in writing, which is the closest this gets to a real
-failure mode, and it is still not one.
+drift `azimuth/model/trips/request/design.md` predicted in writing, which is the closest this gets
+to a real failure mode, and it is still not one.
 
 ## What is compromised about all of it
 
@@ -138,8 +138,9 @@ than an artifact of having designed the fixture to have them.
 - **`invariant-breach` verifies the weakest rung of the enforcement ladder** — a guard at every
   site. A choke point every member routes through would report N−1 breaches, which is exactly the
   defect D7 names in the alpha. Crediting one needs call-graph analysis in the extractor (D10.1).
-- **The quotes table was not split** with the pricing service. `design/trips/request.md` predicted
-  this would be the first thing to break, and it is.
+- **The quotes table was not split** with the pricing service.
+  `azimuth/model/trips/request/design.md` predicted this would be the first thing to break, and it
+  is.
 - **The criticality mechanism is not working** on current evidence, and no counter-pressure was
   ever built (D6.6 decided that there must be one and left the mechanism open).
 
@@ -167,7 +168,7 @@ column alone.
 **Still stale:**
 
 - **"The quotes table was not split."** Still true, and the storage layer it describes is EF Core
-  now, not hand-written SQL — so `design/` prose naming plain migrations as the mechanism behind two
+  now, not hand-written SQL—so design prose naming plain migrations as the mechanism behind two
   critical requirements is itself stale. Confirmed by the `trips/request` pass, which found the plan
   entry for `request-rejected-with-unknown-quote` demanding a contract oracle for a service boundary
   that does not exist.
@@ -185,10 +186,10 @@ passes" without changing its verdict, because more self-judging is more of the s
 ## Decisions after this measurement
 
 D20 and D21 were decided on 2026-08-07 after the counts above: routine claims now stop at intent,
-untagged tests are outside the evidence model, and changes/archive form the transition around the
-three current-state facets. None is implemented in the tool, and none changes the measurements in
-this document. The first feature will run the provisional protocol in `changes/README.md` manually
-before notation or automation is added.
+untagged tests are outside the evidence model, and `azimuth/changes/archive` forms the transition
+around the three current-state facets. None is implemented in the tool, and none changes the
+measurements in this document. The first feature will run the provisional protocol in
+`azimuth/changes/README.md` manually before notation or automation is added.
 
 ## Update after two validating changes *(2026-08-08; supersedes the stale implementation notes)*
 
@@ -397,3 +398,41 @@ Every stale claim was re-read with its realization sources. The two corrected pr
 now `sound`, all **69 standard or critical claims carry current sound judgments**, and the two
 routine claims remain intentionally unjudged. The current repository check reports **71 claims,
 zero holes, zero errors and zero warnings**.
+
+## Update after operating-model clarification *(2026-08-11)*
+
+D30 separates facet accountability from artifact authorship. D31 separates a semantic change from
+Git integration and production rollout. `docs/change-process.md` composes the resulting protocol
+over a refunds example, including manual receipts, operational detectors, judgment order,
+immutable artifacts and corrective changes.
+
+This is documentation, not validating evidence. No multi-person team exercised the capability
+split, no multi-repository change tested the branch guidance, and no production canary tested the
+archive boundary. D30 is falsified operationally if “evidence owner” becomes a downstream QA
+queue without authority or technical capability. D31 is falsified if active-but-applied changes
+routinely remain open for rollout state, showing that rollout needs an explicit model. Both
+remain predictions for external adoption rather than results of this fixture.
+
+## Update after model-package migration *(2026-08-11)*
+
+D32 colocates the four readable parts of one assurance account under
+`azimuth/model/<spec-id>/`. The tool now discovers exact sibling names, keeps `spec.md` mandatory
+and the other facets optional, warns when declared identity and navigation diverge, and reads
+verification policy from `azimuth/standards/verification.md`.
+
+The migration exposed a real defect in freshness semantics: model-document paths were part of
+judgment fingerprints, so moving unchanged artifacts initially staled all 83 existing verdicts.
+Model documents now carry stable facet/spec fingerprint identities while their current paths are
+used to read content. A synthetic relocation test prevents regression. Path-reference edits inside
+fingerprinted prose correctly staled 24 verdicts; they were re-read as referential-only changes and
+refreshed through the ordinary agent-tier worklist.
+
+After normalizing physical path, line, timestamp and fingerprint fields, the pre- and post-move
+exports are byte-for-byte equal. The current check retains **87 claims in 10 specs**, all
+non-routine judgments are current, and the model reports **zero holes, zero errors and zero
+warnings**. Four package tests establish spec-only routine packages, optional sibling discovery,
+path-independent declared identity and navigation warnings for misplaced facets.
+
+This validates semantic preservation and basic discovery, not repository ergonomics. D32 remains
+falsifiable if real contributors treat packages as miscellaneous feature folders, infer relations
+from proximity or duplicate cross-cutting mechanisms to keep them locally visible.

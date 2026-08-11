@@ -114,7 +114,7 @@ tools/azimuth/     core: spec reader, model derivation, checks, CLI. No domain k
 tools/extractors/  per-language tag extraction → common manifest JSON
 packages/          annotations, per language, published-shaped from day one
 app/               the demo — services, BFFs, web, mobile
-specs/             specs, designs, verification plans
+azimuth/model/     colocated spec, design, verification and judgment packages
 docs/              catalog, decisions, design notes
 .agents/skills/    agent tier: verify pass, spec authoring, tagging
 .claude/skills/    per-skill compatibility symlinks for Claude Code
@@ -792,8 +792,9 @@ reading.
 
 **Slice 2 carries the prediction.** A receipt view that includes a position field should satisfy
 every claim in `trips/rider-view` while violating the rule that spec exists to express. The
-residual in `verification/trips/rider-view.md` records this in advance; slice 2 is where it is
-tested. If the matrix stays green, that is the primary evidence for what notation to add next.
+residual in `azimuth/model/trips/rider-view/verification.md` records this in advance; slice 2 is
+where it is tested. If the matrix stays green, that is the primary evidence for what notation to
+add next.
 
 ### D16.3 — What is deliberately not in slice 1
 
@@ -859,9 +860,10 @@ Implementing it showed that reading is wrong — treat a judgment as evidence *o
 claim with no tests but a judgment becomes covered, which is nonsense. The agent tier's value was
 never that it can add evidence; it is that it can withdraw belief in evidence that exists.
 
-**Verdicts.** `sound` · `toothless` (the evidence would also pass against a wrong implementation) ·
-`dishonest-tag` (the declared form overstates the test) · `spec-gap` (the code is right, the test
-is toothy, and a reader would still be surprised).
+**Verdicts.** `sound` · `toothless` (the evidence would also read as passing against a wrong
+system) · `dishonest-tag` (the declared form overstates the evidence) · `spec-gap` (the code is
+right, the evidence is toothy, and a reader would still be surprised). D30 later makes the
+evidence-wide reading explicit; the original implementation exercised automated tests first.
 
 **Freshness is a fingerprint** over the claim text, effective verification requirements, covering
 evidence, applicable design file and source files of its machine bindings. *(revised twice
@@ -966,7 +968,7 @@ rewriting it would make the record agree with the present at the cost of being f
 file carrying evidence for it, at file granularity. Editing 64 `covers` tags — 47 C# and 17
 TypeScript — changed nothing semantic and staled **8 of 18 judgments**: `stale-judgment` went from
 10 to 18, and every judgment in the repo is now stale. The 6 live agent-tier verdicts in
-`verification/judgments/trips/request.md` (4 `dishonest-tag`, 2 `toothless`) stopped being reported
+`azimuth/model/trips/request/judgments.md` (4 `dishonest-tag`, 2 `toothless`) stopped being reported
 as verdicts and are reported as staleness instead.
 
 This is D18 behaving as specified — "it over-invalidates, and that is the safe direction" — and it
@@ -1031,8 +1033,8 @@ current model + change deltas = proposed target model
 
 `azimuth check` continues to mean the accepted state. A future change-aware check evaluates the
 target projection and distinguishes planned work from a regression. A mechanism named only in a
-change is planned and may be absent; a mechanism in `design/` is current and must exist. This is the
-boundary that prevents solution design from becoming the design fiction already found in the
+change is planned and may be absent; a mechanism in current package `design.md` must exist. This is
+the boundary that prevents solution design from becoming the design fiction already found in the
 corpus.
 
 ### D21.1 — Criticality changes preserve claim identity
@@ -1050,9 +1052,9 @@ Otherwise a verdict reached against a weaker standard can survive a raise and re
 
 ### D21.2 — Change design and current design have different lifetimes
 
-**Decision.** `changes/<id>/design.md` may describe alternatives, planned architecture, allocation
-across components and implementation sequencing. `design/<spec-id>.md` describes only mechanisms
-that currently exist and support accepted claims. Archiving preserves the former as decision
+**Decision.** `azimuth/changes/<id>/design.md` may describe alternatives, planned architecture,
+allocation across components and implementation sequencing. Current package `design.md` describes
+only mechanisms that exist and support accepted claims. Archiving preserves the former as decision
 history and distils the latter from what was actually built.
 
 A design may fan out **verification obligations**, never evidence. Evidence exists only after a
@@ -1377,6 +1379,129 @@ may compare request, response, persisted state and an external call gathered for
 the evidence deliberately changes an input or environment and compares the source and follow-up
 executions, it is metamorphic. If a separate reference function supplies the exact answer, it is
 model-based.
+
+---
+
+## D30 — Facet ownership is accountability, not exclusive authorship *(decided 2026-08-11)*
+
+**Decision.** Operating guidance names `intent owner`, `mechanism owner` and `evidence owner`.
+Analyst, developer and QA remain a common mapping, never a required role topology. An owner is
+accountable for the sufficiency and freshness of a facet; the term grants no exclusive right or
+duty to author every artifact that contributes to it. This makes D3.1's optional ownership layer
+usable without turning its illustrative role triad into the model.
+
+**Why authorship does not follow the file type.** Automated test code is software and needs
+engineering review, but it implements the evidence facet rather than the product mechanism. A
+developer may implement it from an evidence requirement; a quality engineer with sufficient code
+fluency may implement it directly or direct an agent; both may review different failure modes.
+Likewise an SRE may operate a detector while the evidence owner remains accountable for whether it
+detects the claimed violation (D12).
+
+The inverse boundaries matter too. The evidence owner cannot silently redefine product intent
+while selecting an oracle, and the mechanism owner cannot be the only authority on whether
+evidence for that mechanism is sufficient. In a one-person team the accountabilities collapse to
+one author but remain separate review questions, preserving D3's N=1 constraint.
+
+**Agent consequence.** An agent is an authoring and review instrument, not a fourth facet owner.
+Delegation is sound only when the accepting person can inspect the output at the level the task
+requires. “The agent wrote it and it passes” establishes neither implementation correctness nor
+evidence toothiness.
+
+**Capability consequence, not a job schema.** Evidence ownership extends beyond downstream test
+execution to risk and criticality analysis, test and oracle design, code and CI literacy, manual
+observation, detector adequacy, production diagnosis and evidence freshness. It predicts a move
+from narrow test execution toward quality or software-assurance engineering as implementation
+volume grows. The framework does not require every evidence owner to build every harness; it
+requires the team to possess the capabilities and assign the accountability.
+
+**What would falsify it.** The distinction is theatre if findings still route to “QA” without a
+person able to change tests, telemetry or release decisions, or if developers can treat an
+evidence owner as a downstream queue and disclaim quality. It is also too weak if a critical
+change can be accepted without anyone able to review agent-generated evidence beyond its passing
+status.
+
+---
+
+## D31 — A change is neither a Git branch nor a rollout *(decided 2026-08-11)*
+
+**Decision.** An Azimuth change is the semantic transition already defined by D11 and D21. It has
+no required one-to-one relation with branches, merge requests, repositories, artifacts,
+environments or release trains. Packages under `azimuth/model/` describe the accepted behaviour of
+the current codebase; they do not claim that every production instance or user cohort already runs
+it.
+
+**Default operating boundary.** Several short-lived work-package branches may contribute to one
+change, and one release may carry several accepted changes. Production receives an immutable,
+reviewed artifact built from protected mainline or an established release-candidate commit, not a
+mutable developer branch. The same artifact is promoted across environments; feature flags,
+configuration or traffic routing govern exposure.
+
+Archive normally follows engineering acceptance and pre-production evidence, before limited
+production exposure. A canary metric or production observation is detection or rollout evidence,
+not automatically a condition for accepting the source transition. If production observation is
+genuinely necessary to establish a claim, the proposal names it as a completion condition before
+implementation; the change may then remain `implemented, rollout acceptance pending` until an
+attributable result is imported and the affected judgment refreshed.
+
+**Why the separation matters.** Equating a change with a branch makes multi-repository behaviour
+have no owner and makes branch deletion erase the semantic record. Equating archive with universal
+rollout turns the archive into a release tracker, leaves completed code changes active behind
+long-lived flags and makes product deployment policy a framework primitive. Neither relation is
+needed to derive the current-to-target model.
+
+**Failure after archive.** Production can refute an accepted assurance account. The response is a
+new corrective, rollback or criticality change; the archived transition remains the record of what
+was accepted and why. Rewriting it would destroy the evidence a post-mortem needs.
+
+**What would falsify it.** If real changes routinely cannot be judged before production exposure,
+or active-but-applied changes routinely wait on rollout for weeks, the default boundary is wrong.
+Rollout state would then need an explicit model rather than another prose status. One exceptional
+canary gate does not establish that need.
+
+---
+
+## D32 — Facets are logically separate and physically colocated *(decided 2026-08-11)*
+
+**Decision.** Accepted artifacts live in packages under `azimuth/model/<spec-id>/`. `spec.md` is
+the package anchor; optional sibling files are `design.md`, `verification.md` and `judgments.md`.
+The project evidence policy lives at `azimuth/standards/verification.md`, change history at
+`azimuth/changes/`, and parser contracts at `azimuth/formats/`.
+
+A package is not a four-file template. Criticality and non-derivable content continue to determine
+which siblings exist: routine intent normally has only `spec.md`; standard intent may need neither
+design nor a plan; critical intent owes design and, when the agent tier is in use, current
+judgments. Empty placeholders are forbidden because they erase the difference between “the
+standard applies” and “a special artifact says something.”
+
+**Identity remains declared.** Every facet declares its spec id. The directory is a navigation and
+ownership convention, never semantic identity. A mismatch or a facet outside the anchor spec's
+package is a warning. Tags, joins and selection continue to use ids. Judgment fingerprints assign
+model documents stable facet/spec identities and read content from their current paths, so moving
+unchanged packages does not manufacture staleness while editing their content still does.
+
+**Colocation does not assert one-to-one semantics.** A design may contain several mechanisms for a
+requirement; one mechanism may need realization and evidence across many sites; one scenario may
+fan out across several components. Those relations remain explicit in declarations, bindings and
+tags. Directory proximity supplies no coverage edge. Reusable authentication, circuit-breaking or
+rate-limiting controls receive concern-oriented packages rather than copies in every business
+package; proving their application across consumers remains the composition problem recorded in
+D27.
+
+**Why.** The mirrored facet trees made one assurance account require four navigation operations
+and made the lightweight routine path look more ceremonial than it is. A package lets a person or
+agent load one bounded domain context while retaining D3's separate questions. Reserving exact
+sibling filenames also lets unrelated notes coexist without entering the parser.
+
+**Validation.** The repository migration retained 87 claims in 10 specs, all current judgments and
+a hole-free check. Synthetic discovery tests establish spec-only packages, optional siblings,
+declared identity despite path mismatch, navigation warnings for misplaced facets and
+path-independent model-artifact fingerprints. The emitted model changes only physical source paths
+when those fields are normalized.
+
+**What would falsify it.** The layout is worse if packages routinely become miscellaneous feature
+folders, if contributors infer assurance relations from sibling files, or if cross-cutting controls
+must be duplicated to preserve discoverability. It is also too rigid if a real spec needs several
+files within one facet rather than a split into independently named specs.
 
 ---
 

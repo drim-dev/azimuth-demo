@@ -35,7 +35,7 @@ falsifiers ahead of results.
 evidence, here is why the evidence supports it, and here is what is left uncovered*. Residuals,
 criticality tiers and per-level evidence standards all exist here already.
 
-- **GSN Community Standard** — free, and the applied vocabulary closest to `verification/`.
+- **GSN Community Standard** — free, and the applied vocabulary closest to Azimuth's evidence facet.
 - **Leveson, *Engineering a Safer World*** — free PDF from MIT Press. Also a sustained attack on
   assurance practices that produce confidence without grounds, which is the failure mode this
   framework is most exposed to.

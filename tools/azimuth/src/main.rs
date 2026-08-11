@@ -26,9 +26,8 @@ CHECKS
     rtm     claims against the code and evidence that reference them
 
 OPTIONS
-    --specs <dir>          spec root (default: specs)
-    --verification <dir>   verification plans (default: verification)
-    --design <dir>         design artifacts (default: design)
+    --model <dir>          current model packages (default: azimuth/model)
+    --standards <file>     evidence standards (default: azimuth/standards/verification.md)
     --manifest <file>      a linkage manifest; repeatable
     --only <pattern>       restrict to spec ids; `billing/**` or an exact id; repeatable
     --out <file>           export destination (default: stdout)
@@ -50,9 +49,8 @@ fn main() -> ExitCode {
 }
 
 struct Options {
-    specs: PathBuf,
-    verification: PathBuf,
-    design: PathBuf,
+    model: PathBuf,
+    standards: PathBuf,
     manifests: Vec<PathBuf>,
     only: Vec<String>,
     out: Option<PathBuf>,
@@ -105,9 +103,8 @@ fn command_change(args: &[String]) -> Result<ExitCode, String> {
     }
     let options = parse_options(&option_args)?;
     let loaded = match azimuth::load(
-        &options.specs,
-        &options.verification,
-        &options.design,
+        &options.model,
+        &options.standards,
         &options.manifests,
         &options.only,
     ) {
@@ -283,9 +280,8 @@ fn valid_date(value: &str) -> bool {
 
 fn parse_options(args: &[String]) -> Result<Options, String> {
     let mut o = Options {
-        specs: PathBuf::from("specs"),
-        verification: PathBuf::from("verification"),
-        design: PathBuf::from("design"),
+        model: PathBuf::from("azimuth/model"),
+        standards: PathBuf::from("azimuth/standards/verification.md"),
         manifests: Vec::new(),
         only: Vec::new(),
         out: None,
@@ -300,16 +296,12 @@ fn parse_options(args: &[String]) -> Result<Options, String> {
                 .ok_or_else(|| format!("`{name}` needs a value"))
         };
         match arg.as_str() {
-            "--design" => {
-                o.design = PathBuf::from(value("--design")?);
+            "--model" => {
+                o.model = PathBuf::from(value("--model")?);
                 i += 2;
             }
-            "--verification" => {
-                o.verification = PathBuf::from(value("--verification")?);
-                i += 2;
-            }
-            "--specs" => {
-                o.specs = PathBuf::from(value("--specs")?);
+            "--standards" => {
+                o.standards = PathBuf::from(value("--standards")?);
                 i += 2;
             }
             "--manifest" => {
@@ -348,9 +340,8 @@ fn report(diags: &[Diag], label: &str) {
 
 fn command_check(options: Options) -> Result<ExitCode, String> {
     let loaded = match azimuth::load(
-        &options.specs,
-        &options.verification,
-        &options.design,
+        &options.model,
+        &options.standards,
         &options.manifests,
         &options.only,
     ) {
@@ -429,9 +420,8 @@ fn command_check(options: Options) -> Result<ExitCode, String> {
 /// Lists claims and their current fingerprints — the agent tier's worklist.
 fn command_judge(options: Options) -> Result<ExitCode, String> {
     let loaded = match azimuth::load(
-        &options.specs,
-        &options.verification,
-        &options.design,
+        &options.model,
+        &options.standards,
         &options.manifests,
         &options.only,
     ) {
@@ -475,9 +465,8 @@ fn command_judge(options: Options) -> Result<ExitCode, String> {
 
 fn command_export(options: Options) -> Result<ExitCode, String> {
     let loaded = match azimuth::load(
-        &options.specs,
-        &options.verification,
-        &options.design,
+        &options.model,
+        &options.standards,
         &options.manifests,
         &options.only,
     ) {

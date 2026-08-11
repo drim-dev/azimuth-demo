@@ -15,7 +15,8 @@ namespace Trips.Domain;
 /// <para>
 /// What this does <em>not</em> do is constrain a new endpoint that reaches for the raw position
 /// from the driver service directly. The type protects one path, not the class of all
-/// rider-reachable paths. That gap is the residual in verification/trips/rider-view.md, and the
+/// rider-reachable paths. That gap is the residual in
+/// azimuth/model/trips/rider-view/verification.md, and the
 /// steel thread exists partly to find out whether the matrix notices it.
 /// </para>
 /// </remarks>

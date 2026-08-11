@@ -10,7 +10,8 @@ honest as whoever wrote it, and an agent can write a toothless test and tag its 
 This pass is what keeps the self-declaration honest, and without it a green matrix is a
 self-certification.
 
-Your output is a judgment per claim, recorded in `verification/judgments/<spec-id>.md`.
+Your output is a judgment per claim, recorded in the spec package's `judgments.md` under
+`azimuth/model/<spec-id>/`.
 
 ## Worklist
 
@@ -25,12 +26,16 @@ verdict, so the verdict no longer applies even if it still reads true.
 
 ## What to examine, per claim
 
-1. **Read the claim** in `specs/`, and the required form in `verification/`.
+1. **Read the claim** in package `spec.md`, and the required form in sibling `verification.md` or
+   the project standard.
 2. **Read every realization site.** For each `Realizes` relation, state which part of the claim
    predicate the site establishes. Participation in the call path, transport of arbitrary data or
    use of a related mechanism is insufficient. A site that establishes no part of the predicate is
    a **dishonest-realization**.
-3. **Read every covering test** in the evidence files. Not the name — the body.
+3. **Read every covering evidence item.** For an automated test, read the body rather than its
+   name. For an imported manual result, read the linked procedure, execution identity and
+   observations rather than trusting `passed`. For detection evidence, read the metric producer,
+   detector expression, detector test and silent-death account.
 4. **Check the design entry against the source.** A `Site:` is prose and nothing parses it, so it
    can name a type nobody wrote. Open the file it names before believing it. Three entries in this
    corpus described mechanisms that do not exist, and two verdicts were wrong because a judge cited
@@ -38,12 +43,14 @@ verdict, so the verdict no longer applies even if it still reads true.
 5. **Ask, in order:**
    - *Does every realization site establish part of this predicate?* If not, it is a
      **dishonest-realization**, even when another site makes the overall claim true.
-   - *Would this test fail against a plausible wrong implementation?* Construct one mentally: delete
-     the guard, drop the constraint, return a constant. If the test still passes, it is
-     **toothless**.
-   - *Does the test do what its tag claims?* A tag saying `universal` on a test with one hard-coded
-     case is a **dishonest-tag**, however true the case is. So is `component` on a test that never
-     touches the real store.
+   - *Would this evidence discriminate a plausible wrong system?* Construct one mentally: delete
+     the guard, drop the constraint, return a constant, make the manual state ambiguous, or stop
+     the metric producer. If the evidence still reads as passing, it is **toothless**.
+   - *Does the evidence do what its declaration claims?* A tag saying `universal` on a test with
+     one hard-coded case is a **dishonest-tag**, however true the case is. So is `component` on a
+     test that never touches the real store, or `e2e` on a manual result executed against a mock.
+     Detection is a claim about learning of a violation and must not be credited as proof that the
+     production property holds.
    - *Does the claim describe the behaviour that matters?* If the code is right, the test is toothy,
      and a reader would still be surprised by something the spec never says, that is a **spec-gap**.
 6. Only if none of those fire is the verdict **sound**.
@@ -55,6 +62,13 @@ verdict, so the verdict no longer applies even if it still reads true.
   consequence is usually toothless.
 - **A test that never constructs the failure case is toothless**, even when the claim is true. A
   cancellation claim verified without ever cancelling anything is the common shape.
+- **A manual charter is not a result.** Only an attributable, passed, unexpired receipt enters the
+  model. If its linked case, procedure or observations cannot be inspected, the machine can
+  establish attribution and freshness but this pass cannot responsibly call it toothy.
+- **An alert name is not operational evidence.** Inspect the metric semantics, rule expression,
+  threshold, injected violation and detector test. Ask whether a broken producer or muted route
+  leaves the account quietly green. Repository bindings do not establish live scrape or
+  notification health.
 - **Do not turn realization review into general code review.** Judge whether the annotated site
   establishes the named predicate, not whether the implementation is otherwise correct. A correct
   implementation with a toothless test is still toothless; a true claim with an unrelated
