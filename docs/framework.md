@@ -291,9 +291,31 @@ Two tiers produce findings:
   declared account and can withdraw trust; they never cover a claim (D14, revised by D18 and D28).
   Freshness follows
   compiler-resolved realization and evidence sites and conservatively falls back to complete files.
+  External tools enter through one assurance-observation protocol (D39). An observation records an
+  immutable execution once, then binds it to claims as evidence or as a challenge. Evidence
+  bindings carry their own assertion and form and become ordinary `Covers` relations. Challenge
+  bindings name resolved assurance subjects, create no evidence and can only sharpen the agent's
+  review. Mutation and broad static analysis normally use the latter; explicit load and chaos
+  oracles may use the former. Changed reports, inputs or subjects stale the affected verdicts.
+  Recurring execution adds a second, optional boundary (D40): an agent qualifies the stable
+  definition of what a successful run would establish, while CI and production systems append
+  immutable observations for exact revisions, artifacts and deployments. Ordinary successful
+  repetitions renew execution state without renewing semantic judgment or committing results to
+  Git. Definition drift, failure, expiry, context or subject mismatch and current challenge
+  findings close a lifecycle gate and create focused work. The definition retains the
+  claim-specific semantics of D39's binding; the execution record references that definition
+  rather than copying the interpretation on every run.
   A judgment whose inputs have changed is reported as
   `stale-judgment` rather than silently trusted — which is why a refactor invalidates prior
   verification by fingerprint rather than by anyone remembering.
+
+The reference implementation under `services/assurance/` keeps that boundary optional. Its pure
+Rust evaluator is used by both the original lifecycle experiment and an Axum/PostgreSQL service.
+The service preserves idempotent immutable records, decision history, current gates, worklists and
+a project snapshot; a Next.js client renders those projections without evaluating them again.
+Authentication, tenant isolation, signing, retention, report storage and production service
+objectives are deliberately outside the reference slice. Routine claims acquire no service record
+or lifecycle gate merely because the service exists.
 
 ---
 

@@ -88,6 +88,16 @@ The dashboard SHALL have a readable title.
 ### Scenario: title-is-present
 WHEN an operator opens the dashboard
 THEN its title identifies the ride system
+
+## Requirement: delivery-backlog-is-alerted
+Criticality: standard
+
+The monitoring system SHALL alert on a persistent delivery backlog.
+
+### Scenario: backlog-alert-fires
+GIVEN delivery remains backlogged beyond its threshold
+WHEN the monitoring rules are evaluated
+THEN the backlog alert is active
 ";
 
 struct Repo {
@@ -173,6 +183,14 @@ impl Lab {
         write(
             &operations_root.join("monitoring/dashboard.json"),
             "{\"title\":\"Ride system\"}\n",
+        );
+        write(
+            &operations_root.join("monitoring/delivery.rules.yml"),
+            "- alert: DeliveryBacklog\n",
+        );
+        write(
+            &operations_root.join("monitoring/delivery.rules.test.yml"),
+            "alertname: DeliveryBacklog\n",
         );
         let operations_revision = commit(&operations_root, "operations baseline");
 
@@ -762,6 +780,67 @@ fn ordinary_extractor_output_can_be_observed_as_a_repository_manifest() {
     lab.write_workset(&["backend", "experience", "operations", "assurance"], true);
     lab.assemble(None)
         .expect("observed flat extractor output is consumable");
+}
+
+#[test]
+fn operational_realization_and_evidence_may_originate_in_the_operations_repository() {
+    let lab = Lab::new();
+    let assembly = lab.assemble(None).expect("complete project assembles");
+    let loaded = azimuth::load_assembly(&assembly, &[]).expect("assembled model loads");
+    let realization = loaded
+        .model
+        .realizes
+        .iter()
+        .find(|site| site.spec == "operations/dashboard" && site.scenario == "backlog-alert-fires")
+        .expect("operations rule realizes the alert claim");
+    let evidence = loaded
+        .model
+        .covers
+        .iter()
+        .find(|site| site.spec == "operations/dashboard" && site.scenario == "backlog-alert-fires")
+        .expect("operations rule test covers the alert claim");
+
+    assert_eq!(realization.source.as_ref().unwrap().area, "monitoring");
+    assert_eq!(evidence.source.as_ref().unwrap().area, "monitoring");
+    assert!(check::rtm(&loaded.model).is_empty());
+}
+
+#[test]
+fn assurance_observations_survive_repository_enveloping() {
+    let lab = Lab::new();
+    let linkage = lab.root.join("artifacts/operations-flat.json");
+    let observation = lab.root.join("artifacts/operations-observation.json");
+    write(&linkage, OPERATIONS_LINKAGE);
+    write(
+        &observation,
+        r#"{
+          "observations":[{"id":"rule-lint-1","kind":"static-analysis","tool":"promtool",
+            "tool_version":"test","report":"monitoring/delivery.rules.test.yml",
+            "inputs":["monitoring/delivery.rules.yml"],"source_fingerprint":"lint-v1",
+            "bindings":[{"role":"challenge","spec":"operations/dashboard",
+              "scenario":"backlog-alert-fires","assertion":"rule lint reports no adverse result",
+              "outcome":"clean","subjects":[{"relation":"realization",
+                "identity":"monitoring/delivery.rules.yml#DeliveryBacklog|prometheus"}]}],
+            "payload":{}}]
+        }"#,
+    );
+    let observed = federation::observe_repository(
+        &lab.project,
+        "operations",
+        &lab.operations.root,
+        "azimuth-observation/test",
+        &[linkage, observation],
+    )
+    .expect("operations observation is enveloped");
+
+    assert!(observed.contains("\"observations\""));
+    assert!(observed.contains("\"area\": \"monitoring\""));
+    write(&lab.operations.manifest, &observed);
+    lab.write_workset(&["backend", "experience", "operations", "assurance"], true);
+    let assembly = lab.assemble(None).expect("observed project assembles");
+    let loaded = azimuth::load_assembly(&assembly, &[]).expect("observed model loads");
+    assert_eq!(loaded.model.observations.len(), 1);
+    assert!(check::rtm(&loaded.model).is_empty());
 }
 
 #[test]
@@ -1504,6 +1583,8 @@ const EXPERIENCE_LINKAGE: &str = r#"{
 }"#;
 
 const OPERATIONS_LINKAGE: &str = r#"{
+  "realizes":[{"spec":"operations/dashboard","scenario":"backlog-alert-fires","site":"DeliveryBacklog","file":"monitoring/delivery.rules.yml","lang":"prometheus","source_fingerprint":"rule-v1","area":"monitoring","address_kind":"prometheus-alert","address":"DeliveryBacklog","mount":"rules"}],
+  "covers":[{"spec":"operations/dashboard","scenario":"backlog-alert-fires","site":"DeliveryBacklog","file":"monitoring/delivery.rules.test.yml","lang":"prometheus","source_fingerprint":"rule-test-v1","scope":"unit","quantification":"example","oracle":"direct","area":"monitoring","address_kind":"prometheus-rule-test","address":"DeliveryBacklog","mount":"rules"}],
   "artifacts":[{"id":"ride-dashboard","kind":"dashboard","file":"monitoring/dashboard.json","area":"monitoring","address_kind":"dashboard-object","address":"dashboard-title","mount":"rules"}]
 }"#;
 

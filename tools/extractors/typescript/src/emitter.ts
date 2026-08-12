@@ -35,6 +35,10 @@ export interface Entry {
   file: string;
   lang: string;
   source_fingerprint: string;
+  area?: string;
+  address_kind?: string;
+  address?: string;
+  mount?: string;
   evidence_kind?: string;
   evidence_outcome?: string;
   observed_at?: string;
@@ -85,6 +89,37 @@ export interface MechanismCover {
   oracle?: string;
 }
 
+export interface ObservationSubject {
+  relation: 'realization' | 'evidence' | 'mechanism';
+  identity: string;
+}
+
+export interface ObservationBinding {
+  role: 'evidence' | 'challenge';
+  spec: string;
+  scenario: string;
+  assertion: string;
+  outcome: 'satisfied' | 'violated' | 'clean' | 'findings' | 'inconclusive';
+  subjects: ObservationSubject[];
+  scope?: string;
+  quantification?: string;
+  oracle?: string;
+}
+
+export interface Observation {
+  id: string;
+  kind: string;
+  tool: string;
+  tool_version: string;
+  report: string;
+  inputs: string[];
+  observed_at?: string;
+  expires_at?: number;
+  source_fingerprint: string;
+  bindings: ObservationBinding[];
+  payload: unknown;
+}
+
 export interface Manifest {
   realizes: Entry[];
   covers: Entry[];
@@ -93,6 +128,7 @@ export interface Manifest {
   class_members: ClassMember[];
   enumerations: Enumeration[];
   artifacts: Artifact[];
+  observations?: Observation[];
 }
 
 export interface Warning {

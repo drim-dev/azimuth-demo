@@ -1505,6 +1505,7 @@ fn merge_manifest(target: &mut Manifest, source: Manifest) {
     target.class_members.extend(source.class_members);
     target.enumerations.extend(source.enumerations);
     target.artifacts.extend(source.artifacts);
+    target.observations.extend(source.observations);
 }
 
 fn assign_sources(
@@ -1567,6 +1568,17 @@ fn assign_sources(
             producer,
         );
     }
+    for item in &mut manifest.observations {
+        let locator = item.inputs.first().unwrap_or(&item.report);
+        item.source = locate_source(
+            areas,
+            locator,
+            "assurance-observation".into(),
+            item.id.clone(),
+            errors,
+            producer,
+        );
+    }
 }
 
 fn locate_source(
@@ -1611,6 +1623,10 @@ fn locate_source(
 fn address_kind(language: &str, file: &str, site: &str) -> String {
     if language == "csharp" {
         "dotnet-symbol".into()
+    } else if language == "prometheus" && file.ends_with(".rules.test.yml") {
+        "prometheus-rule-test".into()
+    } else if language == "prometheus" {
+        "prometheus-alert".into()
     } else if language == "typescript"
         && file.replace('\\', "/").contains("/app/")
         && file.ends_with("/route.ts")
@@ -1653,6 +1669,7 @@ fn linkage_json(manifest: &Manifest) -> Json {
         class_members: manifest.class_members.clone(),
         enumerations: manifest.enumerations.clone(),
         artifacts: manifest.artifacts.clone(),
+        observations: manifest.observations.clone(),
         ..Default::default()
     };
     let export = model.to_json(&[]);
@@ -1665,6 +1682,7 @@ fn linkage_json(manifest: &Manifest) -> Json {
             "class_members",
             "enumerations",
             "artifacts",
+            "observations",
         ]
         .into_iter()
         .map(|key| {
@@ -2408,6 +2426,14 @@ fn source_records(manifest: &Manifest) -> Vec<(Option<&SourceIdentity>, &str, &s
             .iter()
             .map(|item| (item.source.as_ref(), "", item.file.as_str())),
     );
+    records.extend(manifest.observations.iter().map(|item| {
+        let locator = item.inputs.first().unwrap_or(&item.report);
+        (
+            item.source.as_ref(),
+            item.source_fingerprint.as_str(),
+            locator.as_str(),
+        )
+    }));
     records
 }
 

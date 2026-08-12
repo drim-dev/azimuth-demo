@@ -106,7 +106,7 @@ the asserted count at zero. Provider reconciliation remains a design residue.
 
 ## Claim: capture-equals-trip-fare
 Verdict: sound
-Fingerprint: c2ad1f9a03f92abe
+Fingerprint: 2b9ae3380c28f873
 Judged: 2026-08-11
 Judge: codex
 
@@ -117,9 +117,14 @@ surge from Pricing through the trip outbox and asserts the capture equals the ri
 Trusting a separate intent amount or omitting surge fails; neither field exists on the intent
 anymore. `CaptureTrip` was checked and decodes before provider I/O.
 
+The targeted Stryker assessment killed changes to the fare arithmetic and provider amount. Its two
+survivors alter dispatch bookkeeping and acceptance of a zero-valued referral authority, neither
+of which is reachable under this claim's no-adjustment predicate. The six no-coverage items are
+credit-reuse and concurrent-uniqueness paths owned by other claims, not missing cases in this one.
+
 ## Claim: adjusted-capture-records-reason
 Verdict: sound
-Fingerprint: 0031f43bfa517eac
+Fingerprint: 9b292b2c5f3245aa
 Judged: 2026-08-11
 Judge: codex
 
@@ -128,6 +133,12 @@ separate from a signed referral authority, then asserts the original fare, negat
 typed reason, provider amount, final capture, status response and outbox breakdown. Caller-supplied
 delta/reason parameters no longer exist. Removing authority validation, using the credit as the
 final total, or dropping its typed attribution breaks an independent assertion.
+
+The first mutation run disproved the last sentence for persisted attribution: changing
+`AdjustmentReason` survived because only derived API projections were asserted. The corrected test
+reads the capture row and the refreshed assessment kills that mutation. The remaining survivors
+change later dispatch bookkeeping or zero-credit authority validation, not recording the reason
+for the valid adjustment in this predicate; the no-coverage items concern contention paths.
 
 ## Claim: declined-capture-recorded
 Verdict: sound

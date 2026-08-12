@@ -62,6 +62,11 @@ directory.
 
 ## Repository manifest
 
+The `linkage` object may also carry D39 `observations`. Repository observation assigns the run a
+typed area source from its first configuration input (or report when it has none), preserves all
+claim bindings and includes its fingerprint in the source account. Evidence bindings are projected
+into `covers` only when the complete model is loaded; challenge bindings remain judgment context.
+
 ```json
 {
   "format": "azimuth-repository-manifest",

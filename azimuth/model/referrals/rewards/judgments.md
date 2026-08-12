@@ -92,8 +92,8 @@ Counting deliveries or generating a new source on retry increases the asserted r
 
 ## Claim: owned-credit-reduces-capture
 Verdict: sound
-Fingerprint: 1fe7362215d4f86c
-Judged: 2026-08-10
+Fingerprint: 30cc173010de95c6
+Judged: 2026-08-11
 Judge: codex
 
 `RequestRide` locks and validates ownership, state, currency and fare before signing the reservation.
@@ -102,6 +102,13 @@ adjustment. Component evidence ranges fare and credit across EUR, USD and JPY, r
 capture, typed status and outbox values. The BFF/view/receipt relations preserve those typed facts;
 the e2e independently satisfies `captured = original - credit` and later observes the same credit
 as used.
+
+Mutation review found that generated inputs had not actually exercised the spec's “no greater
+than” equality boundary: rejecting a credit equal to the fare survived. The component test now
+forces that case for every currency and the refreshed run kills the boundary mutation. The two
+remaining survivors change post-capture dispatch bookkeeping and rejection of a zero credit; zero
+is not an available referral credit under this scenario. The no-coverage contention paths are
+covered by the separate at-most-once and unavailable-credit claims.
 
 ## Claim: unavailable-credit-is-rejected
 Verdict: sound

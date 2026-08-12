@@ -7,7 +7,10 @@
   "type": "commonjs",
   "bin": {
     "azimuth-emit-ts": "dist/cli.js",
-    "azimuth-import-manual": "dist/manual-cli.js"
+    "azimuth-import-manual": "dist/manual-cli.js",
+    "azimuth-import-mutation": "dist/mutation-cli.js",
+    "azimuth-import-observation": "dist/observation-cli.js",
+    "azimuth-import-sarif": "dist/sarif-cli.js"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",

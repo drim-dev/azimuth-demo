@@ -8,6 +8,7 @@ groups:
           severity: critical
         annotations:
           summary: Committed trip events are not reaching the broker
+      # azimuth-realizes: analytics/trip-activity relay-backlog-raises-alert
       - alert: TripEventAnalyticsBacklog
         expr: rabbitmq_queue_messages_ready{queue="trip.lifecycle.analytics"} > 0
         for: 2m
@@ -15,6 +16,7 @@ groups:
           severity: warning
         annotations:
           summary: Analytics trip-event consumption is falling behind
+      # azimuth-realizes: analytics/trip-activity dead-letter-presence-raises-alert
       - alert: TripEventDeadLetters
         expr: sum(rabbitmq_queue_messages{queue=~"trip.lifecycle.(analytics|payments).dead"}) > 0
         for: 30s

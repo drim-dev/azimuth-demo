@@ -23,6 +23,7 @@ tests:
             exp_annotations:
               summary: Committed trip events are not reaching the broker
       - eval_time: 2m
+        # azimuth-covers: analytics/trip-activity relay-backlog-raises-alert unit example direct
         alertname: TripEventAnalyticsBacklog
         exp_alerts:
           - exp_labels:
@@ -31,6 +32,7 @@ tests:
             exp_annotations:
               summary: Analytics trip-event consumption is falling behind
       - eval_time: 30s
+        # azimuth-covers: analytics/trip-activity dead-letter-presence-raises-alert unit example direct
         alertname: TripEventDeadLetters
         exp_alerts:
           - exp_labels:

@@ -1685,6 +1685,128 @@ relation without changing the manifest contract.
 
 ---
 
+## D38 — Mutation testing qualifies evidence; it does not verify claims *(2026-08-11)*
+
+**Decision.** Mutation testing is an optional, targeted agent-tier judgment method. Project policy
+lives in `azimuth/standards/judgment.md`; execution scope lives in the test project's native tool
+configuration. An importer derives assessed claims from the existing `Covers` test sites and
+`Realizes` target files, then supplies the complete status account as `challenge` inputs to
+`azimuth judge` through D39's generic observation protocol.
+
+A mutation challenge never emits `Covers`, changes evidence strength or acts as an oracle. There
+is no global score threshold. The agent reviews survivors and indeterminate outcomes against the
+claim: a relevant survivor is a concrete wrong implementation accepted by the evidence and
+therefore supports a `toothless` verdict. Killing the generated mutants is useful negative search,
+not proof that the claim is true or that the mutant set was complete.
+
+**Why.** Verification asks whether observed product behaviour satisfies a predicate and needs an
+expected-result oracle. Mutation testing asks a different question about an existing test: whether
+it distinguishes certain altered implementations. Treating the latter as verification would let
+synthetic source edits cover a product requirement. Treating it as a project-wide percentage would
+also reward irrelevant or equivalent mutants and punish deliberately untested infrastructure.
+
+**Machine boundary.** The import fails on unknown report schemas or statuses. The exact report,
+configuration and tool version are fingerprinted; selected tests and mutated targets must still
+resolve to the claim linkage. Any refreshed assessment expires the previous judgment. Running the
+external mutation engine remains an explicit, potentially expensive command rather than part of
+ordinary `azimuth check`.
+
+**Initial validation.** The first targeted Payments run survived removal of the persisted referral
+adjustment reason. The existing relational component test asserted API projections derived from the
+credit id but never inspected the stored reason, contradicting its current judgment rationale. A
+database assertion closes that blind spot. Agent review of the next run found a second relevant
+survivor under another claim derived from the same test: the spec permits a credit equal to its fare,
+but generated cases had not reached that boundary. An explicit equality case killed it. The
+remaining survivors fell outside the selected predicates, confirming that raw aggregate score was
+less useful than claim-scoped review.
+
+**What would falsify it.** Remove the integration if mutation challenges usually add no findings
+beyond ordinary agent reading, if generated noise costs more to classify than the defects found,
+or if stable claim selection requires a second hand-maintained map. Revisit targeted policy if
+teams cannot choose targets consistently enough for absence of an assessment to remain honest.
+
+---
+
+## D39 — Assurance extensions share observations and explicit bindings *(2026-08-11)*
+
+**Decision.** One immutable assurance execution is an `observation`. It records its producer,
+report, configuration inputs, observation time, optional expiry and payload fingerprint once. One
+observation has one or more claim-specific bindings in either of two roles:
+
+- `evidence` declares an assertion, `satisfied | violated`, scope, quantification and oracle, and
+  projects into the existing `Covers` relation;
+- `challenge` declares a review question, `clean | findings | inconclusive`, and resolved
+  realization, evidence or mechanism subjects. It enters judgment freshness and never covers.
+
+One observation may bind to several claims. There is no observation-level pass that covers them as
+a group: each evidence binding supplies its own proposition and form. A missing challenge subject
+is `unresolved-observation-binding`; duplicate observation identity fails separately.
+
+**Why.** The first Stryker.NET integration added mutation-specific model, parser, check and
+fingerprint types. Applying the same pattern to SARIF, load and chaos would make the core a catalog
+of tools. The claim graph already permits one site to relate to several claims. Normalizing the
+execution above those relations preserves that many-to-many property while keeping tool schemas in
+adapters.
+
+Tool brand does not determine semantic role. A k6 run with explicit workload and thresholds can be
+claim evidence. A chaos experiment with separate recovery and alert oracles can also be evidence.
+A broad SARIF scan and mutation run are ordinarily challenges because absence of generated or
+reported counterexamples does not establish the product predicate. A claim-specific analyzer with
+an independent oracle may choose evidence instead; the binding, not the executable name, is the
+reviewable declaration.
+
+**Repository boundary.** Observations and ordinary linkage travel in repository manifests. The
+repository owning a Prometheus rule may realize an explicit operational claim and its rule test may
+cover it even when the spec authority is elsewhere. Checked-in configuration does not establish
+deployment or notification delivery; those need a live observation or composed receipt.
+
+**Initial validation.** Stryker.NET and SARIF 2.1.0 now emit the same core collection. One synthetic
+load observation contributes two claim bindings, and one chaos observation contributes three;
+their complete six-claim model has zero holes. A federation regression places a standard alert
+claim's rule and rule-test relations in the operations repository's monitoring area while retaining
+singular intent authority.
+
+**What would falsify it.** Split the roles if a real extension cannot describe its semantics as
+claim/mechanism evidence or judgment context without losing a machine-enforceable distinction.
+Remove opaque payloads if adapters use them as an undeclared semantic channel. Revisit observation
+identity if independent producers routinely collide or if one logical execution cannot be
+fingerprinted without central coordination.
+
+---
+
+## D40 — Evidence qualification is stable; observations gate lifecycle instances *(experimental 2026-08-12)*
+
+**Decision.** Separate an evidence definition, its semantic qualification and its executions.
+An agent qualifies one exact definition fingerprint: the proposition, form, oracle, inputs and
+required execution context. An immutable observation then records whether that definition ran for
+an exact source, artifact, deployment and lifecycle stage. Gate decisions and feedback work are
+derived from those two inputs; they are not new repository authority.
+
+An ordinary successful rerun under an unchanged qualified definition does not require another
+agent judgment or a repository commit. Definition drift requires requalification. Failure,
+inconclusive execution, expiry, subject or context mismatch and challenge findings close the
+applicable gate and produce focused work. A qualification describes what a future successful run
+would establish; it never substitutes for the run itself.
+
+**Why.** Fingerprinting every execution inside a repository judgment is conservative for bounded
+change evidence but turns recurring CI and production assurance into semantic and Git churn. The
+separation preserves accountable agent review while allowing machines to renew execution state.
+It also keeps repositories authoritative for durable meaning and an optional service authoritative
+only for immutable execution facts and derived lifecycle state.
+
+**Initial validation.** The in-memory experiment passed eight pre-registered cases. One
+qualification opened gates for two exact CI revisions with zero result commits. Production
+evidence did not cross artifact or deployment subjects. Injected-time expiry, violation,
+definition drift, incompatible context and challenge findings closed the gate with deterministic
+reasons and work.
+
+**What would falsify it.** Revisit the split if real runners cannot supply an unambiguous subject,
+if successful repetitions routinely need semantic reinterpretation, if stored execution facts
+silently become claim authority, or if the reference service cannot reproduce the experiment over
+an HTTP and persistent boundary without adding provider-specific core types.
+
+---
+
 ## Method
 
 **Concern catalog first, notation last.** No mechanism enters the model until **≥2 structurally

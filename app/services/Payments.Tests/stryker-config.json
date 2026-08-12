@@ -1,0 +1,16 @@
+{
+  "stryker-config": {
+    "project": "Payments.csproj",
+    "mutation-level": "Basic",
+    "mutate": [
+      "**/Features/Captures/CaptureTrip.cs"
+    ],
+    "test-case-filter": "FullyQualifiedName~A_completed_trip_is_captured_for_whatever_its_fare_is|FullyQualifiedName~An_authorized_referral_credit_reduces_and_explains_the_capture",
+    "coverage-analysis": "perTestInIsolation",
+    "concurrency": 1,
+    "reporters": [
+      "json"
+    ],
+    "report-file-name": "payments-capture-mutation"
+  }
+}

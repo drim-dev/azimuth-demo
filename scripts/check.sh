@@ -11,6 +11,11 @@ mkdir -p "$OUT"
 echo "== core =="
 cargo test --quiet --manifest-path tools/azimuth/Cargo.toml
 
+echo "== assurance service =="
+cargo test --quiet --manifest-path experiments/assurance-service/Cargo.toml
+cargo test --quiet --manifest-path services/assurance/Cargo.toml --all-targets
+(cd services/assurance/web && npm run typecheck --silent && npm run build --silent)
+
 echo "== extractors =="
 dotnet test -v q --nologo tools/extractors/dotnet/Azimuth.Emit.Tests
 (cd tools/extractors/typescript && npx tsc -p tsconfig.json && npm test --silent)
@@ -66,10 +71,18 @@ node tools/extractors/typescript/dist/cli.js --output "$OUT/web.json" --root "$R
 echo "== azimuth =="
 # Historical exports also live in .azimuth. Feeding them back into the model duplicates sites and
 # makes the check depend on local leftovers rather than this run's compiler output.
+OBSERVATION_MANIFESTS=()
+while IFS= read -r manifest; do
+  OBSERVATION_MANIFESTS+=(--manifest "$ROOT/$manifest")
+done < <(rg --files -g 'mutation-assessment.json' -g '*-observation.json')
 cargo run --quiet --manifest-path tools/azimuth/Cargo.toml -- check \
   --manifest "$OUT/dotnet.json" \
   --manifest "$OUT/web.json" \
+  "${OBSERVATION_MANIFESTS[@]}" \
   "$@"
 
 echo "== polyglot extractor conformance =="
 ./experiments/polyglot/check.sh
+
+echo "== assurance extension conformance =="
+./experiments/assurance-extensions/check.sh

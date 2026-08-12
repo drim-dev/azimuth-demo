@@ -124,6 +124,41 @@ fired zero times for six months and is worse than no monitor, because it is carr
 names the external case and run, outcome, observation instant, expiry, evidence form and immutable
 payload fingerprint. Only a current pass contributes coverage; failure and expiry are holes.
 
+**Assurance observation** — one immutable external execution account: producer, report,
+configuration inputs, observation time, optional expiry and payload fingerprint. It has explicit
+claim bindings and no run-level implication that every bound claim passed (D39).
+
+**Evidence binding** — a claim-specific interpretation of an assurance observation. It states an
+assertion, `satisfied | violated`, scope, quantification and oracle and projects into `covers`.
+
+**Challenge binding** — judgment context over a claim's resolved realization, evidence or
+mechanism subjects. `clean | findings | inconclusive` tells the judge what the tool reported; it
+never creates coverage. Changed results or subjects stale the affected judgment.
+
+**Evidence definition** — the stable proposition, verification form, oracle, inputs, lifecycle
+stage and required execution context that a recurring assurance execution instantiates. Its
+fingerprint excludes execution results. It is a service protocol record, not another current-model
+facet or a replacement for `verification.md` (D40).
+
+**Qualification** — an accountable agent verdict over one exact evidence-definition fingerprint.
+`qualified` means a future applicable successful observation may open its configured lifecycle
+gate. It does not establish that the execution happened or that the product claim is satisfied
+(D40).
+
+**Execution subject** — the exact project snapshot and revision, with optional artifact digest,
+deployment, environment and cohort, to which an assurance observation applies. Equality is
+deliberately strict; evidence for one subject does not leak to another.
+
+**Lifecycle gate** — a derived decision for one evidence definition, execution subject, lifecycle
+stage and evaluation time. It is open only when current qualification and applicable successful
+execution facts agree and no current challenge blocks them. It is not repository intent or a
+product acceptance decision.
+
+**Assurance service** — the optional execution ledger that stores immutable qualifications,
+observations, challenges and derived gate history outside Git. Repositories remain authority for
+claim meaning and accepted judgment rationale; the standalone CLI remains usable without the
+service (D40).
+
 **Detector test** — a test proving that a detection-strength item actually fires: that the
 reconciliation job flags an injected imbalance, that the deletion scan flags a planted record.
 Required for every detection item (D4.3). This is what makes liveness claims checkable before
@@ -159,9 +194,9 @@ routine claim owes no linkage.
 application code or declared delivery topology when routing is part of the behavior. It carries no
 form; form is how a test checks, not a property of production mechanism.
 
-**`covers`** — on a test: this test verifies that claim, at this *actual* scope and
-quantification. The required form lives in the verification plan; `covers` declares what the test
-really is, and the comparison is what produces `wrong-form`.
+**`covers`** — on a test or imported evidence binding: this evidence verifies that claim, at this
+*actual* scope and quantification. The required form lives in the verification plan; `covers`
+declares what the evidence really is, and the comparison is what produces `wrong-form`.
 
 **`implements-mechanism`** — on production code: the enclosing compiler-resolved symbol implements
 the named design mechanism. This derives a binding; it does not replace the independent design

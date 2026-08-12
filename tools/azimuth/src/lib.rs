@@ -119,6 +119,10 @@ pub fn load(
                 model.class_members.extend(m.class_members);
                 model.enumerations.extend(m.enumerations);
                 model.artifacts.extend(m.artifacts);
+                model
+                    .covers
+                    .extend(m.observations.iter().flat_map(|item| item.evidence_sites()));
+                model.observations.extend(m.observations);
             }
             Err(mut d) => errors.append(&mut d),
         }
@@ -140,6 +144,14 @@ pub fn load(
         model
             .mechanism_covers
             .retain(|s| only.iter().any(|p| selects(p, &s.spec)));
+        for observation in &mut model.observations {
+            observation
+                .bindings
+                .retain(|binding| only.iter().any(|p| selects(p, &binding.spec)));
+        }
+        model
+            .observations
+            .retain(|observation| !observation.bindings.is_empty());
     }
 
     if model.standards.is_none() && needs_standards(&model) {
@@ -260,6 +272,14 @@ pub fn load_assembly(
         model
             .mechanism_covers
             .retain(|item| only.iter().any(|pattern| selects(pattern, &item.spec)));
+        for observation in &mut model.observations {
+            observation
+                .bindings
+                .retain(|binding| only.iter().any(|pattern| selects(pattern, &binding.spec)));
+        }
+        model
+            .observations
+            .retain(|observation| !observation.bindings.is_empty());
     }
     if model.standards.is_none() && needs_standards(&model) {
         warnings.push(Diag::file(
@@ -289,6 +309,13 @@ fn append_manifest(model: &mut Model, manifest: &manifest::Manifest) {
     model.class_members.extend(manifest.class_members.clone());
     model.enumerations.extend(manifest.enumerations.clone());
     model.artifacts.extend(manifest.artifacts.clone());
+    model.covers.extend(
+        manifest
+            .observations
+            .iter()
+            .flat_map(|item| item.evidence_sites()),
+    );
+    model.observations.extend(manifest.observations.clone());
 }
 
 fn extend_unique_facets<T>(

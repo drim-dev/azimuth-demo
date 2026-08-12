@@ -1,5 +1,10 @@
 # Judgments: analytics/trip-activity
 
+Revalidated 2026-08-11 after operational alerting became explicit intent. The Prometheus rule and
+rule-test files changed by linkage comments only for the existing projection/dead-letter detector
+inputs; their expressions and synthetic series remained unchanged. The two new claims were read
+against the exact rule expressions and `promtool` cases rather than inferred from alert names.
+
 Revalidated 2026-08-10 for rider referral rewards. The payment contract added a second topology
 declaration and the composed e2e file gained a referral journey; neither changes Analytics'
 maximum-version consumer or the assertions in the existing activity journey. All three stale
@@ -22,8 +27,8 @@ multiplicity only from one to two under a `universal` tag. The corrected evidenc
 
 ## Claim: latest-version-is-projected
 Verdict: sound
-Fingerprint: b2e1a2e2a4deff91
-Judged: 2026-08-10
+Fingerprint: 258a39c8fecf7ea7
+Judged: 2026-08-11
 Judge: codex
 
 The composed-stack test waits for all earlier trips and completions to reach Analytics, records the
@@ -59,8 +64,8 @@ read directly; topology does not pretend to supply this consumer-specific rule.
 
 ## Claim: malformed-event-is-dead-lettered
 Verdict: sound
-Fingerprint: ebb43e18bdfad307
-Judged: 2026-08-10
+Fingerprint: 0bdc07b26cfaa44d
+Judged: 2026-08-11
 Judge: codex
 
 The test publishes valid JSON carrying the impossible state `teleported`, followed by a valid event.
@@ -68,3 +73,29 @@ It observes the original bytes on Analytics' real dead-letter queue and the vali
 Accepting any non-empty state, requeueing the poison payload or stopping after rejection breaks a
 distinct assertion. The `example` tag is accurate. `promtool` separately proves the dead-letter alert
 fires; actual scrape and notification delivery remain recorded residue rather than claimed evidence.
+
+## Claim: relay-backlog-raises-alert
+Verdict: sound
+Fingerprint: ae7574a94c696259
+Judged: 2026-08-11
+Judge: codex
+
+The rule selects the Analytics lifecycle queue, requires a positive ready-message count for two
+minutes and retains the queue label. The `promtool` case supplies that exact series across the
+interval and expects the named alert, warning label and annotation at two minutes. Removing the
+rule, selecting another queue, raising the threshold or extending the interval makes the expected
+alert absent. The test is honestly a unit-level example of one persistent backlog series; it does
+not claim a deployed scrape or delivered notification.
+
+## Claim: dead-letter-presence-raises-alert
+Verdict: sound
+Fingerprint: 8ee0e7053bb70a13
+Judged: 2026-08-11
+Judge: codex
+
+The rule sums the Analytics and Payments trip-lifecycle dead-letter queues and requires a positive
+result for 30 seconds. The `promtool` case drives Analytics to one and Payments to zero, then expects
+the named warning at 30 seconds. Dropping the sum, selecting a non-dead-letter queue, requiring more
+than one message or extending the interval fails this example. The tag does not overstate the case:
+it is `example`, not universal over both queues, and it establishes rule evaluation rather than live
+notification delivery.

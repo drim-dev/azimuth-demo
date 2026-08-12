@@ -51,6 +51,12 @@ root is overridable with `--model`; evidence policy defaults to
 `azimuth/standards/verification.md` and is overridable with `--standards`. Manifests are passed with
 `--manifest`, repeatable.
 
+Agent-tier method policy lives separately at `azimuth/standards/judgment.md`. External executions
+are imported as immutable observations with explicit claim bindings. Evidence bindings project
+into ordinary `covers`; challenge bindings appear as `challenge` worklist inputs, never create
+coverage and include their exact report, inputs and subjects in judgment freshness. The core runs
+none of the native tools and contains no tool-specific result type.
+
 Federated projects use a versioned project catalog plus a workset. Repository manifests carry
 typed `(area, address)` source identity, observed Git revision, owned model-source digests and a
 producer identity. Worksets pin their content digests. A complete assembly rejects missing inputs,
@@ -75,10 +81,12 @@ rather than from the check (D9.2).
 - **`spec.rs`** parses the format in `azimuth/formats/spec.md`. Strict: an unrecognized construct
   fails the parse with file, line and what was expected. A missing *declaration* is different—a
   requirement without `Criticality:` parses and becomes an `unclassified` hole (D6.2 vs D11).
-- **`manifest.rs`** reads linkage manifests, keyed on the pair `(spec, scenario)` (D2.2). The
+- **`manifest.rs`** reads linkage and judgment-context manifests, keyed on the pair
+  `(spec, scenario)` (D2.2). The
   alpha's triple is rejected with an explanation rather than silently accepted, so a stale emitter
   cannot produce tags that look fine and are not. Manifests also carry derived enumeration
-  witnesses, compiler/schema artifacts, mechanism implementations and mechanism evidence.
+  witnesses, compiler/schema artifacts, mechanism implementations, mechanism evidence and
+  assurance observations.
 - **`plan.rs`** parses `azimuth/standards/verification.md` and sibling verification plans. Entries
   are deviations only—a claim with no entry is not unplanned, the standard applies.
   `Scope`/`Quantification`/`Oracle`
@@ -119,7 +127,7 @@ Four behaviours worth knowing:
 
 ### Hole kinds
 
-Twenty-eight, in seven groups.
+Thirty, in seven groups.
 
 **Missing-facet** (D3's central structural claim — the facet is simply absent):
 
@@ -139,7 +147,8 @@ kinds and the two site-class kinds are not missing-facet combinations either. Se
 `docs/framework.md`, which states the question without deciding it.
 
 **Cross-facet consistency:** `unbacked-proof`, `unresolved-design-binding`,
-`unresolved-evidence-binding`, `unresolved-detector-binding`, `enforcement-mismatch`.
+`unresolved-evidence-binding`, `unresolved-detector-binding`, `enforcement-mismatch`,
+`duplicate-observation`, `unresolved-observation-binding`.
 
 **Mechanism linkage:** `dangling-mechanism-implementation`, `dangling-mechanism-cover`.
 

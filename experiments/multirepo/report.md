@@ -7,7 +7,7 @@ independent-team adoption remains external evidence**.
 
 ## Results
 
-The executable conformance suite passes 31 scenarios. It creates independent Git histories rather
+The executable conformance suite passes 33 scenarios. It creates independent Git histories rather
 than mocking revision strings. The largest scenario assembles 50 repositories, 50 model sources,
 50 areas and 5,000 typed sources inside a 30-second bound.
 
@@ -32,6 +32,12 @@ the catalog/source join fails until an explicit new identity is supplied.
 The real rider application now implements the routine `experience/display-density` requirement.
 It changed an untagged layout site and added no traceability, design, verification or judgment
 artifact. Frontend type checking and the production build pass.
+
+The operations boundary now carries a standard alert claim whose Prometheus rule and rule-test
+relations both originate in the monitoring area. Its first run failed because alert and rule-test
+sites shared one typed address despite being different artifacts. Splitting their address kinds
+into `prometheus-alert` and `prometheus-rule-test` closed the collision. A generic assurance
+observation then survived repository enveloping with its challenge subject still resolvable.
 
 ## Interpretation
 

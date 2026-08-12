@@ -7,8 +7,12 @@
 
 use crate::design::Target;
 use crate::json::Json;
-use crate::model::{Criticality, Model, Quantification, Required, Scope, Site, Strength};
+use crate::model::{
+    Criticality, Model, ObservationRole, ObservationSubjectRelation, Quantification, Required,
+    Scope, Site, Strength,
+};
 use crate::plan::EvidenceItem;
+use std::collections::BTreeSet;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -93,6 +97,10 @@ pub enum HoleKind {
     DanglingMechanismImplementation,
     /// Mechanism evidence names no design-owned mechanism.
     DanglingMechanismCover,
+    /// Two immutable execution accounts claim the same identity.
+    DuplicateObservation,
+    /// A judgment challenge no longer resolves to the claim sites or mechanisms it targeted.
+    UnresolvedObservationBinding,
 }
 
 impl HoleKind {
@@ -126,6 +134,8 @@ impl HoleKind {
             HoleKind::DanglingClass => "dangling-class",
             HoleKind::DanglingMechanismImplementation => "dangling-mechanism-implementation",
             HoleKind::DanglingMechanismCover => "dangling-mechanism-cover",
+            HoleKind::DuplicateObservation => "duplicate-observation",
+            HoleKind::UnresolvedObservationBinding => "unresolved-observation-binding",
         }
     }
 }
@@ -355,10 +365,98 @@ pub fn rtm(model: &Model) -> Vec<Hole> {
         }
     }
 
+    let mut observation_ids = BTreeSet::new();
+    for observation in &model.observations {
+        if !observation_ids.insert(&observation.id) {
+            holes.push(Hole {
+                kind: HoleKind::DuplicateObservation,
+                severity: Severity::Error,
+                claim: None,
+                criticality: None,
+                path: observation.report.clone(),
+                line: 0,
+                detail: format!("observation id `{}` is not unique", observation.id),
+            });
+        }
+        for binding in observation
+            .bindings
+            .iter()
+            .filter(|binding| binding.role == ObservationRole::Challenge)
+        {
+            let unresolved = binding
+                .subjects
+                .iter()
+                .filter(|subject| !observation_subject_resolves(model, binding, subject))
+                .map(|subject| format!("{}:{}", subject.relation.name(), subject.identity))
+                .collect::<Vec<_>>();
+            if !model.has_claim(&binding.spec, &binding.scenario) || !unresolved.is_empty() {
+                holes.push(Hole {
+                    kind: HoleKind::UnresolvedObservationBinding,
+                    severity: Severity::Error,
+                    claim: Some(format!("{}#{}", binding.spec, binding.scenario)),
+                    criticality: None,
+                    path: observation.report.clone(),
+                    line: 0,
+                    detail: format!(
+                        "challenge `{}` does not resolve to its claim account; missing subjects [{}]",
+                        observation.id,
+                        unresolved.join(", ")
+                    ),
+                });
+            }
+        }
+    }
+
     holes.sort_by(|a, b| {
         (a.path.clone(), a.line, a.kind.name()).cmp(&(b.path.clone(), b.line, b.kind.name()))
     });
     holes
+}
+
+fn observation_subject_resolves(
+    model: &Model,
+    binding: &crate::model::ObservationBinding,
+    subject: &crate::model::ObservationSubject,
+) -> bool {
+    match subject.relation {
+        ObservationSubjectRelation::Realization => model.realizes.iter().any(|site| {
+            site.spec == binding.spec
+                && site.scenario == binding.scenario
+                && site
+                    .subject_identities()
+                    .iter()
+                    .any(|identity| !identity.is_empty() && identity == &subject.identity)
+        }),
+        ObservationSubjectRelation::Evidence => model.covers.iter().any(|site| {
+            site.spec == binding.spec
+                && site.scenario == binding.scenario
+                && site
+                    .subject_identities()
+                    .iter()
+                    .any(|identity| !identity.is_empty() && identity == &subject.identity)
+        }),
+        ObservationSubjectRelation::Mechanism => {
+            model
+                .mechanism_implementations
+                .iter()
+                .any(|implementation| {
+                    implementation.spec == binding.spec
+                        && (subject.identity
+                            == format!("{}#{}", implementation.spec, implementation.mechanism)
+                            || implementation
+                                .source
+                                .as_ref()
+                                .is_some_and(|source| source.key() == subject.identity)
+                            || subject.identity
+                                == format!(
+                                    "{}#{}|{}",
+                                    implementation.file,
+                                    implementation.binding,
+                                    implementation.lang
+                                ))
+                })
+        }
+    }
 }
 
 fn has_mechanism(model: &Model, spec: &str, id: &str) -> bool {
@@ -1035,6 +1133,8 @@ pub fn counts_by_kind(holes: &[Hole]) -> Vec<(&'static str, usize)> {
         HoleKind::Uncovered,
         HoleKind::DanglingTag,
         HoleKind::DanglingRealization,
+        HoleKind::DuplicateObservation,
+        HoleKind::UnresolvedObservationBinding,
     ];
     kinds
         .iter()

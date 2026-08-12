@@ -23,6 +23,11 @@ Only what is not derivable:
 Most claims should have no entry; if most have one, either the standard is wrong or the plan is
 being used as an inventory.
 
+Imported load, chaos, recovery and similar executions use D39's assurance-observation protocol.
+Each evidence binding declares its actual form and becomes ordinary `covers`; one execution may
+bind to several claims, but no run-level pass supplies blanket coverage. Mutation and broad static
+analysis normally bind as judgment challenges instead and therefore do not appear as evidence.
+
 ## Evidence ownership and authorship
 
 The evidence owner is accountable for what would justify belief and how it stays fresh (D30). That

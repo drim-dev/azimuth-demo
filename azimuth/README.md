@@ -12,7 +12,8 @@ azimuth/
 │   ├── verification.md    # deviations, non-test evidence and residuals only
 │   └── judgments.md       # agent-tier verdicts when required or performed
 ├── standards/
-│   └── verification.md
+│   ├── verification.md   # evidence form required by criticality
+│   └── judgment.md       # agent-tier methods such as targeted mutation testing
 ├── changes/
 │   ├── <active-change>/
 │   └── archive/
@@ -44,6 +45,12 @@ bindings and evidence rather than inferred from directory proximity.
 
 Format contracts live in `formats/`. Proposed states and immutable history live in `changes/`.
 Neither is scanned as the accepted current model.
+
+The two standards have different authority. `verification.md` says what evidence must establish
+the product claim. `judgment.md` says how the agent audits whether that evidence is discriminating.
+Mutation and broad static-analysis runs are therefore configured as judgment challenges and emit
+no `Covers` relation. Load or chaos executions may instead emit evidence bindings when each binding
+declares a claim-specific assertion, outcome and form.
 
 An exploration is project-level research and decision shaping above individual changes. Its
 required anchor is `exploration.md`; optional `research.md` and `change-map.md` appear only when

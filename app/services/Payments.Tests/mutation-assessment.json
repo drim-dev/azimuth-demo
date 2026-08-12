@@ -1,0 +1,308 @@
+{
+  "realizes": [],
+  "covers": [],
+  "mechanism_implementations": [],
+  "mechanism_covers": [],
+  "class_members": [],
+  "enumerations": [],
+  "artifacts": [],
+  "observations": [
+    {
+      "id": "mutation-3b2af4a33f49136b",
+      "kind": "mutation-test",
+      "tool": "Stryker.NET",
+      "tool_version": "4.16.0",
+      "report": ".azimuth/stryker-payments/reports/payments-capture-mutation.json",
+      "inputs": [
+        "app/services/Payments.Tests/stryker-config.json"
+      ],
+      "source_fingerprint": "91991ba966fe3789aa87ce0bdcc96b2bf159c7ea21be81f2d44647ed3323ef2d",
+      "bindings": [
+        {
+          "role": "challenge",
+          "spec": "payments/capture",
+          "scenario": "adjusted-capture-records-reason",
+          "assertion": "selected evidence rejects generated changes at linked realization sites",
+          "outcome": "findings",
+          "subjects": [
+            {
+              "relation": "realization",
+              "identity": "app/services/Payments/Features/Captures/CaptureTrip.cs#Payments.Features.Captures.CaptureTrip.RequestHandler.Handle|csharp"
+            },
+            {
+              "relation": "evidence",
+              "identity": "app/services/Payments.Tests/Features/Captures/DispatchCapturesTests.cs#Payments.Tests.Features.Captures.DispatchCapturesTests.An_authorized_referral_credit_reduces_and_explains_the_capture|csharp"
+            }
+          ]
+        },
+        {
+          "role": "challenge",
+          "spec": "payments/capture",
+          "scenario": "capture-equals-trip-fare",
+          "assertion": "selected evidence rejects generated changes at linked realization sites",
+          "outcome": "findings",
+          "subjects": [
+            {
+              "relation": "realization",
+              "identity": "app/services/Payments/Features/Captures/CaptureTrip.cs#Payments.Features.Captures.CaptureTrip.RequestHandler.Handle|csharp"
+            },
+            {
+              "relation": "evidence",
+              "identity": "app/services/Payments.Tests/Features/Captures/DispatchCapturesTests.cs#Payments.Tests.Features.Captures.DispatchCapturesTests.A_completed_trip_is_captured_for_whatever_its_fare_is|csharp"
+            }
+          ]
+        },
+        {
+          "role": "challenge",
+          "spec": "referrals/rewards",
+          "scenario": "owned-credit-reduces-capture",
+          "assertion": "selected evidence rejects generated changes at linked realization sites",
+          "outcome": "findings",
+          "subjects": [
+            {
+              "relation": "realization",
+              "identity": "app/services/Payments/Features/Captures/CaptureTrip.cs#Payments.Features.Captures.CaptureTrip.RequestHandler.Handle|csharp"
+            },
+            {
+              "relation": "evidence",
+              "identity": "app/services/Payments.Tests/Features/Captures/DispatchCapturesTests.cs#Payments.Tests.Features.Captures.DispatchCapturesTests.An_authorized_referral_credit_reduces_and_explains_the_capture|csharp"
+            }
+          ]
+        }
+      ],
+      "payload": {
+        "schema": "azimuth-mutation-summary/1",
+        "assessments": [
+          {
+            "spec": "payments/capture",
+            "scenario": "adjusted-capture-records-reason",
+            "target_files": [
+              "app/services/Payments/Features/Captures/CaptureTrip.cs"
+            ],
+            "test_sites": [
+              "Payments.Tests.Features.Captures.DispatchCapturesTests.An_authorized_referral_credit_reduces_and_explains_the_capture"
+            ],
+            "killed": 14,
+            "survived": 2,
+            "no_coverage": 6,
+            "timeout": 0,
+            "compile_error": 20,
+            "runtime_error": 0,
+            "pending": 0,
+            "ignored": 0,
+            "review_items": [
+              {
+                "file": "app/services/Payments/Features/Captures/CaptureTrip.cs",
+                "line": 85,
+                "status": "NoCoverage",
+                "mutator": "Equality mutation",
+                "replacement": "priorTrip == request.TripId"
+              },
+              {
+                "file": "app/services/Payments/Features/Captures/CaptureTrip.cs",
+                "line": 113,
+                "status": "NoCoverage",
+                "mutator": "Equality mutation",
+                "replacement": "intent.TripId != request.TripId"
+              },
+              {
+                "file": "app/services/Payments/Features/Captures/CaptureTrip.cs",
+                "line": 151,
+                "status": "NoCoverage",
+                "mutator": "Equality mutation",
+                "replacement": "e.InnerException is not PostgresException\n                { SqlState: \"23505\", ConstraintName: \"ux_capture_referral_credit\" }"
+              },
+              {
+                "file": "app/services/Payments/Features/Captures/CaptureTrip.cs",
+                "line": 157,
+                "status": "NoCoverage",
+                "mutator": "Equality mutation",
+                "replacement": "c.ReferralCreditId != referralCredit!.CreditId"
+              },
+              {
+                "file": "app/services/Payments/Features/Captures/CaptureTrip.cs",
+                "line": 160,
+                "status": "NoCoverage",
+                "mutator": "Equality mutation",
+                "replacement": "winnerTrip != request.TripId"
+              },
+              {
+                "file": "app/services/Payments/Features/Captures/CaptureTrip.cs",
+                "line": 166,
+                "status": "NoCoverage",
+                "mutator": "Equality mutation",
+                "replacement": "e.InnerException is not PostgresException\n                { SqlState: \"23505\", ConstraintName: \"ux_capture_trip\" }"
+              },
+              {
+                "file": "app/services/Payments/Features/Captures/CaptureTrip.cs",
+                "line": 175,
+                "status": "Survived",
+                "mutator": "Equality mutation",
+                "replacement": "i.TripId != request.TripId"
+              },
+              {
+                "file": "app/services/Payments/Features/Captures/CaptureTrip.cs",
+                "line": 200,
+                "status": "Survived",
+                "mutator": "Equality mutation",
+                "replacement": "authority.AmountMinor < 0"
+              }
+            ]
+          },
+          {
+            "spec": "payments/capture",
+            "scenario": "capture-equals-trip-fare",
+            "target_files": [
+              "app/services/Payments/Features/Captures/CaptureTrip.cs"
+            ],
+            "test_sites": [
+              "Payments.Tests.Features.Captures.DispatchCapturesTests.A_completed_trip_is_captured_for_whatever_its_fare_is"
+            ],
+            "killed": 14,
+            "survived": 2,
+            "no_coverage": 6,
+            "timeout": 0,
+            "compile_error": 20,
+            "runtime_error": 0,
+            "pending": 0,
+            "ignored": 0,
+            "review_items": [
+              {
+                "file": "app/services/Payments/Features/Captures/CaptureTrip.cs",
+                "line": 85,
+                "status": "NoCoverage",
+                "mutator": "Equality mutation",
+                "replacement": "priorTrip == request.TripId"
+              },
+              {
+                "file": "app/services/Payments/Features/Captures/CaptureTrip.cs",
+                "line": 113,
+                "status": "NoCoverage",
+                "mutator": "Equality mutation",
+                "replacement": "intent.TripId != request.TripId"
+              },
+              {
+                "file": "app/services/Payments/Features/Captures/CaptureTrip.cs",
+                "line": 151,
+                "status": "NoCoverage",
+                "mutator": "Equality mutation",
+                "replacement": "e.InnerException is not PostgresException\n                { SqlState: \"23505\", ConstraintName: \"ux_capture_referral_credit\" }"
+              },
+              {
+                "file": "app/services/Payments/Features/Captures/CaptureTrip.cs",
+                "line": 157,
+                "status": "NoCoverage",
+                "mutator": "Equality mutation",
+                "replacement": "c.ReferralCreditId != referralCredit!.CreditId"
+              },
+              {
+                "file": "app/services/Payments/Features/Captures/CaptureTrip.cs",
+                "line": 160,
+                "status": "NoCoverage",
+                "mutator": "Equality mutation",
+                "replacement": "winnerTrip != request.TripId"
+              },
+              {
+                "file": "app/services/Payments/Features/Captures/CaptureTrip.cs",
+                "line": 166,
+                "status": "NoCoverage",
+                "mutator": "Equality mutation",
+                "replacement": "e.InnerException is not PostgresException\n                { SqlState: \"23505\", ConstraintName: \"ux_capture_trip\" }"
+              },
+              {
+                "file": "app/services/Payments/Features/Captures/CaptureTrip.cs",
+                "line": 175,
+                "status": "Survived",
+                "mutator": "Equality mutation",
+                "replacement": "i.TripId != request.TripId"
+              },
+              {
+                "file": "app/services/Payments/Features/Captures/CaptureTrip.cs",
+                "line": 200,
+                "status": "Survived",
+                "mutator": "Equality mutation",
+                "replacement": "authority.AmountMinor < 0"
+              }
+            ]
+          },
+          {
+            "spec": "referrals/rewards",
+            "scenario": "owned-credit-reduces-capture",
+            "target_files": [
+              "app/services/Payments/Features/Captures/CaptureTrip.cs"
+            ],
+            "test_sites": [
+              "Payments.Tests.Features.Captures.DispatchCapturesTests.An_authorized_referral_credit_reduces_and_explains_the_capture"
+            ],
+            "killed": 14,
+            "survived": 2,
+            "no_coverage": 6,
+            "timeout": 0,
+            "compile_error": 20,
+            "runtime_error": 0,
+            "pending": 0,
+            "ignored": 0,
+            "review_items": [
+              {
+                "file": "app/services/Payments/Features/Captures/CaptureTrip.cs",
+                "line": 85,
+                "status": "NoCoverage",
+                "mutator": "Equality mutation",
+                "replacement": "priorTrip == request.TripId"
+              },
+              {
+                "file": "app/services/Payments/Features/Captures/CaptureTrip.cs",
+                "line": 113,
+                "status": "NoCoverage",
+                "mutator": "Equality mutation",
+                "replacement": "intent.TripId != request.TripId"
+              },
+              {
+                "file": "app/services/Payments/Features/Captures/CaptureTrip.cs",
+                "line": 151,
+                "status": "NoCoverage",
+                "mutator": "Equality mutation",
+                "replacement": "e.InnerException is not PostgresException\n                { SqlState: \"23505\", ConstraintName: \"ux_capture_referral_credit\" }"
+              },
+              {
+                "file": "app/services/Payments/Features/Captures/CaptureTrip.cs",
+                "line": 157,
+                "status": "NoCoverage",
+                "mutator": "Equality mutation",
+                "replacement": "c.ReferralCreditId != referralCredit!.CreditId"
+              },
+              {
+                "file": "app/services/Payments/Features/Captures/CaptureTrip.cs",
+                "line": 160,
+                "status": "NoCoverage",
+                "mutator": "Equality mutation",
+                "replacement": "winnerTrip != request.TripId"
+              },
+              {
+                "file": "app/services/Payments/Features/Captures/CaptureTrip.cs",
+                "line": 166,
+                "status": "NoCoverage",
+                "mutator": "Equality mutation",
+                "replacement": "e.InnerException is not PostgresException\n                { SqlState: \"23505\", ConstraintName: \"ux_capture_trip\" }"
+              },
+              {
+                "file": "app/services/Payments/Features/Captures/CaptureTrip.cs",
+                "line": 175,
+                "status": "Survived",
+                "mutator": "Equality mutation",
+                "replacement": "i.TripId != request.TripId"
+              },
+              {
+                "file": "app/services/Payments/Features/Captures/CaptureTrip.cs",
+                "line": 200,
+                "status": "Survived",
+                "mutator": "Equality mutation",
+                "replacement": "authority.AmountMinor < 0"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

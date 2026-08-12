@@ -20,9 +20,14 @@ azimuth judge --manifest <each manifest>
 ```
 
 Each line is `spec  scenario  criticality  fingerprint  state`, followed by role-labelled inputs a
-judgment must inspect: `realization`, `evidence`, `mechanism` and `context`. Judge everything
+judgment must inspect: `realization`, `evidence`, `mechanism`, `challenge` and `context`. Judge everything
 `unjudged` or `stale`; a `stale` judgment means the claim or one of those inputs changed since the
 verdict, so the verdict no longer applies even if it still reads true.
+
+`challenge` appears when mutation, static analysis or another judgment hardener has been imported.
+Read the project policy in `azimuth/standards/judgment.md`, the named inputs and the report before
+deciding the verdict. Outcomes and counts are a worklist, not a scorecard. `clean` does not mean the
+claim is covered; `findings` does not become adverse until the finding is related to the predicate.
 
 ## What to examine, per claim
 
@@ -36,11 +41,17 @@ verdict, so the verdict no longer applies even if it still reads true.
    name. For an imported manual result, read the linked procedure, execution identity and
    observations rather than trusting `passed`. For detection evidence, read the metric producer,
    detector expression, detector test and silent-death account.
-4. **Check the design entry against the source.** A `Site:` is prose and nothing parses it, so it
+4. **Review every imported challenge.** Relate its findings and inconclusive outcomes to this
+   claim's predicate and named subjects. For mutation, inspect survived, no-coverage, timeout,
+   runtime-error and pending mutants: a relevant survivor demonstrates a plausible wrong
+   implementation the selected evidence accepts, so the verdict is **toothless**. For static
+   analysis, determine whether a finding contradicts the claim or realization; a clean broad scan
+   is negative search, not proof. Never infer `sound` from a score or clean tool outcome.
+5. **Check the design entry against the source.** A `Site:` is prose and nothing parses it, so it
    can name a type nobody wrote. Open the file it names before believing it. Three entries in this
    corpus described mechanisms that do not exist, and two verdicts were wrong because a judge cited
    one of them as evidence of a gap.
-5. **Ask, in order:**
+6. **Ask, in order:**
    - *Does every realization site establish part of this predicate?* If not, it is a
      **dishonest-realization**, even when another site makes the overall claim true.
    - *Would this evidence discriminate a plausible wrong system?* Construct one mentally: delete
@@ -53,7 +64,7 @@ verdict, so the verdict no longer applies even if it still reads true.
      production property holds.
    - *Does the claim describe the behaviour that matters?* If the code is right, the test is toothy,
      and a reader would still be surprised by something the spec never says, that is a **spec-gap**.
-6. Only if none of those fire is the verdict **sound**.
+7. Only if none of those fire is the verdict **sound**.
 
 ## Traps
 
@@ -69,6 +80,11 @@ verdict, so the verdict no longer applies even if it still reads true.
   threshold, injected violation and detector test. Ask whether a broken producer or muted route
   leaves the account quietly green. Repository bindings do not establish live scrape or
   notification health.
+- **Mutation score is not a requirement and killed mutants are not product evidence.** Mutation
+  testing probes the tests' ability to reject generated wrong implementations. It neither proves
+  that the generated mutations are representative nor establishes the expected product result.
+- **A clean broad scan is not blanket coverage.** It challenges the explicitly resolved sites in
+  its bindings. It supplies no oracle for unrelated product predicates.
 - **Do not turn realization review into general code review.** Judge whether the annotated site
   establishes the named predicate, not whether the implementation is otherwise correct. A correct
   implementation with a toothless test is still toothless; a true claim with an unrelated

@@ -52,7 +52,7 @@ the topology to the real ride-hailing fixture.
 
 ## What is executable
 
-The 31-scenario suite establishes:
+The 33-scenario suite establishes:
 
 - complete and local assembly have different, explicit states;
 - a local routine requirement has intent only and no linkage;
@@ -70,6 +70,8 @@ The 31-scenario suite establishes:
 - unsupported protocol versions fail explicitly;
 - dirty checkouts may be inspected but cannot be finalized;
 - ordinary flat extractor output can be enveloped as a typed repository observation;
+- operational claim realization and rule-test evidence can originate in the operations repository;
+- assurance observations survive repository enveloping and retain resolvable subjects;
 - relocating a complete area to another real Git repository preserves judgment freshness;
 - changing an area identity without updating its source identities fails as a semantic transition;
 - a monorepo control and the federated fixture derive the same claims, relations and holes;

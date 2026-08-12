@@ -265,6 +265,18 @@ pub struct Site {
     pub oracle: Option<Oracle>,
 }
 
+impl Site {
+    pub fn subject_identities(&self) -> [String; 2] {
+        [
+            self.source
+                .as_ref()
+                .map(SourceIdentity::key)
+                .unwrap_or_default(),
+            format!("{}#{}|{}", self.file, self.site, self.lang),
+        ]
+    }
+}
+
 /// A compiler-resolved site that implements a design-owned mechanism identity.
 #[derive(Debug, Clone)]
 pub struct MechanismImplementation {
@@ -332,6 +344,122 @@ pub struct Artifact {
     pub source: Option<SourceIdentity>,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ObservationRole {
+    Evidence,
+    Challenge,
+}
+
+impl ObservationRole {
+    pub fn parse(value: &str) -> Option<Self> {
+        match value {
+            "evidence" => Some(Self::Evidence),
+            "challenge" => Some(Self::Challenge),
+            _ => None,
+        }
+    }
+
+    pub fn name(self) -> &'static str {
+        match self {
+            Self::Evidence => "evidence",
+            Self::Challenge => "challenge",
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ObservationSubjectRelation {
+    Realization,
+    Evidence,
+    Mechanism,
+}
+
+impl ObservationSubjectRelation {
+    pub fn parse(value: &str) -> Option<Self> {
+        match value {
+            "realization" => Some(Self::Realization),
+            "evidence" => Some(Self::Evidence),
+            "mechanism" => Some(Self::Mechanism),
+            _ => None,
+        }
+    }
+
+    pub fn name(self) -> &'static str {
+        match self {
+            Self::Realization => "realization",
+            Self::Evidence => "evidence",
+            Self::Mechanism => "mechanism",
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct ObservationSubject {
+    pub relation: ObservationSubjectRelation,
+    pub identity: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct ObservationBinding {
+    pub role: ObservationRole,
+    pub spec: String,
+    pub scenario: String,
+    pub assertion: String,
+    pub outcome: String,
+    pub subjects: Vec<ObservationSubject>,
+    pub scope: Option<Scope>,
+    pub quantification: Option<Quantification>,
+    pub oracle: Option<Oracle>,
+}
+
+/// One immutable execution may answer several claim-specific questions. Tool-specific meaning
+/// remains in the fingerprinted report and opaque payload; the core knows only whether each
+/// binding contributes evidence or challenges an existing assurance account.
+#[derive(Debug, Clone)]
+pub struct Observation {
+    pub id: String,
+    pub kind: String,
+    pub tool: String,
+    pub tool_version: String,
+    pub report: String,
+    pub inputs: Vec<String>,
+    pub observed_at: Option<String>,
+    pub expires_at: Option<u64>,
+    pub source_fingerprint: String,
+    pub source: Option<SourceIdentity>,
+    pub bindings: Vec<ObservationBinding>,
+    pub payload: crate::json::Json,
+}
+
+impl Observation {
+    pub fn evidence_sites(&self) -> impl Iterator<Item = Site> + '_ {
+        self.bindings
+            .iter()
+            .enumerate()
+            .filter(|(_, binding)| binding.role == ObservationRole::Evidence)
+            .map(|(index, binding)| Site {
+                spec: binding.spec.clone(),
+                scenario: binding.scenario.clone(),
+                site: format!("{}:{}", self.id, index + 1),
+                file: self.report.clone(),
+                lang: self.tool.clone(),
+                source: self.source.clone(),
+                source_fingerprint: self.source_fingerprint.clone(),
+                evidence_kind: Some(self.kind.clone()),
+                evidence_outcome: Some(if binding.outcome == "satisfied" {
+                    "passed".into()
+                } else {
+                    "failed".into()
+                }),
+                observed_at: self.observed_at.clone(),
+                expires_at: self.expires_at,
+                scope: binding.scope,
+                quantification: binding.quantification,
+                oracle: binding.oracle,
+            })
+    }
+}
+
 #[derive(Debug, Default)]
 pub struct Model {
     pub specs: Vec<Spec>,
@@ -344,6 +472,7 @@ pub struct Model {
     pub class_members: Vec<ClassMember>,
     pub enumerations: Vec<Enumeration>,
     pub artifacts: Vec<Artifact>,
+    pub observations: Vec<Observation>,
     /// Absent until a standards file is read. Without it no evidence standard is known, so
     /// `wrong-form` cannot fire and `uncovered` falls back to "has any evidence at all".
     pub standards: Option<crate::plan::Standards>,
@@ -438,6 +567,28 @@ impl Model {
                 .filter(|site| site.spec == spec && site.scenario == scenario)
                 .map(crate::judgment::FingerprintInput::evidence),
         );
+        for observation in &self.observations {
+            for binding in observation
+                .bindings
+                .iter()
+                .filter(|binding| binding.spec == spec && binding.scenario == scenario)
+            {
+                inputs.push(match binding.role {
+                    ObservationRole::Evidence => {
+                        crate::judgment::FingerprintInput::observed_evidence(observation, binding)
+                    }
+                    ObservationRole::Challenge => {
+                        crate::judgment::FingerprintInput::challenge(observation, binding)
+                    }
+                });
+                inputs.extend(
+                    observation
+                        .inputs
+                        .iter()
+                        .map(|path| crate::judgment::FingerprintInput::file(path)),
+                );
+            }
+        }
         let Some(claim) = self.find_claim(spec, scenario) else {
             return inputs;
         };
@@ -733,6 +884,10 @@ impl Model {
                         .collect(),
                 ),
             ),
+            (
+                "observations",
+                Json::Arr(self.observations.iter().map(observation_json).collect()),
+            ),
             ("mechanisms", Json::Arr(self.mechanism_json())),
             (
                 "holes",
@@ -740,6 +895,75 @@ impl Model {
             ),
         ])
     }
+}
+
+fn observation_json(item: &Observation) -> Json {
+    let mut fields = vec![
+        ("id".to_string(), Json::str(&item.id)),
+        ("kind".to_string(), Json::str(&item.kind)),
+        ("tool".to_string(), Json::str(&item.tool)),
+        ("tool_version".to_string(), Json::str(&item.tool_version)),
+        ("report".to_string(), Json::str(&item.report)),
+        (
+            "inputs".to_string(),
+            Json::Arr(item.inputs.iter().map(Json::str).collect()),
+        ),
+        (
+            "bindings".to_string(),
+            Json::Arr(item.bindings.iter().map(observation_binding_json).collect()),
+        ),
+        (
+            "source_fingerprint".to_string(),
+            Json::str(&item.source_fingerprint),
+        ),
+        ("payload".to_string(), item.payload.clone()),
+    ];
+    if let Some(observed_at) = &item.observed_at {
+        fields.push(("observed_at".to_string(), Json::str(observed_at)));
+    }
+    if let Some(expires_at) = item.expires_at {
+        fields.push(("expires_at".to_string(), Json::Num(expires_at as f64)));
+    }
+    append_source(&mut fields, item.source.as_ref());
+    Json::Obj(fields)
+}
+
+fn observation_binding_json(binding: &ObservationBinding) -> Json {
+    let mut fields = vec![
+        ("role".to_string(), Json::str(binding.role.name())),
+        ("spec".to_string(), Json::str(&binding.spec)),
+        ("scenario".to_string(), Json::str(&binding.scenario)),
+        ("assertion".to_string(), Json::str(&binding.assertion)),
+        ("outcome".to_string(), Json::str(&binding.outcome)),
+        (
+            "subjects".to_string(),
+            Json::Arr(
+                binding
+                    .subjects
+                    .iter()
+                    .map(|subject| {
+                        Json::obj(vec![
+                            ("relation", Json::str(subject.relation.name())),
+                            ("identity", Json::str(&subject.identity)),
+                        ])
+                    })
+                    .collect(),
+            ),
+        ),
+    ];
+    if let Some(scope) = binding.scope {
+        fields.push(("scope".to_string(), Json::str(scope.name())));
+    }
+    if let Some(quantification) = binding.quantification {
+        fields.push((
+            "quantification".to_string(),
+            Json::str(quantification.name()),
+        ));
+    }
+    if let Some(oracle) = binding.oracle {
+        fields.push(("oracle".to_string(), Json::str(oracle.name())));
+    }
+    Json::Obj(fields)
 }
 
 impl Model {

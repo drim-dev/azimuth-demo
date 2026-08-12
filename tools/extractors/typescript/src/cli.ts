@@ -8,7 +8,7 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { emit, nextRoutes } from './emitter';
-import { prometheusArtifacts } from './prometheus';
+import { prometheusLinkage } from './prometheus';
 
 const USAGE = `usage: azimuth-emit-ts --output <path> [--root <dir>] [--next-app <class>=<dir>] [--prometheus <rules>,<tests>] <dir-or-file>...
   --output    where the manifest is written
@@ -80,7 +80,10 @@ function main(argv: string[]): number {
 
   try {
     for (const pair of prometheus) {
-      manifest.artifacts.push(...prometheusArtifacts(pair.rules, pair.tests, root));
+      const linkage = prometheusLinkage(pair.rules, pair.tests, root);
+      manifest.artifacts.push(...linkage.artifacts);
+      manifest.realizes.push(...linkage.realizes);
+      manifest.covers.push(...linkage.covers);
     }
   } catch (error) {
     console.error(`azimuth-emit: ${(error as Error).message}`);

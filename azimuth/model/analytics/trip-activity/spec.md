@@ -39,3 +39,19 @@ GIVEN a malformed lifecycle message precedes a valid message
 WHEN the analytics consumer receives both
 THEN the malformed message is placed in the analytics dead-letter queue
 AND the valid message is still projected
+
+## Requirement: trip-delivery-health-is-alerted
+Criticality: standard
+
+Operators SHALL be alerted when trip lifecycle delivery is persistently backlogged or has
+dead-lettered messages.
+
+### Scenario: relay-backlog-raises-alert
+GIVEN trip lifecycle delivery has remained backlogged beyond its declared threshold
+WHEN Prometheus evaluates the delivery-health rules
+THEN a trip delivery backlog alert is active
+
+### Scenario: dead-letter-presence-raises-alert
+GIVEN a trip lifecycle dead-letter queue contains a message
+WHEN Prometheus evaluates the delivery-health rules
+THEN a trip delivery dead-letter alert is active

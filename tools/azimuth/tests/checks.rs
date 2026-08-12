@@ -78,6 +78,10 @@ fn model_with(manifest_json: &str) -> Model {
         model.covers = m.covers;
         model.class_members = m.class_members;
         model.enumerations = m.enumerations;
+        model
+            .covers
+            .extend(m.observations.iter().flat_map(|item| item.evidence_sites()));
+        model.observations = m.observations;
     }
     model
 }
@@ -457,6 +461,127 @@ fn judgments_name_realization_sources_as_realizations() {
     assert!(inputs
         .iter()
         .any(|input| input.role() == "evidence" && input.display().contains("Tests.Guard")));
+}
+
+#[test]
+fn challenge_observations_are_judgment_inputs_and_expire_with_the_report() {
+    let mut model = model_with(
+        r#"{
+          "realizes": [{"spec":"alpha","scenario":"guarded","site":"Production.Guard",
+            "file":"a.cs","lang":"csharp","source_fingerprint":"production-v1"}],
+          "covers": [{"spec":"alpha","scenario":"guarded","site":"Tests.Guard",
+            "file":"t.cs","lang":"csharp","source_fingerprint":"test-v1",
+            "scope":"component","quantification":"universal"}],
+          "observations": [{"id":"mutation-alpha","kind":"mutation-test",
+            "tool":"Stryker.NET","tool_version":"4.16.0","report":"mutation.json",
+            "inputs":["stryker-config.json"],"source_fingerprint":"mutation-v1",
+            "bindings":[{"role":"challenge","spec":"alpha","scenario":"guarded",
+              "assertion":"tests reject generated changes","outcome":"findings",
+              "subjects":[
+                {"relation":"realization","identity":"a.cs#Production.Guard|csharp"},
+                {"relation":"evidence","identity":"t.cs#Tests.Guard|csharp"}]}],
+            "payload":{"survived":1}}]
+        }"#,
+    );
+
+    let claim = model.find_claim("alpha", "guarded").unwrap();
+    let claim_text = model.claim_text(&claim);
+    let inputs = model.judgment_inputs("alpha", "guarded");
+    assert!(inputs
+        .iter()
+        .any(|input| input.role() == "challenge" && input.display().contains("mutation-alpha")));
+    let original = fingerprint(&claim_text, inputs);
+    model.observations[0].source_fingerprint = "mutation-v2".into();
+    let changed = fingerprint(&claim_text, model.judgment_inputs("alpha", "guarded"));
+    assert_ne!(changed, original);
+}
+
+#[test]
+fn challenge_observation_subjects_must_still_resolve() {
+    let model = model_with(
+        r#"{
+          "realizes": [{"spec":"alpha","scenario":"guarded","site":"Production.Guard",
+            "file":"a.cs","lang":"csharp","source_fingerprint":"production-v1"}],
+          "covers": [{"spec":"alpha","scenario":"guarded","site":"Tests.Guard",
+            "file":"t.cs","lang":"csharp","source_fingerprint":"test-v1",
+            "scope":"component","quantification":"universal"}],
+          "observations": [{"id":"static-alpha","kind":"static-analysis",
+            "tool":"analyzer","tool_version":"1","report":"scan.sarif",
+            "inputs":[],"source_fingerprint":"scan-v1",
+            "bindings":[{"role":"challenge","spec":"alpha","scenario":"guarded",
+              "assertion":"linked realization has no adverse finding","outcome":"findings",
+              "subjects":[
+                {"relation":"realization","identity":"renamed.cs#Production.Renamed|csharp"}]}],
+            "payload":{}}]
+        }"#,
+    );
+
+    assert!(kinds(&model).contains(&(
+        HoleKind::UnresolvedObservationBinding,
+        "alpha#guarded".into()
+    )));
+}
+
+#[test]
+fn one_observation_covers_several_claims_with_independent_assertions() {
+    let mut model = model_with(
+        r#"{
+          "realizes": [
+            {"spec":"alpha","scenario":"guarded","site":"Production.Guard",
+             "file":"a.cs","lang":"csharp","source_fingerprint":"production-v1"},
+            {"spec":"alpha","scenario":"decorative","site":"Production.View",
+             "file":"view.cs","lang":"csharp","source_fingerprint":"view-v1"}],
+          "observations": [{"id":"load-42","kind":"load-test","tool":"k6",
+            "tool_version":"1.0","report":"load.json","inputs":["load.js"],
+            "observed_at":"2026-08-11T12:00:00Z","expires_at":4102444800,
+            "source_fingerprint":"load-v1","bindings":[
+              {"role":"evidence","spec":"alpha","scenario":"guarded",
+               "assertion":"p95 latency is below 300 ms","outcome":"satisfied","subjects":[],
+               "scope":"e2e","quantification":"example","oracle":"direct"},
+              {"role":"evidence","spec":"alpha","scenario":"decorative",
+               "assertion":"error rate is below 0.5 percent","outcome":"satisfied","subjects":[],
+               "scope":"e2e","quantification":"example","oracle":"direct"}],"payload":{}}]
+        }"#,
+    );
+
+    assert_eq!(model.observations.len(), 1);
+    assert_eq!(model.covers.len(), 2);
+    assert!(
+        model
+            .covers
+            .iter()
+            .all(|site| site.file == "load.json"
+                && site.evidence_kind.as_deref() == Some("load-test"))
+    );
+    let claim = model.find_claim("alpha", "guarded").unwrap();
+    let claim_text = model.claim_text(&claim);
+    let original = fingerprint(&claim_text, model.judgment_inputs("alpha", "guarded"));
+    model.observations[0].bindings[0].assertion = "p95 latency is below 500 ms".into();
+    let changed = fingerprint(&claim_text, model.judgment_inputs("alpha", "guarded"));
+    assert_ne!(changed, original);
+}
+
+#[test]
+fn duplicate_observation_identity_fails_closed() {
+    let model = model_with(
+        r#"{
+          "observations": [
+            {"id":"scan-1","kind":"static-analysis","tool":"scan","tool_version":"1",
+             "report":"one.sarif","inputs":[],"source_fingerprint":"one",
+             "bindings":[{"role":"challenge","spec":"alpha","scenario":"guarded",
+               "assertion":"scan one","outcome":"clean","subjects":[{"relation":"realization",
+                 "identity":"a.cs#Production.Guard|csharp"}]}],"payload":{}},
+            {"id":"scan-1","kind":"static-analysis","tool":"scan","tool_version":"1",
+             "report":"two.sarif","inputs":[],"source_fingerprint":"two",
+             "bindings":[{"role":"challenge","spec":"alpha","scenario":"guarded",
+               "assertion":"scan two","outcome":"clean","subjects":[{"relation":"realization",
+                 "identity":"a.cs#Production.Guard|csharp"}]}],"payload":{}}],
+          "realizes": [{"spec":"alpha","scenario":"guarded","site":"Production.Guard",
+            "file":"a.cs","lang":"csharp","source_fingerprint":"production-v1"}]
+        }"#,
+    );
+
+    assert!(kinds(&model).contains(&(HoleKind::DuplicateObservation, String::new())));
 }
 
 #[test]

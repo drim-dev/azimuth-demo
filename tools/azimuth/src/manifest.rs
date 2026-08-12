@@ -10,7 +10,8 @@
 use crate::diag::Diag;
 use crate::json::{self, Json};
 use crate::model::{
-    Artifact, ClassMember, Enumeration, MechanismCover, MechanismImplementation, Oracle,
+    Artifact, ClassMember, Enumeration, MechanismCover, MechanismImplementation, Observation,
+    ObservationBinding, ObservationRole, ObservationSubject, ObservationSubjectRelation, Oracle,
     Quantification, Scope, Site, SourceIdentity,
 };
 use std::fs;
@@ -25,6 +26,7 @@ pub struct Manifest {
     pub class_members: Vec<ClassMember>,
     pub enumerations: Vec<Enumeration>,
     pub artifacts: Vec<Artifact>,
+    pub observations: Vec<Observation>,
 }
 
 pub fn load(path: &Path) -> Result<Manifest, Vec<Diag>> {
@@ -48,6 +50,7 @@ pub fn parse(path: &str, root: &Json) -> Result<Manifest, Vec<Diag>> {
         "class_members",
         "enumerations",
         "artifacts",
+        "observations",
     ]
     .iter()
     .all(|key| root.get(key).is_none())
@@ -295,6 +298,222 @@ pub fn parse(path: &str, root: &Json) -> Result<Manifest, Vec<Diag>> {
                 columns,
                 predicate,
                 source: source_identity(path, &where_, item, &mut errors),
+            });
+        }
+    }
+
+    if let Some(value) = root.get("observations") {
+        let Some(items) = value.as_array() else {
+            errors.push(Diag::expecting(
+                path,
+                0,
+                "`observations` is not an array",
+                "an array",
+            ));
+            return Err(errors);
+        };
+        for (index, item) in items.iter().enumerate() {
+            let where_ = format!("observations[{index}]");
+            let id = string_field(path, &where_, item, "id", &mut errors);
+            let kind = string_field(path, &where_, item, "kind", &mut errors);
+            let tool = string_field(path, &where_, item, "tool", &mut errors);
+            let tool_version = string_field(path, &where_, item, "tool_version", &mut errors);
+            let report = string_field(path, &where_, item, "report", &mut errors);
+            let inputs = string_array_field(path, &where_, item, "inputs", &mut errors);
+            let observed_at =
+                optional_string_field(path, &where_, item, "observed_at", &mut errors);
+            let expires_at = optional_integer_field(path, &where_, item, "expires_at", &mut errors);
+            let source_fingerprint =
+                string_field(path, &where_, item, "source_fingerprint", &mut errors);
+            let mut bindings = Vec::new();
+            match item.get("bindings").and_then(Json::as_array) {
+                Some(items) if !items.is_empty() => {
+                    for (binding_index, binding) in items.iter().enumerate() {
+                        let binding_where = format!("{where_}.bindings[{binding_index}]");
+                        let role = enum_field(
+                            path,
+                            &binding_where,
+                            binding,
+                            "role",
+                            ObservationRole::parse,
+                            "evidence or challenge",
+                            &mut errors,
+                        );
+                        let spec = string_field(path, &binding_where, binding, "spec", &mut errors);
+                        let scenario =
+                            string_field(path, &binding_where, binding, "scenario", &mut errors);
+                        let assertion =
+                            string_field(path, &binding_where, binding, "assertion", &mut errors);
+                        let outcome =
+                            string_field(path, &binding_where, binding, "outcome", &mut errors);
+                        let scope = optional_enum_field(
+                            path,
+                            &binding_where,
+                            binding,
+                            "scope",
+                            Scope::parse,
+                            "unit, component or e2e",
+                            &mut errors,
+                        );
+                        let quantification = optional_enum_field(
+                            path,
+                            &binding_where,
+                            binding,
+                            "quantification",
+                            Quantification::parse,
+                            "example or universal",
+                            &mut errors,
+                        );
+                        let oracle = optional_enum_field(
+                            path,
+                            &binding_where,
+                            binding,
+                            "oracle",
+                            Oracle::parse,
+                            "direct, golden, relational, metamorphic, model-based or contract",
+                            &mut errors,
+                        );
+                        let mut subjects = Vec::new();
+                        match binding.get("subjects").and_then(Json::as_array) {
+                            Some(items) => {
+                                for (subject_index, subject) in items.iter().enumerate() {
+                                    let subject_where =
+                                        format!("{binding_where}.subjects[{subject_index}]");
+                                    let relation = enum_field(
+                                        path,
+                                        &subject_where,
+                                        subject,
+                                        "relation",
+                                        ObservationSubjectRelation::parse,
+                                        "realization, evidence or mechanism",
+                                        &mut errors,
+                                    );
+                                    let identity = string_field(
+                                        path,
+                                        &subject_where,
+                                        subject,
+                                        "identity",
+                                        &mut errors,
+                                    );
+                                    if let (Some(relation), Some(identity)) = (relation, identity) {
+                                        subjects.push(ObservationSubject { relation, identity });
+                                    }
+                                }
+                            }
+                            None => errors.push(Diag::expecting(
+                                path,
+                                0,
+                                format!("{binding_where} has no subjects array"),
+                                "an array, empty only for evidence",
+                            )),
+                        }
+                        if assertion.as_deref().is_some_and(str::is_empty) {
+                            errors.push(Diag::at(
+                                path,
+                                0,
+                                format!("{binding_where} has an empty assertion"),
+                            ));
+                        }
+                        match role {
+                            Some(ObservationRole::Evidence) => {
+                                if !matches!(outcome.as_deref(), Some("satisfied" | "violated")) {
+                                    errors.push(Diag::expecting(
+                                        path,
+                                        0,
+                                        format!("{binding_where} has no evidence outcome"),
+                                        "satisfied or violated",
+                                    ));
+                                }
+                                if scope.is_none() || quantification.is_none() || oracle.is_none() {
+                                    errors.push(Diag::expecting(
+                                        path,
+                                        0,
+                                        format!("{binding_where} has an incomplete evidence form"),
+                                        "scope, quantification and oracle",
+                                    ));
+                                }
+                                if observed_at.is_none() || expires_at.is_none() {
+                                    errors.push(Diag::expecting(
+                                        path,
+                                        0,
+                                        format!("{where_} has evidence without a lifecycle"),
+                                        "observed_at and expires_at",
+                                    ));
+                                }
+                            }
+                            Some(ObservationRole::Challenge) => {
+                                if !matches!(
+                                    outcome.as_deref(),
+                                    Some("clean" | "findings" | "inconclusive")
+                                ) {
+                                    errors.push(Diag::expecting(
+                                        path,
+                                        0,
+                                        format!("{binding_where} has no challenge outcome"),
+                                        "clean, findings or inconclusive",
+                                    ));
+                                }
+                                if subjects.is_empty() {
+                                    errors.push(Diag::at(
+                                        path,
+                                        0,
+                                        format!("{binding_where} challenges no subjects"),
+                                    ));
+                                }
+                                if scope.is_some() || quantification.is_some() || oracle.is_some() {
+                                    errors.push(Diag::at(
+                                        path,
+                                        0,
+                                        format!(
+                                            "{binding_where} gives a challenge an evidence form"
+                                        ),
+                                    ));
+                                }
+                            }
+                            None => {}
+                        }
+                        if let (
+                            Some(role),
+                            Some(spec),
+                            Some(scenario),
+                            Some(assertion),
+                            Some(outcome),
+                        ) = (role, spec, scenario, assertion, outcome)
+                        {
+                            bindings.push(ObservationBinding {
+                                role,
+                                spec,
+                                scenario,
+                                assertion,
+                                outcome,
+                                subjects,
+                                scope,
+                                quantification,
+                                oracle,
+                            });
+                        }
+                    }
+                }
+                _ => errors.push(Diag::expecting(
+                    path,
+                    0,
+                    format!("{where_} has no bindings"),
+                    "a non-empty bindings array",
+                )),
+            }
+            out.observations.push(Observation {
+                id: id.unwrap_or_default(),
+                kind: kind.unwrap_or_default(),
+                tool: tool.unwrap_or_default(),
+                tool_version: tool_version.unwrap_or_default(),
+                report: report.unwrap_or_default(),
+                inputs,
+                observed_at,
+                expires_at,
+                source_fingerprint: source_fingerprint.unwrap_or_default(),
+                source: source_identity(path, &where_, item, &mut errors),
+                bindings,
+                payload: item.get("payload").cloned().unwrap_or(Json::Null),
             });
         }
     }
@@ -633,6 +852,62 @@ fn optional_enum_field<T>(
                 0,
                 format!("{where_} has unknown {key} `{value}`"),
                 expected,
+            ));
+            None
+        }
+    }
+}
+
+fn string_array_field(
+    path: &str,
+    where_: &str,
+    item: &Json,
+    key: &str,
+    errors: &mut Vec<Diag>,
+) -> Vec<String> {
+    let Some(values) = item.get(key).and_then(Json::as_array) else {
+        errors.push(Diag::expecting(
+            path,
+            0,
+            format!("{where_} is missing string array `{key}`"),
+            "an array of strings",
+        ));
+        return Vec::new();
+    };
+    values
+        .iter()
+        .filter_map(|value| match value.as_str() {
+            Some(value) => Some(value.to_string()),
+            None => {
+                errors.push(Diag::at(
+                    path,
+                    0,
+                    format!("{where_}.{key} contains a non-string"),
+                ));
+                None
+            }
+        })
+        .collect()
+}
+
+fn optional_integer_field(
+    path: &str,
+    where_: &str,
+    item: &Json,
+    key: &str,
+    errors: &mut Vec<Diag>,
+) -> Option<u64> {
+    let value = item.get(key)?;
+    match value.as_num() {
+        Some(value) if value >= 0.0 && value.fract() == 0.0 && value <= u64::MAX as f64 => {
+            Some(value as u64)
+        }
+        _ => {
+            errors.push(Diag::expecting(
+                path,
+                0,
+                format!("{where_}.{key} is not a non-negative integer"),
+                "a non-negative integer",
             ));
             None
         }

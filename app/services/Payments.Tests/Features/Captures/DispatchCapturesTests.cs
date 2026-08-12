@@ -283,7 +283,7 @@ public sealed class DispatchCapturesTests(PaymentsTestFixture fixture) : IAsyncL
                 var trip = TripId();
                 var creditId = TripId();
                 var quoted = random.NextInt64(1_000, 5_000_000);
-                var credit = random.NextInt64(1, quoted + 1);
+                var credit = trial == 0 ? quoted : random.NextInt64(1, quoted + 1);
                 var authority = Api.ReferralAuthority(creditId, trip, credit, currency);
                 await fixture.Database.Save(Api.CompletedTrip(trip, quoted, currency, authority));
 
@@ -307,6 +307,12 @@ public sealed class DispatchCapturesTests(PaymentsTestFixture fixture) : IAsyncL
                     -credit,
                     Common.Identity.IdEncoding.Encode(creditId)));
                 fixture.Provider.Captures[^1].AmountMinor.Should().Be(quoted - credit);
+
+                var persistedCapture = await fixture.Database.SingleOrDefault<Capture>(
+                    item => item.TripId == trip,
+                    Cancellation.Token());
+                persistedCapture.Should().NotBeNull();
+                persistedCapture!.AdjustmentReason.Should().Be("referral-credit");
 
                 var captureEvent = await fixture.Database.SingleOrDefault<PaymentEventOutbox>(
                     item => item.TripId == trip,

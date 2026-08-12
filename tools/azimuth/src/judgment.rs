@@ -89,6 +89,7 @@ enum FingerprintInputRole {
     Evidence,
     Realization,
     Mechanism,
+    Challenge,
 }
 
 impl FingerprintInputRole {
@@ -98,6 +99,7 @@ impl FingerprintInputRole {
             FingerprintInputRole::Evidence => "evidence",
             FingerprintInputRole::Realization => "realization",
             FingerprintInputRole::Mechanism => "mechanism",
+            FingerprintInputRole::Challenge => "challenge",
         }
     }
 }
@@ -178,6 +180,55 @@ impl FingerprintInput {
             file: implementation.file.clone(),
             source_fingerprint: (!implementation.source_fingerprint.is_empty())
                 .then(|| implementation.source_fingerprint.clone()),
+        }
+    }
+
+    pub fn challenge(
+        observation: &crate::model::Observation,
+        binding: &crate::model::ObservationBinding,
+    ) -> Self {
+        let subjects = binding
+            .subjects
+            .iter()
+            .map(|subject| format!("{}:{}", subject.relation.name(), subject.identity))
+            .collect::<Vec<_>>()
+            .join(",");
+        Self {
+            role: FingerprintInputRole::Challenge,
+            identity: format!(
+                "{}|{}@{}|{}|{}|{}|subjects={subjects}",
+                observation.id,
+                observation.tool,
+                observation.tool_version,
+                observation.kind,
+                binding.assertion,
+                binding.outcome,
+            ),
+            file: observation.report.clone(),
+            source_fingerprint: Some(observation.source_fingerprint.clone()),
+        }
+    }
+
+    pub fn observed_evidence(
+        observation: &crate::model::Observation,
+        binding: &crate::model::ObservationBinding,
+    ) -> Self {
+        Self {
+            role: FingerprintInputRole::Evidence,
+            identity: format!(
+                "{}|{}@{}|{}|assertion={}|outcome={}|{:?}|{:?}|{}",
+                observation.id,
+                observation.tool,
+                observation.tool_version,
+                observation.kind,
+                binding.assertion,
+                binding.outcome,
+                binding.scope,
+                binding.quantification,
+                binding.oracle.map(|oracle| oracle.name()).unwrap_or(""),
+            ),
+            file: observation.report.clone(),
+            source_fingerprint: Some(observation.source_fingerprint.clone()),
         }
     }
 

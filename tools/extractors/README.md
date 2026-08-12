@@ -39,6 +39,12 @@ what makes splitting or merging a requirement free, since no tag moves.
 }
 ```
 
+External tools use an `observations` collection. One immutable execution carries producer, report,
+configuration inputs and fingerprint once; explicit bindings interpret it per claim. `evidence`
+bindings project into `covers`. `challenge` bindings become agent judgment context and never cover
+a claim. This many-to-many boundary avoids one core collection per tool and avoids repeating one
+execution receipt for every claim.
+
 `realizes` carries no form: form is how a test checks, not a property of code. The core rejects a
 `realizes` that carries one, and rejects any entry carrying `req`, rather than ignoring it — a
 stale emitter must not be able to produce tags that look fine and are not.
@@ -87,7 +93,10 @@ closed when the build manifest is absent or a route cannot be resolved to projec
 `--prometheus <rules.yml>,<rules.test.yml>` emits `prometheus-alert:<name>` and
 `prometheus-rule-test:<name>` artifacts. The repository runs `promtool test rules` before emission;
 the extractor supplies machine addresses after Prometheus has validated the files, not a substitute
-YAML interpretation.
+YAML interpretation. An immediately preceding `# azimuth-realizes: <spec> <scenario>` or
+`# azimuth-covers: <spec> <scenario> <scope> <quantification> <oracle>` comment opts the named rule
+or rule-test case into claim linkage. Federated source identity distinguishes `prometheus-alert`
+from `prometheus-rule-test`; sharing the alert name does not make them one artifact.
 
 The same compiler parser accepts `.js`, `.jsx`, `.mjs` and `.cjs` and emits `lang: javascript`.
 JavaScript is an explicit mode of this extractor, not a copied text scanner.
@@ -138,6 +147,33 @@ Only `passed` and `failed` cross the boundary; provider-specific states must be 
 The importer preserves failures, result attribution, observation time, expiry and a payload
 fingerprint. A failed or expired receipt is a hole and does not count as coverage. A charter or test
 case without an executed result emits nothing.
+
+### Assurance observations
+
+`azimuth-import-observation` validates the provider-neutral boundary used by load, chaos, recovery
+and other execution adapters. Every evidence binding declares its own assertion, outcome, scope,
+quantification and oracle. A shared run-level `passed` bit is rejected.
+
+`azimuth-import-sarif` consumes SARIF 2.1.0. It intersects analyzed artifacts with existing
+`Realizes` sites and emits one challenge binding per affected claim. Findings remain in the
+fingerprinted payload; a clean scan creates judgment context, not claim evidence.
+
+### Mutation challenge
+
+`azimuth-import-mutation` consumes a Stryker mutation-testing-elements schema v2 JSON report, an
+ordinary linkage manifest and the exact Stryker configuration:
+
+```sh
+azimuth-import-mutation report.json linkage.json mutation.json \
+  --root . --config tests/stryker-config.json --tool-version 4.16.0
+```
+
+The adapter derives bindings by intersecting selected test names with existing `Covers` sites and
+mutated files with existing `Realizes` sites, avoiding a second hand-maintained map. Its payload
+carries every final mutant-state count and review metadata for non-killed executable mutants.
+Unknown schemas or statuses fail closed. A renamed target or test becomes an
+`unresolved-observation-binding` hole. Survivors do not automatically fail `azimuth check`: only the
+agent can decide whether a generated wrong implementation is relevant to the claim.
 
 ## Linkage opt-in
 

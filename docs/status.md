@@ -497,3 +497,60 @@ Rust and C++. Six extractor paths emit their seven realization sites and seven e
 one unchanged manifest contract. The composed synthetic model reports **7 claims, zero holes, zero
 errors and zero warnings**. This validates language-extension mechanics, not production-codebase
 adoption. JVM and C++ fingerprints remain intentionally conservative at whole-source-file scope.
+
+## Update after mutation-assisted judgment *(2026-08-11)*
+
+D38 adds a targeted Stryker.NET path without redefining verification. A pinned local tool and
+Payments test-project configuration produce a schema-v2 report; the importer derives claim
+selection from existing realization and evidence relations, and the core exposes it only as a
+freshness-tracked `challenge` judgment input. Unknown states and broken linkage fail closed. The
+ordinary repository check remains free of the roughly four-minute mutation cost.
+
+The initial broad run produced a 54.55% aggregate score, which was intentionally not used as a
+quality gate. Claim review found two material survivors across the derived claims: removing the
+persisted referral adjustment reason did not fail the test that claimed to verify it, and changing
+the maximum credit check to reject a credit equal to the fare exposed a missing named boundary.
+The test now asserts the database field and forces the equality case in every currency. The final
+run killed both changes and scored 63.64%; two survivors and six no-coverage items remain but were
+judged against other predicates (dispatch bookkeeping, zero-credit rejection and contention), not
+waived by score. The compact checked-in assessment retains their locations and replacements for
+audit while the raw Stryker report remains a generated build artifact.
+
+## Update after assurance-extension conformance *(2026-08-11)*
+
+D39 removes the mutation-specific core seam that D38 initially introduced. Stryker.NET and SARIF
+2.1.0 now emit the same `observations` collection and the Rust core contains no tool-specific
+assessment record, parser branch, hole or fingerprint role. Broken challenge subjects fail as
+`unresolved-observation-binding`; report or configuration changes stale every affected judgment.
+
+The provider-neutral conformance model contains six claims. One load observation supplies two
+claim-specific evidence bindings and one chaos observation supplies three; a SARIF scan challenges
+all six realization relations without covering any of them. The composed model reports **6 claims,
+zero holes, zero errors and zero warnings**. A separate federation regression places one standard
+alert's realization and evidence in the operations repository's monitoring area. These results
+validate the protocol shapes and repository join, not the adequacy of synthetic load or chaos data
+as production evidence.
+
+## Update after reusable qualification and the reference service *(2026-08-12)*
+
+D40 was pre-registered as a pure lifecycle experiment before persistence or HTTP design. Its eight
+original cases passed: one qualification served two exact CI revisions with zero result commits;
+production evidence stayed confined to artifact and deployment; expiry used injected time; and
+failure, definition drift, context mismatch and challenge findings produced deterministic closed
+gates and focused work. Promotion into a shared domain crate added and passed a ninth regression:
+a future qualification cannot open an earlier gate.
+
+The optional reference application reproduces the boundary through Axum and real PostgreSQL. One
+HTTP component scenario covers replay and conflicting identity, two-revision reuse, subject and
+context mismatch, violation, challenge finding and later clean resolution, canary expiry,
+definition drift, ordered immutable decision history, current work and reconstruction after a new
+database connection. It passed against a PostgreSQL Testcontainer. Both production Docker images
+built, and the Compose stack migrated and accepted the replay-safe seed. `/health` returned
+successfully, and the Next.js project page rendered the seeded open gate. The disposable stack and
+its volume were then removed.
+
+This validates the semantic split and replaceable service shape, not production operations. The
+service has no authentication, tenant isolation, signed provenance, retention, report-object
+store, backups, rate limits or SLOs. The current evidence also uses a synthetic checkout project;
+it does not establish that external CI or observability adapters supply complete subjects in a
+real organization.

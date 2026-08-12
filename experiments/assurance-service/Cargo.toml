@@ -1,0 +1,8 @@
+[package]
+name = "azimuth-assurance-lifecycle"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+azimuth-assurance-domain = { path = "../../services/assurance/domain" }

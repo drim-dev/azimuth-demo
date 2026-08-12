@@ -19,11 +19,12 @@ same skills through symlinks under `.claude/skills/`.
 | `AGENTS.md` | canonical repository instructions for coding agents |
 | `.agents/skills/` | canonical Agent Skills; `.claude/skills/` holds compatibility symlinks |
 | `docs/framework.md` | what the framework *is*, as it currently stands. Derived; start here. |
-| `docs/decisions.md` | decisions D1–D37 and their rationale. Authoritative. |
+| `docs/decisions.md` | decisions D1–D40 and their rationale. Authoritative. |
 | `docs/concern-catalog.md` | 18 cross-cutting concerns from the domain; the evidence the design was drawn from |
 | `docs/glossary.md` | bounded definitions. Authoritative for terminology. |
 | `docs/status.md` | the decisions checked against their own falsifiers, including failures. |
 | `docs/change-process.md` | operating guidance for change delivery, evidence work and rollout |
+| `docs/assurance-extensions.md` | how external test and analysis tools bind to the core |
 | `azimuth/README.md` | artifact layout and model-package discovery contract |
 | `azimuth/model/` | accepted intent, mechanism, evidence and judgment packages |
 | `azimuth/formats/` | parser contracts for the three facets and agent judgments |
@@ -33,6 +34,7 @@ same skills through symlinks under `.claude/skills/`.
 | `tools/azimuth/README.md` | what the tool checks today, and what it does not check yet |
 | `experiments/multirepo/` | executable federation hypotheses, fault matrix and replication protocol |
 | `experiments/polyglot/` | executable Go/JVM/Python/JavaScript/Rust/C++ extractor conformance |
+| `services/assurance/` | optional Rust/PostgreSQL execution ledger and Next.js diagnostic client |
 
 The three facets are sibling `spec.md`, `design.md` and `verification.md` files under a package in
 `azimuth/model/`; `judgments.md` holds the agent tier. Criticality decides which files a claim owes
