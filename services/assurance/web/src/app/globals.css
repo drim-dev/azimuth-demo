@@ -103,7 +103,7 @@ a { color: inherit; }
 .metric-warn strong { color: var(--amber); }
 
 .recordStrip {
-  display: grid; grid-template-columns: repeat(5, 1fr); background: var(--ink); color: white;
+  display: grid; grid-template-columns: repeat(6, 1fr); background: var(--ink); color: white;
   border-radius: 18px; overflow: hidden; box-shadow: var(--shadow);
 }
 .recordStrip > div { padding: 20px; border-right: 1px solid rgb(255 255 255 / 14%); }
@@ -111,6 +111,31 @@ a { color: inherit; }
 .recordStrip span, .recordStrip strong { display: block; }
 .recordStrip span { color: #bdc8c3; font-size: 12px; }
 .recordStrip strong { margin-top: 7px; font: 500 25px/1 Georgia, serif; }
+
+.modelSection { padding-bottom: 18px; }
+.modelIdentity {
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; margin: 0 0 16px;
+  overflow: hidden; border: 1px solid var(--line); border-radius: 14px; background: var(--line);
+}
+.modelIdentity div { min-width: 0; padding: 16px; background: var(--surface); }
+.modelIdentity dt, .contractFacts dt {
+  color: var(--muted); font-size: 10px; text-transform: uppercase; letter-spacing: .08em;
+}
+.modelIdentity dd, .contractFacts dd, .claimIdentity {
+  margin: 5px 0 0; font: 12px ui-monospace, SFMono-Regular, Menlo, monospace;
+  overflow: hidden; text-overflow: ellipsis;
+}
+.contractGrid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px;
+}
+.contractCard {
+  padding: 20px; border: 1px solid var(--line); border-radius: 16px; background: var(--surface);
+}
+.contractCard h3 { margin: 6px 0 0; }
+.claimIdentity { color: var(--green); }
+.contractFacts { display: grid; gap: 12px; margin: 18px 0 0; }
+.contractFacts dd { white-space: normal; overflow-wrap: anywhere; }
+.contractMissing { border-color: #e3afa4; background: var(--red-soft); }
 
 .splitSection { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(300px, .85fr); gap: 48px; }
 .gateList, .workList { display: grid; gap: 14px; }
@@ -158,5 +183,6 @@ footer {
   .metric { padding: 13px 10px; }
   .subjectGrid { grid-template-columns: 1fr; }
   .recordStrip { grid-template-columns: 1fr 1fr; }
+  .modelIdentity { grid-template-columns: 1fr; }
   footer { gap: 20px; }
 }

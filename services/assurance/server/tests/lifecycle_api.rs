@@ -1,7 +1,9 @@
 use azimuth_assurance_domain::{
-    Challenge, ChallengeOutcome, EvidenceDefinition, ExecutionSubject, GateReason, GateRequest,
-    GateStatus, LifecycleStage, Observation, ObservationOutcome, Qualification,
-    QualificationVerdict, WorkKind,
+    Challenge, ChallengeOutcome, ClaimContract, ContractArea, ContractMount, ContractStep,
+    ContractVerification, EvidenceDefinition, ExecutionSubject, GateReason, GateRequest,
+    GateStatus, LifecycleStage, Observation, ObservationOutcome, ProjectModelSnapshot,
+    Qualification, QualificationVerdict, WorkKind, PROJECT_SNAPSHOT_FORMAT,
+    PROJECT_SNAPSHOT_VERSION,
 };
 use azimuth_assurance_server::{app, connect, migrate, AppState, GateDecisionRecord, Project};
 use reqwest::{Client, StatusCode};
@@ -47,7 +49,35 @@ async fn lifecycle_protocol_survives_http_and_postgres() -> Result<(), Box<dyn E
         .await?;
     assert_eq!(conflict.status(), StatusCode::CONFLICT);
 
-    let merge_definition = definition("expected-load", LifecycleStage::Merge, FIRST_RUN - 80);
+    let contract = claim_contract();
+    let snapshot_ci = model_snapshot("model-ci", vec![contract.clone()]);
+    let snapshot_release = model_snapshot("model-release", vec![contract.clone()]);
+    let unregistered_definition = definition(
+        "expected-load",
+        LifecycleStage::Merge,
+        FIRST_RUN - 80,
+        &contract,
+    );
+    assert_eq!(
+        api.post(&project_path("definitions"), &unregistered_definition)
+            .await?
+            .status(),
+        StatusCode::UNPROCESSABLE_ENTITY
+    );
+    for snapshot in [&snapshot_ci, &snapshot_release] {
+        assert_eq!(
+            api.post(&project_path("model-snapshots"), snapshot)
+                .await?
+                .status(),
+            StatusCode::CREATED
+        );
+    }
+    let replayed_snapshot = api
+        .post(&project_path("model-snapshots"), &snapshot_ci)
+        .await?;
+    assert_eq!(replayed_snapshot.status(), StatusCode::OK);
+
+    let merge_definition = unregistered_definition;
     let merge_fingerprint = register_definition(&api, &merge_definition).await?;
     let qualification = Qualification {
         id: "qualification-1".into(),
@@ -64,8 +94,8 @@ async fn lifecycle_protocol_survives_http_and_postgres() -> Result<(), Box<dyn E
         StatusCode::CREATED
     );
 
-    let subject_a = ci_subject("revision-a");
-    let subject_b = ci_subject("revision-b");
+    let subject_a = ci_subject(&snapshot_ci.id, "revision-a");
+    let subject_b = ci_subject(&snapshot_ci.id, "revision-b");
     let observation_a = observation(
         "ci-a",
         &merge_definition,
@@ -131,7 +161,11 @@ async fn lifecycle_protocol_survives_http_and_postgres() -> Result<(), Box<dyn E
 
     let wrong_subject = evaluate(
         &api,
-        gate_request(&merge_definition, ci_subject("revision-z"), FIRST_RUN + 20),
+        gate_request(
+            &merge_definition,
+            ci_subject(&snapshot_ci.id, "revision-z"),
+            FIRST_RUN + 20,
+        ),
     )
     .await?;
     assert_closed(
@@ -140,7 +174,7 @@ async fn lifecycle_protocol_survives_http_and_postgres() -> Result<(), Box<dyn E
         WorkKind::RerunForSubject,
     );
 
-    let context_subject = ci_subject("revision-context");
+    let context_subject = ci_subject(&snapshot_ci.id, "revision-context");
     let mut wrong_context = observation(
         "ci-context",
         &merge_definition,
@@ -166,7 +200,7 @@ async fn lifecycle_protocol_survives_http_and_postgres() -> Result<(), Box<dyn E
         WorkKind::RerunWithContext,
     );
 
-    let violated_subject = ci_subject("revision-violated");
+    let violated_subject = ci_subject(&snapshot_ci.id, "revision-violated");
     let violated = observation(
         "ci-violated",
         &merge_definition,
@@ -222,7 +256,12 @@ async fn lifecycle_protocol_survives_http_and_postgres() -> Result<(), Box<dyn E
     .await?;
     assert_eq!(clean_gate.decision.status, GateStatus::Open);
 
-    let canary_definition = definition("canary-health", LifecycleStage::Canary, FIRST_RUN - 70);
+    let canary_definition = definition(
+        "canary-health",
+        LifecycleStage::Canary,
+        FIRST_RUN - 70,
+        &contract,
+    );
     let canary_fingerprint = register_definition(&api, &canary_definition).await?;
     let canary_qualification = Qualification {
         id: "qualification-canary".into(),
@@ -234,7 +273,7 @@ async fn lifecycle_protocol_survives_http_and_postgres() -> Result<(), Box<dyn E
     };
     api.post(&project_path("qualifications"), &canary_qualification)
         .await?;
-    let production = production_subject("sha256:artifact-a", "deployment-a");
+    let production = production_subject(&snapshot_release.id, "sha256:artifact-a", "deployment-a");
     let expiry = FIRST_RUN + 3_600;
     let canary_observation = observation(
         "canary-a",
@@ -280,8 +319,106 @@ async fn lifecycle_protocol_survives_http_and_postgres() -> Result<(), Box<dyn E
         WorkKind::QualifyDefinition,
     );
 
+    let snapshot_ci_next = model_snapshot("model-ci-next", vec![contract.clone()]);
+    api.post(&project_path("model-snapshots"), &snapshot_ci_next)
+        .await?;
+    let next_subject = ci_subject(&snapshot_ci_next.id, "revision-next");
+    let needs_new_execution = evaluate(
+        &api,
+        gate_request(&merge_definition, next_subject.clone(), FIRST_RUN + 55),
+    )
+    .await?;
+    assert_closed(
+        &needs_new_execution,
+        GateReason::SubjectMismatch,
+        WorkKind::RerunForSubject,
+    );
+    let next_observation = observation(
+        "ci-next",
+        &merge_definition,
+        &merge_fingerprint,
+        next_subject.clone(),
+        FIRST_RUN + 55,
+        ObservationOutcome::Satisfied,
+        None,
+    );
+    api.post(&project_path("observations"), &next_observation)
+        .await?;
+    let reused_qualification = evaluate(
+        &api,
+        gate_request(&merge_definition, next_subject, FIRST_RUN + 55),
+    )
+    .await?;
+    assert_eq!(reused_qualification.decision.status, GateStatus::Open);
+    assert_eq!(
+        reused_qualification.decision.qualification_id,
+        Some(qualification.id.clone())
+    );
+
+    let mut drifted_contract = contract.clone();
+    drifted_contract.obligated_areas.push(ContractArea {
+        id: "payments".into(),
+        mounts: vec![ContractMount {
+            id: "code".into(),
+            path: "services/payments".into(),
+        }],
+    });
+    drifted_contract.contract_fingerprint = drifted_contract.fingerprint();
+    let drifted_snapshot = model_snapshot("model-drifted", vec![drifted_contract]);
+    api.post(&project_path("model-snapshots"), &drifted_snapshot)
+        .await?;
+    let inapplicable = evaluate(
+        &api,
+        gate_request(
+            &merge_definition,
+            ci_subject(&drifted_snapshot.id, "revision-drifted"),
+            FIRST_RUN + 80,
+        ),
+    )
+    .await?;
+    assert_closed(
+        &inapplicable,
+        GateReason::ClaimContractInapplicable,
+        WorkKind::QualifyDefinition,
+    );
+    assert!(inapplicable
+        .decision
+        .work
+        .contains(&WorkKind::ReviseDefinition));
+    let inapplicable_observation = observation(
+        "ci-inapplicable",
+        &merge_definition,
+        &merge_fingerprint,
+        ci_subject(&drifted_snapshot.id, "revision-inapplicable"),
+        FIRST_RUN + 85,
+        ObservationOutcome::Satisfied,
+        None,
+    );
+    assert_eq!(
+        api.post(&project_path("observations"), &inapplicable_observation)
+            .await?
+            .status(),
+        StatusCode::UNPROCESSABLE_ENTITY
+    );
+
+    let unknown_snapshot_observation = observation(
+        "ci-unknown-snapshot",
+        &merge_definition,
+        &merge_fingerprint,
+        ci_subject("missing-snapshot", "revision-missing"),
+        FIRST_RUN + 90,
+        ObservationOutcome::Satisfied,
+        None,
+    );
+    assert_eq!(
+        api.post(&project_path("observations"), &unknown_snapshot_observation,)
+            .await?
+            .status(),
+        StatusCode::UNPROCESSABLE_ENTITY
+    );
+
     let history: Vec<GateDecisionRecord> = api.get_json(&project_path("gate-decisions")).await?;
-    assert_eq!(history.len(), 9);
+    assert_eq!(history.len(), 12);
     assert!(history
         .windows(2)
         .all(|pair| pair[0].sequence > pair[1].sequence));
@@ -303,6 +440,12 @@ async fn lifecycle_protocol_survives_http_and_postgres() -> Result<(), Box<dyn E
         Some(3)
     );
     assert_eq!(
+        snapshot["account"]["projectSnapshots"]
+            .as_array()
+            .map(Vec::len),
+        Some(4)
+    );
+    assert_eq!(
         snapshot["account"]["qualifications"]
             .as_array()
             .map(Vec::len),
@@ -317,10 +460,15 @@ async fn lifecycle_protocol_survives_http_and_postgres() -> Result<(), Box<dyn E
     Ok(())
 }
 
-fn definition(id: &str, stage: LifecycleStage, declared_at: u64) -> EvidenceDefinition {
+fn definition(
+    id: &str,
+    stage: LifecycleStage,
+    declared_at: u64,
+    contract: &ClaimContract,
+) -> EvidenceDefinition {
     EvidenceDefinition {
         id: id.into(),
-        claim: format!("checkout/performance#{id}"),
+        claim: contract.reference(),
         assertion: "p95 latency is below 300 milliseconds".into(),
         scope: "e2e".into(),
         quantification: "example".into(),
@@ -393,9 +541,9 @@ fn assert_closed(record: &GateDecisionRecord, reason: GateReason, work: WorkKind
     assert!(record.decision.work.contains(&work));
 }
 
-fn ci_subject(revision: &str) -> ExecutionSubject {
+fn ci_subject(project_snapshot: &str, revision: &str) -> ExecutionSubject {
     ExecutionSubject {
-        project_snapshot: format!("snapshot-{revision}"),
+        project_snapshot: project_snapshot.into(),
         revision: revision.into(),
         artifact_digest: None,
         deployment_id: None,
@@ -404,15 +552,61 @@ fn ci_subject(revision: &str) -> ExecutionSubject {
     }
 }
 
-fn production_subject(artifact_digest: &str, deployment_id: &str) -> ExecutionSubject {
+fn production_subject(
+    project_snapshot: &str,
+    artifact_digest: &str,
+    deployment_id: &str,
+) -> ExecutionSubject {
     ExecutionSubject {
-        project_snapshot: "snapshot-release".into(),
+        project_snapshot: project_snapshot.into(),
         revision: "revision-release".into(),
         artifact_digest: Some(artifact_digest.into()),
         deployment_id: Some(deployment_id.into()),
         environment: Some("production".into()),
         cohort: Some("5-percent".into()),
     }
+}
+
+fn model_snapshot(model_fingerprint: &str, claims: Vec<ClaimContract>) -> ProjectModelSnapshot {
+    let mut snapshot = ProjectModelSnapshot {
+        format: PROJECT_SNAPSHOT_FORMAT.into(),
+        version: PROJECT_SNAPSHOT_VERSION,
+        id: String::new(),
+        project: PROJECT_ID.into(),
+        model_fingerprint: model_fingerprint.into(),
+        claims,
+    };
+    snapshot.id = snapshot.fingerprint();
+    snapshot
+}
+
+fn claim_contract() -> ClaimContract {
+    let mut contract = ClaimContract {
+        contract_fingerprint: String::new(),
+        spec: "checkout/performance".into(),
+        claim: "latency-objective".into(),
+        requirement: "performance".into(),
+        criticality: "standard".into(),
+        statement: "Checkout latency remains bounded.".into(),
+        steps: vec![ContractStep {
+            kind: "then".into(),
+            text: "p95 latency stays below the qualified threshold".into(),
+        }],
+        domain: "behaviour".into(),
+        verification: ContractVerification {
+            strength: Some("demonstration".into()),
+            scope: "e2e".into(),
+            quantification: Some("example".into()),
+            oracle: Some("direct".into()),
+            residual_required: false,
+            residual: None,
+            residual_acceptance: None,
+        },
+        surface: None,
+        obligated_areas: vec![],
+    };
+    contract.contract_fingerprint = contract.fingerprint();
+    contract
 }
 
 fn project_path(resource: &str) -> String {

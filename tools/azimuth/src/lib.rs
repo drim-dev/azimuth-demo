@@ -6,6 +6,7 @@
 //!
 //! No dependencies, by decision (D17).
 
+pub mod assurance;
 pub mod change;
 pub mod check;
 pub mod design;

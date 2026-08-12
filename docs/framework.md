@@ -320,7 +320,13 @@ Two tiers produce findings:
 The reference implementation under `services/assurance/` keeps that boundary optional. Its pure
 Rust evaluator is used by both the original lifecycle experiment and an Axum/PostgreSQL service.
 The service preserves idempotent immutable records, decision history, current gates, worklists and
-a project snapshot; a Next.js client renders those projections without evaluating them again.
+repository-authored accepted-model snapshots; a Next.js client renders those projections without
+evaluating them again. An accepted-model snapshot carries stable claim contracts for non-routine
+claims (D42). Each contract fingerprints the claim, effective verification form and any surface or
+area realization obligations. Implementations and enumerated members remain outside that contract:
+their change creates a new exact execution subject, while unchanged semantics can reuse the prior
+qualification. The CLI validates and projects this account; the service neither parses specs nor
+runs enumerators.
 Authentication, tenant isolation, signing, retention, report storage and production service
 objectives are deliberately outside the reference slice. Routine claims acquire no service record
 or lifecycle gate merely because the service exists.
@@ -335,6 +341,7 @@ or lifecycle gate merely because the service exists.
 azimuth check                    # all checks
 azimuth check rtm --only '…/**'  # one check, scoped by id
 azimuth export --out model.json
+azimuth assurance export --project <id> --out assurance-snapshot.json
 ```
 
 Exit codes: `0` clean, `1` errors found, `2` the model could not be derived. Selection operates on

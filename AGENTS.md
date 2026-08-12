@@ -19,7 +19,7 @@ same skills through symlinks under `.claude/skills/`.
 | `AGENTS.md` | canonical repository instructions for coding agents |
 | `.agents/skills/` | canonical Agent Skills; `.claude/skills/` holds compatibility symlinks |
 | `docs/framework.md` | what the framework *is*, as it currently stands. Derived; start here. |
-| `docs/decisions.md` | decisions D1–D40 and their rationale. Authoritative. |
+| `docs/decisions.md` | decisions D1–D42 and their rationale. Authoritative. |
 | `docs/concern-catalog.md` | 18 cross-cutting concerns from the domain; the evidence the design was drawn from |
 | `docs/glossary.md` | bounded definitions. Authoritative for terminology. |
 | `docs/status.md` | the decisions checked against their own falsifiers, including failures. |

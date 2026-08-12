@@ -5,6 +5,19 @@ CREATE TABLE projects (
     content_fingerprint TEXT NOT NULL
 );
 
+CREATE TABLE project_model_snapshots (
+    sequence BIGSERIAL NOT NULL UNIQUE,
+    project_id TEXT NOT NULL REFERENCES projects(id),
+    id TEXT NOT NULL,
+    model_fingerprint TEXT NOT NULL,
+    content_fingerprint TEXT NOT NULL,
+    payload JSONB NOT NULL,
+    PRIMARY KEY (project_id, id)
+);
+
+CREATE INDEX ix_project_model_snapshots_history
+    ON project_model_snapshots(project_id, sequence DESC);
+
 CREATE TABLE evidence_definitions (
     project_id TEXT NOT NULL REFERENCES projects(id),
     logical_id TEXT NOT NULL,

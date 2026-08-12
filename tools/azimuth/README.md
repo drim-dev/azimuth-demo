@@ -16,6 +16,7 @@ azimuth check                          # all checks, azimuth/model by default
 azimuth check rtm --only 'billing/**'  # one check, scoped by id
 azimuth export --out model.json
 azimuth judge                          # claims with the fingerprint a judgment must carry
+azimuth assurance export --project <id> --out assurance-snapshot.json
 azimuth init                           # additive, idempotent project initialization
 azimuth explore create <id> --title <text>
 azimuth explore list
@@ -90,6 +91,9 @@ rather than from the check (D9.2).
   assurance observations.
 - **`workspace.rs`** validates local areas, enumerator-backed surfaces and optional area realization
   obligations. Source area is derived from declared mounts rather than repeated in tags.
+- **`assurance.rs`** projects a hole-free accepted model into one exact project snapshot and stable
+  non-routine claim contracts for recurring assurance services. Contract fingerprints include
+  claim, verification, surface and area-obligation semantics but exclude implementation bodies.
 - **`plan.rs`** parses `azimuth/standards/verification.md` and sibling verification plans. Entries
   are deviations only—a claim with no entry is not unplanned, the standard applies.
   `Scope`/`Quantification`/`Oracle`

@@ -45,12 +45,33 @@ export interface WorkItem {
   evaluatedAt: number;
 }
 
+export interface ClaimReference {
+  spec: string;
+  claim: string;
+  contractFingerprint: string;
+}
+
+export interface ProjectModelSnapshot {
+  id: string;
+  project: string;
+  modelFingerprint: string;
+  claims: Array<{
+    contractFingerprint: string;
+    spec: string;
+    claim: string;
+    criticality: string;
+    surface: { id: string } | null;
+    obligatedAreas: Array<{ id: string }>;
+  }>;
+}
+
 export interface ProjectSnapshot {
   project: Project;
   account: {
+    projectSnapshots: ProjectModelSnapshot[];
     definitions: Array<{
       id: string;
-      claim: string;
+      claim: ClaimReference;
       assertion: string;
       stage: LifecycleStage;
       declaredAt: number;

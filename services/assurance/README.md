@@ -4,6 +4,7 @@ This is the open reference implementation of D40's lifecycle boundary. It keeps 
 state distinct:
 
 - repository-authored evidence definitions and semantic qualifications;
+- immutable accepted-model snapshots and their claim contracts;
 - immutable CI or production observations and challenge results;
 - derived lifecycle-gate decisions and focused work.
 
@@ -44,6 +45,7 @@ Every resource is scoped below `/v1/projects/{projectId}`:
 |---|---|
 | `POST /v1/projects` | Register one assurance account. |
 | `GET /v1/projects` | Discover accounts for the diagnostic interface. |
+| `POST/GET .../model-snapshots` | Register and read accepted-model claim contracts. |
 | `POST/GET .../definitions` | Version and read stable evidence definitions. |
 | `POST/GET .../qualifications` | Append and read semantic qualifications. |
 | `POST/GET .../observations` | Append and read execution observations. |
@@ -55,8 +57,25 @@ Every resource is scoped below `/v1/projects/{projectId}`:
 | `GET .../snapshot` | Export the portable project account and decision history. |
 
 Client-supplied record ids are immutable. An identical replay returns 200 and does not add a row;
-different content under the same id returns 409. Definition identity is logical: a changed semantic
-fingerprint appends a version and makes a qualification over the prior version stale.
+different content under the same id returns 409. A model snapshot and every claim-contract
+fingerprint are recomputed at ingestion. Definitions use structured claim references and are
+accepted only when that exact contract exists in at least one registered snapshot. Definition
+identity is logical: a changed semantic fingerprint appends a version and makes a qualification
+over the prior version stale.
+
+Generate a repository-authored snapshot only after the accepted model is hole-free:
+
+```bash
+azimuth assurance export --project <id> --out assurance-snapshot.json \
+  --manifest <each-current-manifest>
+curl --header 'content-type: application/json' --data @assurance-snapshot.json \
+  http://127.0.0.1:8080/v1/projects/<id>/model-snapshots
+```
+
+The CLI remains responsible for parsing specs and workspaces, running enumerators and checking
+realization completeness. The service stores that result; it does not derive routes or area
+membership. A contract may remain qualified across model snapshots when its semantics are
+unchanged, but the new exact snapshot and revision still require their own observation.
 
 Times are unsigned Unix seconds. Gate evaluation uses the request's `at` value for observation and
 challenge applicability, so tests and lifecycle controllers do not sleep. `evaluatedAt` records
@@ -72,7 +91,7 @@ npm run build
 ```
 
 The Rust component suite starts real PostgreSQL with Testcontainers and drives the public HTTP
-boundary. Docker access is therefore required. The original eight-case in-memory experiment stays
+boundary. Docker access is therefore required. The original lifecycle experiment stays
 at `../../experiments/assurance-service` and consumes the same domain crate.
 
 ## Deliberate reference-service limits

@@ -19,6 +19,16 @@ export default async function ProjectPage({
   const { snapshot, gates, workItems } = view;
   const open = gates.filter((gate) => gate.decision.status === 'open').length;
   const closed = gates.length - open;
+  const latestImportedModel = snapshot.account.projectSnapshots.at(-1) ?? null;
+  const activeContracts = snapshot.account.definitions.map((definition) => ({
+    definition,
+    contract: latestImportedModel?.claims.find(
+      (contract) =>
+        contract.spec === definition.claim.spec &&
+        contract.claim === definition.claim.claim &&
+        contract.contractFingerprint === definition.claim.contractFingerprint,
+    ),
+  }));
 
   return (
     <div className="shell projectShell">
@@ -39,11 +49,77 @@ export default async function ProjectPage({
       </section>
 
       <section className="recordStrip" aria-label="Account record counts">
+        <RecordCount label="Model snapshots" value={snapshot.account.projectSnapshots.length} />
         <RecordCount label="Definitions" value={snapshot.account.definitions.length} />
         <RecordCount label="Qualifications" value={snapshot.account.qualifications.length} />
         <RecordCount label="Observations" value={snapshot.account.observations.length} />
         <RecordCount label="Challenges" value={snapshot.account.challenges.length} />
         <RecordCount label="Decisions" value={snapshot.gateDecisions.length} />
+      </section>
+
+      <section className="section modelSection" aria-labelledby="model-heading">
+        <div className="sectionHeading compact">
+          <div>
+            <p className="kicker">Repository authority</p>
+            <h2 id="model-heading">Claim contracts</h2>
+          </div>
+          <span className="count">{activeContracts.length}</span>
+        </div>
+        {latestImportedModel ? (
+          <>
+            <dl className="modelIdentity">
+              <div>
+                <dt>Snapshot</dt>
+                <dd>{shortFingerprint(latestImportedModel.id)}</dd>
+              </div>
+              <div>
+                <dt>Accepted model</dt>
+                <dd>{shortFingerprint(latestImportedModel.modelFingerprint)}</dd>
+              </div>
+            </dl>
+            <div className="contractGrid">
+              {activeContracts.map(({ definition, contract }) => (
+                <article
+                  className={`contractCard ${contract ? '' : 'contractMissing'}`}
+                  key={definition.id}
+                >
+                  <p className="stage">{definition.stage} definition</p>
+                  <h3>{definition.id}</h3>
+                  <p className="claimIdentity">
+                    {definition.claim.spec}#{definition.claim.claim}
+                  </p>
+                  {contract ? (
+                    <dl className="contractFacts">
+                      <div>
+                        <dt>Surface</dt>
+                        <dd>{contract.surface?.id ?? 'behavioural claim'}</dd>
+                      </div>
+                      <div>
+                        <dt>Required areas</dt>
+                        <dd>
+                          {contract.obligatedAreas.map((area) => area.id).join(', ') || 'none'}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt>Contract</dt>
+                        <dd>{shortFingerprint(contract.contractFingerprint)}</dd>
+                      </div>
+                    </dl>
+                  ) : (
+                    <p className="reasonLine">
+                      This definition is not applicable to the latest snapshot.
+                    </p>
+                  )}
+                </article>
+              ))}
+            </div>
+          </>
+        ) : (
+          <div className="notice noticeError">
+            <strong>No repository snapshot registered</strong>
+            <p>Definitions cannot acquire trustworthy claim provenance until one is imported.</p>
+          </div>
+        )}
       </section>
 
       <section className="section splitSection">
@@ -168,4 +244,8 @@ function humanize(value: string) {
 
 function shortRevision(revision: string) {
   return revision.length > 18 ? `${revision.slice(0, 15)}…` : revision;
+}
+
+function shortFingerprint(fingerprint: string) {
+  return fingerprint.length > 22 ? `${fingerprint.slice(0, 19)}…` : fingerprint;
 }

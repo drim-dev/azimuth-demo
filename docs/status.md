@@ -579,3 +579,27 @@ queue consumers, nested applications within one mount and federated surface asse
 unimplemented. Assignment completeness is still accepted architecture: the enumerator proves all
 routes inside a declared application, not that no undeclared application belongs to the semantic
 surface.
+
+## Update after assurance project snapshots *(2026-08-12)*
+
+D42 closes the service's unchecked-snapshot gap without moving repository checks into the service.
+`azimuth assurance export` refuses a model with findings, then emits one exact model fingerprint
+and a stable contract for each non-routine claim. The current fixture exports **85 contracts from
+90 claims**; its five routine claims create no service records.
+
+Four projection regressions separate semantic from execution drift. Verification or architectural
+obligation changes alter the claim contract; set-like declaration reordering does not. Changing a
+realization source fingerprint preserves the contract but changes the exact model snapshot. The
+pure lifecycle suite now has eleven cases and distinguishes an unknown snapshot from an
+inapplicable claim contract.
+
+The PostgreSQL component path requires snapshot registration before definition ingestion. It
+rejects unknown and contract-inapplicable observation subjects, closes an inapplicable gate with
+definition-revision and qualification work, and reuses one qualification across a second snapshot
+with an unchanged contract only after a new exact observation arrives. The diagnostic client shows
+snapshot, model, surface and obligated-area provenance without implementing gate rules.
+
+This validates an unsigned reference protocol, not trustworthy production provenance. The service
+recomputes content fingerprints but still cannot know who produced the snapshot. Authentication,
+signature verification and a real CI publication adapter remain required before organizational
+deployment. Federated project snapshots also remain outside this local projection slice.

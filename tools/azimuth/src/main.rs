@@ -15,6 +15,7 @@ USAGE
     azimuth check [<check-id>...] [options]
     azimuth export [options]
     azimuth judge [options]
+    azimuth assurance export --project <id> --out <snapshot.json> [options]
     azimuth init [--root <azimuth-dir>]
     azimuth explore create <id> [--title <text>] [--explorations <dir>]
     azimuth explore list|show [<id>] [--explorations <dir>]
@@ -98,6 +99,9 @@ fn run(args: &[String]) -> Result<ExitCode, String> {
     if command == "project" {
         return command_project(&args[1..]);
     }
+    if command == "assurance" {
+        return command_assurance(&args[1..]);
+    }
     let options = parse_options(&args[1..])?;
 
     match command.as_str() {
@@ -106,6 +110,73 @@ fn run(args: &[String]) -> Result<ExitCode, String> {
         "judge" => command_judge(options),
         other => Err(format!("unknown command `{other}`\n\n{USAGE}")),
     }
+}
+
+fn command_assurance(args: &[String]) -> Result<ExitCode, String> {
+    let Some(operation) = args.first() else {
+        return Err("assurance needs export".into());
+    };
+    if operation != "export" {
+        return Err(format!("unknown assurance operation `{operation}`"));
+    }
+    let mut project = None;
+    let mut option_args = Vec::new();
+    let mut index = 1;
+    while index < args.len() {
+        if args[index] == "--project" {
+            project = Some(argument_value(args, index, "--project")?);
+            index += 2;
+        } else {
+            option_args.push(args[index].clone());
+            index += 1;
+        }
+    }
+    let project = project.ok_or("assurance export needs `--project <id>`")?;
+    azimuth::diag::validate_id(&project, false)
+        .map_err(|error| format!("invalid assurance project id: {error}"))?;
+    let options = parse_options(&option_args)?;
+    if !options.only.is_empty() {
+        return Err(
+            "assurance export requires the complete accepted model; `--only` is unsupported".into(),
+        );
+    }
+    let output = options
+        .out
+        .clone()
+        .ok_or("assurance export needs `--out <snapshot.json>`")?;
+    let loaded = match azimuth::load(
+        &options.model,
+        &options.standards,
+        &options.workspace,
+        &options.manifests,
+        &options.only,
+    ) {
+        Ok(loaded) => loaded,
+        Err(diags) => {
+            report(&diags, "error");
+            return Ok(ExitCode::from(2));
+        }
+    };
+    report(&loaded.warnings, "warning");
+    let holes = check::rtm(&loaded.model);
+    let summary = check::summarize(&loaded.model, &holes);
+    if summary.errors > 0 || summary.warnings > 0 || !loaded.warnings.is_empty() {
+        eprintln!(
+            "error: accepted model has {} error(s), {} warning(s)",
+            summary.errors,
+            summary.warnings + loaded.warnings.len()
+        );
+        return Ok(ExitCode::from(1));
+    }
+    let snapshot = azimuth::assurance::snapshot(&loaded.model, &holes, &project);
+    std::fs::write(&output, snapshot.to_json().to_string_pretty())
+        .map_err(|error| format!("cannot write {}: {error}", output.display()))?;
+    println!(
+        "exported assurance snapshot `{}` with {} claim contract(s)",
+        snapshot.id,
+        snapshot.claims.len()
+    );
+    Ok(ExitCode::SUCCESS)
 }
 
 fn command_init(args: &[String]) -> Result<ExitCode, String> {

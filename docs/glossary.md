@@ -140,14 +140,25 @@ stage and required execution context that a recurring assurance execution instan
 fingerprint excludes execution results. It is a service protocol record, not another current-model
 facet or a replacement for `verification.md` (D40).
 
+**Claim contract** — the repository-derived semantic account to which a recurring evidence
+definition applies: structured claim identity and predicate, criticality, effective verification
+requirements and relevant surface or area realization obligations. Its fingerprint excludes
+realization bodies and enumerated members. Contract drift requires a new definition and
+qualification; implementation drift alone requires a new exact observation (D42).
+
+**Assurance project snapshot** — an immutable projection of one hole-free accepted Azimuth model.
+It names the complete model fingerprint and carries the claim contracts that an assurance service
+may accept. The CLI derives it; the service validates and stores it without re-parsing repository
+artifacts or re-running enumerators (D42).
+
 **Qualification** — an accountable agent verdict over one exact evidence-definition fingerprint.
 `qualified` means a future applicable successful observation may open its configured lifecycle
 gate. It does not establish that the execution happened or that the product claim is satisfied
 (D40).
 
-**Execution subject** — the exact project snapshot and revision, with optional artifact digest,
-deployment, environment and cohort, to which an assurance observation applies. Equality is
-deliberately strict; evidence for one subject does not leak to another.
+**Execution subject** — the exact registered assurance project snapshot and revision, with
+optional artifact digest, deployment, environment and cohort, to which an assurance observation
+applies. Equality is deliberately strict; evidence for one subject does not leak to another.
 
 **Lifecycle gate** — a derived decision for one evidence definition, execution subject, lifecycle
 stage and evaluation time. It is open only when current qualification and applicable successful
@@ -155,9 +166,9 @@ execution facts agree and no current challenge blocks them. It is not repository
 product acceptance decision.
 
 **Assurance service** — the optional execution ledger that stores immutable qualifications,
-observations, challenges and derived gate history outside Git. Repositories remain authority for
-claim meaning and accepted judgment rationale; the standalone CLI remains usable without the
-service (D40).
+accepted-model snapshots, observations, challenges and derived gate history outside Git.
+Repositories remain authority for claim meaning and accepted judgment rationale; the standalone
+CLI remains usable without the service (D40, D42).
 
 **Detector test** — a test proving that a detection-strength item actually fires: that the
 reconciliation job flags an injected imbalance, that the deletion scan flags a planted record.

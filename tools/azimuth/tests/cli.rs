@@ -96,3 +96,24 @@ fn package_instructions_are_emitted_only_for_the_eligible_frontier() {
         .contains("Do not edit outside the owned paths"));
     fs::remove_dir_all(root).unwrap();
 }
+
+#[test]
+fn assurance_export_refuses_a_partial_model() {
+    let root = root();
+    let output = azimuth(&[
+        "assurance",
+        "export",
+        "--project",
+        "synthetic",
+        "--out",
+        root.join("snapshot.json").to_str().unwrap(),
+        "--only",
+        "alpha",
+    ]);
+
+    assert_eq!(output.status.code(), Some(2));
+    assert!(String::from_utf8(output.stderr)
+        .unwrap()
+        .contains("requires the complete accepted model"));
+    fs::remove_dir_all(root).unwrap();
+}

@@ -7,7 +7,8 @@ use axum::{
 };
 use azimuth_assurance_domain::{
     record_fingerprint, AssuranceAccount, Challenge, EvidenceDefinition, GateDecision, GateRequest,
-    Observation, Qualification,
+    Observation, ProjectModelSnapshot, Qualification, PROJECT_SNAPSHOT_FORMAT,
+    PROJECT_SNAPSHOT_VERSION,
 };
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use sqlx::{postgres::PgPoolOptions, PgPool, Row};
@@ -41,6 +42,10 @@ pub fn app(state: AppState) -> Router {
     Router::new()
         .route("/health", get(health))
         .route("/v1/projects", post(create_project).get(list_projects))
+        .route(
+            "/v1/projects/{project_id}/model-snapshots",
+            post(register_model_snapshot).get(list_model_snapshots),
+        )
         .route(
             "/v1/projects/{project_id}/definitions",
             post(register_definition).get(list_definitions),
@@ -154,6 +159,55 @@ async fn list_projects(State(state): State<AppState>) -> Result<Json<Vec<Project
         .map(Json)
 }
 
+async fn register_model_snapshot(
+    State(state): State<AppState>,
+    Path(project_id): Path<String>,
+    Json(snapshot): Json<ProjectModelSnapshot>,
+) -> Result<(StatusCode, Json<Ingested>), AppError> {
+    ensure_project(&state.pool, &project_id).await?;
+    validate_model_snapshot(&snapshot, &project_id)?;
+    let content_fingerprint = fingerprint(&snapshot)?;
+    let payload = serde_json::to_value(&snapshot)?;
+    let result = sqlx::query(
+        "INSERT INTO project_model_snapshots(\
+            project_id, id, model_fingerprint, content_fingerprint, payload\
+         ) VALUES ($1, $2, $3, $4, $5) ON CONFLICT DO NOTHING",
+    )
+    .bind(&project_id)
+    .bind(&snapshot.id)
+    .bind(&snapshot.model_fingerprint)
+    .bind(&content_fingerprint)
+    .bind(payload)
+    .execute(&state.pool)
+    .await?;
+    let stored = sqlx::query_scalar::<_, String>(
+        "SELECT content_fingerprint FROM project_model_snapshots \
+         WHERE project_id = $1 AND id = $2",
+    )
+    .bind(&project_id)
+    .bind(&snapshot.id)
+    .fetch_one(&state.pool)
+    .await?;
+    let replayed = resolve_replay(
+        result.rows_affected(),
+        stored,
+        &content_fingerprint,
+        "project model snapshot",
+    )?;
+    Ok((
+        if replayed {
+            StatusCode::OK
+        } else {
+            StatusCode::CREATED
+        },
+        Json(Ingested {
+            replayed,
+            content_fingerprint,
+            definition_fingerprint: None,
+        }),
+    ))
+}
+
 async fn register_definition(
     State(state): State<AppState>,
     Path(project_id): Path<String>,
@@ -162,6 +216,7 @@ async fn register_definition(
     ensure_project(&state.pool, &project_id).await?;
     validate_id(&definition.id, "definition id")?;
     validate_definition(&definition)?;
+    ensure_claim_contract_known(&state.pool, &project_id, &definition.claim).await?;
     let definition_fingerprint = definition.fingerprint();
     let content_fingerprint = fingerprint(&definition)?;
     let payload = serde_json::to_value(&definition)?;
@@ -264,6 +319,17 @@ async fn register_observation(
         &observation.definition_fingerprint,
     )
     .await?;
+    let snapshot = load_model_snapshot(
+        &state.pool,
+        &project_id,
+        &observation.subject.project_snapshot,
+    )
+    .await?;
+    if !snapshot.contains(&definition.claim) {
+        return Err(AppError::unprocessable(
+            "observation snapshot does not contain the definition claim contract",
+        ));
+    }
     if observation.stage != definition.stage {
         return Err(AppError::unprocessable(
             "observation stage does not match its definition",
@@ -415,6 +481,20 @@ async fn list_definitions(
         &project_id,
         "evidence_definitions",
         "declared_at, logical_id, definition_fingerprint",
+    )
+    .await
+    .map(Json)
+}
+
+async fn list_model_snapshots(
+    State(state): State<AppState>,
+    Path(project_id): Path<String>,
+) -> Result<Json<Vec<ProjectModelSnapshot>>, AppError> {
+    load_records(
+        &state.pool,
+        &project_id,
+        "project_model_snapshots",
+        "sequence",
     )
     .await
     .map(Json)
@@ -647,6 +727,8 @@ async fn project_snapshot(
 
 async fn load_account(pool: &PgPool, project_id: &str) -> Result<AssuranceAccount, AppError> {
     Ok(AssuranceAccount {
+        project_snapshots: load_records(pool, project_id, "project_model_snapshots", "sequence")
+            .await?,
         definitions: load_records(
             pool,
             project_id,
@@ -659,6 +741,42 @@ async fn load_account(pool: &PgPool, project_id: &str) -> Result<AssuranceAccoun
         observations: load_records(pool, project_id, "observations", "observed_at, id").await?,
         challenges: load_records(pool, project_id, "challenges", "observed_at, id").await?,
     })
+}
+
+async fn load_model_snapshot(
+    pool: &PgPool,
+    project_id: &str,
+    snapshot_id: &str,
+) -> Result<ProjectModelSnapshot, AppError> {
+    ensure_project(pool, project_id).await?;
+    let payload = sqlx::query_scalar::<_, serde_json::Value>(
+        "SELECT payload FROM project_model_snapshots WHERE project_id = $1 AND id = $2",
+    )
+    .bind(project_id)
+    .bind(snapshot_id)
+    .fetch_optional(pool)
+    .await?
+    .ok_or_else(|| AppError::unprocessable("referenced project snapshot does not exist"))?;
+    Ok(serde_json::from_value(payload)?)
+}
+
+async fn ensure_claim_contract_known(
+    pool: &PgPool,
+    project_id: &str,
+    reference: &azimuth_assurance_domain::ClaimReference,
+) -> Result<(), AppError> {
+    let snapshots: Vec<ProjectModelSnapshot> =
+        load_records(pool, project_id, "project_model_snapshots", "sequence").await?;
+    if snapshots
+        .iter()
+        .any(|snapshot| snapshot.contains(reference))
+    {
+        Ok(())
+    } else {
+        Err(AppError::unprocessable(
+            "definition references a claim contract absent from registered project snapshots",
+        ))
+    }
 }
 
 async fn load_project(pool: &PgPool, project_id: &str) -> Result<Project, AppError> {
@@ -709,12 +827,63 @@ async fn load_definition_version(
 }
 
 fn validate_definition(definition: &EvidenceDefinition) -> Result<(), AppError> {
-    validate_text(&definition.claim, "claim")?;
+    validate_id(&definition.claim.spec, "claim spec")?;
+    validate_id(&definition.claim.claim, "claim id")?;
+    validate_id(
+        &definition.claim.contract_fingerprint,
+        "claim contract fingerprint",
+    )?;
     validate_text(&definition.assertion, "assertion")?;
     validate_text(&definition.scope, "scope")?;
     validate_text(&definition.quantification, "quantification")?;
     validate_text(&definition.oracle, "oracle")?;
     to_db_time(definition.declared_at, "declaredAt")?;
+    Ok(())
+}
+
+fn validate_model_snapshot(
+    snapshot: &ProjectModelSnapshot,
+    project_id: &str,
+) -> Result<(), AppError> {
+    if snapshot.format != PROJECT_SNAPSHOT_FORMAT || snapshot.version != PROJECT_SNAPSHOT_VERSION {
+        return Err(AppError::unprocessable(
+            "unsupported assurance project snapshot format or version",
+        ));
+    }
+    if snapshot.project != project_id {
+        return Err(AppError::unprocessable(
+            "snapshot project does not match the assurance account",
+        ));
+    }
+    validate_id(&snapshot.id, "snapshot id")?;
+    validate_id(&snapshot.model_fingerprint, "model fingerprint")?;
+    let mut claims = HashSet::new();
+    for contract in &snapshot.claims {
+        validate_id(&contract.spec, "contract spec")?;
+        validate_id(&contract.claim, "contract claim")?;
+        validate_id(&contract.requirement, "contract requirement")?;
+        validate_text(&contract.statement, "contract statement")?;
+        if !matches!(contract.criticality.as_str(), "standard" | "critical") {
+            return Err(AppError::unprocessable(
+                "claim contracts are only valid for standard or critical claims",
+            ));
+        }
+        if !claims.insert((contract.spec.as_str(), contract.claim.as_str())) {
+            return Err(AppError::unprocessable(
+                "snapshot contains a duplicate claim contract",
+            ));
+        }
+        if contract.contract_fingerprint != contract.fingerprint() {
+            return Err(AppError::unprocessable(
+                "claim contract fingerprint does not match its content",
+            ));
+        }
+    }
+    if snapshot.id != snapshot.fingerprint() {
+        return Err(AppError::unprocessable(
+            "snapshot id does not match its content",
+        ));
+    }
     Ok(())
 }
 

@@ -1849,6 +1849,43 @@ only to state one claim's expected fan-out.
 
 ---
 
+## D42 — Claim contracts connect repositories to assurance services *(experimental 2026-08-12)*
+
+**Decision.** A hole-free accepted model may be projected into an immutable assurance project
+snapshot. The snapshot identifies the complete model and carries one stable contract for every
+non-routine claim. A claim contract includes structured claim identity and predicate, criticality,
+effective verification requirements, and applicable surface and area realization obligations. It
+excludes realization bodies, enumerated members, observations and judgments.
+
+An assurance service accepts definitions only for contracts found in a registered snapshot and
+accepts observations only when their exact snapshot contains the definition's contract. A gate
+closes before execution selection when the definition is not applicable to its requested snapshot.
+The CLI remains authority for workspace parsing, enumeration, linkage and holes; the service does
+not reproduce those checks.
+
+**Why.** D40's unchecked `projectSnapshot` and string claim allowed execution provenance to name
+accounts that the service had never seen. It also let a qualification appear current after a
+surface or realization obligation changed. Fingerprinting the complete model into every definition
+would close that gap but make every source edit require semantic requalification. Two fingerprints
+preserve the distinction: the model snapshot changes with the exact accepted account, while the
+claim contract changes only when the semantics against which evidence was qualified change.
+
+**Initial validation.** The CLI exported 85 contracts from the 90-claim fixture; the five routine
+claims created no service contract. Synthetic projection tests show that verification and
+architectural obligations change a contract, set-like reordering does not, and a realization-body
+change produces a new exact snapshot while preserving the contract. The pure evaluator closes
+unknown and inapplicable snapshots. The PostgreSQL component boundary rejects definitions before
+snapshot registration and rejects unknown or inapplicable observations; one qualification remains
+usable across a second snapshot with the same contract after a new exact observation arrives.
+
+**What would falsify it.** Revisit the contract boundary if ordinary implementation changes
+routinely require reinterpretation despite unchanged claim and verification semantics, or if a
+changed surface or area obligation can retain the same contract. Move more validation into the
+service only if repository-produced snapshots cannot be authenticated or independently reproduced;
+do not solve provenance by installing a second spec parser there.
+
+---
+
 ## Method
 
 **Concern catalog first, notation last.** No mechanism enters the model until **≥2 structurally

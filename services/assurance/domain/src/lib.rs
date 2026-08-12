@@ -2,6 +2,9 @@ use azimuth::fingerprint::sha256;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
+pub const PROJECT_SNAPSHOT_FORMAT: &str = azimuth::assurance::FORMAT;
+pub const PROJECT_SNAPSHOT_VERSION: u64 = azimuth::assurance::VERSION;
+
 pub fn record_fingerprint<T: Serialize>(record: &T) -> Result<String, serde_json::Error> {
     serde_json::to_vec(record).map(|bytes| sha256(&bytes))
 }
@@ -10,7 +13,7 @@ pub fn record_fingerprint<T: Serialize>(record: &T) -> Result<String, serde_json
 #[serde(rename_all = "camelCase")]
 pub struct EvidenceDefinition {
     pub id: String,
-    pub claim: String,
+    pub claim: ClaimReference,
     pub assertion: String,
     pub scope: String,
     pub quantification: String,
@@ -23,24 +26,195 @@ pub struct EvidenceDefinition {
 
 impl EvidenceDefinition {
     pub fn fingerprint(&self) -> String {
-        let context = self
-            .required_context
-            .iter()
-            .map(|(key, value)| format!("{key}={value}"))
-            .collect::<Vec<_>>()
-            .join("\n");
-        let canonical = format!(
-            "{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}",
-            self.claim,
-            self.assertion,
-            self.scope,
-            self.quantification,
-            self.oracle,
-            self.stage.as_str(),
-            self.inputs.join("\n"),
-            context
-        );
-        sha256(canonical.as_bytes())
+        record_fingerprint(&(
+            &self.claim,
+            &self.assertion,
+            &self.scope,
+            &self.quantification,
+            &self.oracle,
+            self.stage,
+            &self.inputs,
+            &self.required_context,
+        ))
+        .expect("evidence definition semantics are serializable")
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ClaimReference {
+    pub spec: String,
+    pub claim: String,
+    pub contract_fingerprint: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ContractMount {
+    pub id: String,
+    pub path: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ContractArea {
+    pub id: String,
+    pub mounts: Vec<ContractMount>,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ContractContribution {
+    pub area: String,
+    pub mount: String,
+    pub path: String,
+    pub enumerator: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ContractSurface {
+    pub id: String,
+    pub contributions: Vec<ContractContribution>,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ContractStep {
+    pub kind: String,
+    pub text: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ContractVerification {
+    pub strength: Option<String>,
+    pub scope: String,
+    pub quantification: Option<String>,
+    pub oracle: Option<String>,
+    pub residual_required: bool,
+    pub residual: Option<String>,
+    pub residual_acceptance: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ClaimContract {
+    pub contract_fingerprint: String,
+    pub spec: String,
+    pub claim: String,
+    pub requirement: String,
+    pub criticality: String,
+    pub statement: String,
+    pub steps: Vec<ContractStep>,
+    pub domain: String,
+    pub verification: ContractVerification,
+    pub surface: Option<ContractSurface>,
+    pub obligated_areas: Vec<ContractArea>,
+}
+
+impl ClaimContract {
+    pub fn fingerprint(&self) -> String {
+        self.as_core().fingerprint()
+    }
+
+    pub fn reference(&self) -> ClaimReference {
+        ClaimReference {
+            spec: self.spec.clone(),
+            claim: self.claim.clone(),
+            contract_fingerprint: self.contract_fingerprint.clone(),
+        }
+    }
+
+    fn as_core(&self) -> azimuth::assurance::ClaimContract {
+        azimuth::assurance::ClaimContract {
+            spec: self.spec.clone(),
+            claim: self.claim.clone(),
+            requirement: self.requirement.clone(),
+            criticality: self.criticality.clone(),
+            statement: self.statement.clone(),
+            steps: self
+                .steps
+                .iter()
+                .map(|step| azimuth::assurance::ContractStep {
+                    kind: step.kind.clone(),
+                    text: step.text.clone(),
+                })
+                .collect(),
+            domain: self.domain.clone(),
+            verification: azimuth::assurance::ContractVerification {
+                strength: self.verification.strength.clone(),
+                scope: self.verification.scope.clone(),
+                quantification: self.verification.quantification.clone(),
+                oracle: self.verification.oracle.clone(),
+                residual_required: self.verification.residual_required,
+                residual: self.verification.residual.clone(),
+                residual_acceptance: self.verification.residual_acceptance.clone(),
+            },
+            surface: self
+                .surface
+                .as_ref()
+                .map(|surface| azimuth::assurance::ContractSurface {
+                    id: surface.id.clone(),
+                    contributions: surface
+                        .contributions
+                        .iter()
+                        .map(|item| azimuth::assurance::ContractContribution {
+                            area: item.area.clone(),
+                            mount: item.mount.clone(),
+                            path: item.path.clone(),
+                            enumerator: item.enumerator.clone(),
+                        })
+                        .collect(),
+                }),
+            obligated_areas: self
+                .obligated_areas
+                .iter()
+                .map(|area| azimuth::assurance::ContractArea {
+                    id: area.id.clone(),
+                    mounts: area
+                        .mounts
+                        .iter()
+                        .map(|mount| azimuth::assurance::ContractMount {
+                            id: mount.id.clone(),
+                            path: mount.path.clone(),
+                        })
+                        .collect(),
+                })
+                .collect(),
+        }
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProjectModelSnapshot {
+    pub format: String,
+    pub version: u64,
+    pub id: String,
+    pub project: String,
+    pub model_fingerprint: String,
+    pub claims: Vec<ClaimContract>,
+}
+
+impl ProjectModelSnapshot {
+    pub fn fingerprint(&self) -> String {
+        let claims = self.claims.iter().map(ClaimContract::as_core).collect();
+        azimuth::assurance::ProjectSnapshot {
+            id: self.id.clone(),
+            project: self.project.clone(),
+            model_fingerprint: self.model_fingerprint.clone(),
+            claims,
+        }
+        .fingerprint()
+    }
+
+    pub fn contains(&self, reference: &ClaimReference) -> bool {
+        self.claims.iter().any(|contract| {
+            contract.spec == reference.spec
+                && contract.claim == reference.claim
+                && contract.contract_fingerprint == reference.contract_fingerprint
+        })
     }
 }
 
@@ -169,6 +343,8 @@ pub enum GateStatus {
 #[serde(rename_all = "kebab-case")]
 pub enum GateReason {
     DefinitionMissing,
+    ProjectSnapshotMissing,
+    ClaimContractInapplicable,
     QualificationMissing,
     QualificationRejected,
     QualificationStale,
@@ -185,6 +361,8 @@ pub enum GateReason {
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum WorkKind {
+    RegisterProjectSnapshot,
+    ReviseDefinition,
     QualifyDefinition,
     ExecuteDefinition,
     RerunForSubject,
@@ -198,6 +376,7 @@ pub enum WorkKind {
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AssuranceAccount {
+    pub project_snapshots: Vec<ProjectModelSnapshot>,
     pub definitions: Vec<EvidenceDefinition>,
     pub qualifications: Vec<Qualification>,
     pub observations: Vec<Observation>,
@@ -221,6 +400,29 @@ impl AssuranceAccount {
             );
         };
         let fingerprint = definition.fingerprint();
+
+        let Some(snapshot) = self
+            .project_snapshots
+            .iter()
+            .find(|item| item.id == request.subject.project_snapshot)
+        else {
+            return closed(
+                Some(fingerprint),
+                None,
+                None,
+                vec![GateReason::ProjectSnapshotMissing],
+                vec![WorkKind::RegisterProjectSnapshot],
+            );
+        };
+        if !snapshot.contains(&definition.claim) {
+            return closed(
+                Some(fingerprint),
+                None,
+                None,
+                vec![GateReason::ClaimContractInapplicable],
+                vec![WorkKind::ReviseDefinition, WorkKind::QualifyDefinition],
+            );
+        }
 
         let qualification = self
             .qualifications
@@ -410,5 +612,52 @@ fn closed(
         observation_id,
         reasons,
         work,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn cli_snapshot_json_is_the_service_wire_contract() {
+        let contract = azimuth::assurance::ClaimContract {
+            spec: "checkout/performance".into(),
+            claim: "latency-objective".into(),
+            requirement: "performance".into(),
+            criticality: "standard".into(),
+            statement: "Checkout latency remains bounded.".into(),
+            steps: vec![azimuth::assurance::ContractStep {
+                kind: "then".into(),
+                text: "latency is below the threshold".into(),
+            }],
+            domain: "behaviour".into(),
+            verification: azimuth::assurance::ContractVerification {
+                strength: Some("demonstration".into()),
+                scope: "e2e".into(),
+                quantification: Some("example".into()),
+                oracle: Some("direct".into()),
+                residual_required: false,
+                residual: None,
+                residual_acceptance: None,
+            },
+            surface: None,
+            obligated_areas: vec![],
+        };
+        let snapshot = azimuth::assurance::ProjectSnapshot::derive(
+            "checkout",
+            "model-fingerprint",
+            vec![contract],
+        );
+
+        let wire: ProjectModelSnapshot =
+            serde_json::from_str(&snapshot.to_json().to_string_pretty()).unwrap();
+
+        assert_eq!(wire.id, snapshot.id);
+        assert_eq!(wire.id, wire.fingerprint());
+        assert_eq!(
+            wire.claims[0].contract_fingerprint,
+            wire.claims[0].fingerprint()
+        );
     }
 }
