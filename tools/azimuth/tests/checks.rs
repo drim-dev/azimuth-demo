@@ -7,6 +7,9 @@ use azimuth::manifest;
 use azimuth::model::Model;
 use azimuth::selects;
 use azimuth::spec::parse_spec;
+use azimuth::workspace::{
+    Area, Mount, RealizationObligation, Surface, SurfaceContribution, Workspace,
+};
 
 const SPEC: &str = "\
 # Spec: alpha
@@ -54,6 +57,25 @@ fn class_model(manifest_json: &str) -> Model {
     let spec = parse_spec("beta.md", CLASS_SPEC).expect("spec parses");
     let mut model = Model {
         specs: vec![spec],
+        workspace: Workspace {
+            path: "workspace.json".into(),
+            areas: vec![Area {
+                id: "web".into(),
+                mounts: vec![Mount {
+                    id: "code".into(),
+                    path: "app/web".into(),
+                }],
+            }],
+            surfaces: vec![Surface {
+                id: "beta".into(),
+                contributions: vec![SurfaceContribution {
+                    area: "web".into(),
+                    mount: "code".into(),
+                    enumerator: "routes".into(),
+                }],
+            }],
+            realization_obligations: Vec::new(),
+        },
         ..Default::default()
     };
     let root = json::parse(manifest_json).expect("manifest is valid json");
@@ -365,7 +387,8 @@ fn a_tagged_site_that_does_not_discharge_breaches() {
     let model = class_model(
         r#"{"realizes":[{"spec":"beta","scenario":"rendered","site":"Page","file":"page.tsx",
             "lang":"typescript"}],"enumerations":[{"class":"beta","kind":"routes",
-            "source":"routes.json","source_fingerprint":"abc"}]}"#,
+            "source":"routes.json","source_fingerprint":"abc","area":"web",
+            "address_kind":"route-manifest","address":"beta","mount":"code"}]}"#,
     );
     let holes = kinds(&model);
     assert!(
@@ -385,7 +408,8 @@ fn an_emitted_member_with_no_tags_at_all_breaches() {
             "file":"page.tsx","lang":"typescript"}],
             "class_members":[{"class":"beta","site":"/untouched","file":"untouched.ts",
             "lang":"typescript"}],"enumerations":[{"class":"beta","kind":"routes",
-            "source":"routes.json","source_fingerprint":"abc"}]}"#,
+            "source":"routes.json","source_fingerprint":"abc","area":"web",
+            "address_kind":"route-manifest","address":"beta","mount":"code"}]}"#,
     );
     let holes = kinds(&model);
     assert!(
@@ -411,7 +435,8 @@ fn an_emitted_member_discharges_from_anywhere_in_its_file() {
             "file":"route.ts","lang":"typescript"}],
             "class_members":[{"class":"beta","site":"/thing","file":"route.ts",
             "lang":"typescript"}],"enumerations":[{"class":"beta","kind":"routes",
-            "source":"routes.json","source_fingerprint":"abc"}]}"#,
+            "source":"routes.json","source_fingerprint":"abc","area":"web",
+            "address_kind":"route-manifest","address":"beta","mount":"code"}]}"#,
     );
     let holes = kinds(&model);
     assert!(
@@ -440,6 +465,176 @@ fn a_site_domain_without_a_derived_enumerator_fails_closed() {
             .any(|(kind, _)| *kind == HoleKind::InvariantBreach),
         "a partial domain must not produce authoritative member findings: {holes:?}"
     );
+}
+
+#[test]
+fn a_site_domain_without_over_is_a_machine_hole() {
+    let source = CLASS_SPEC.replace("Over: beta\n", "");
+    let mut model = class_model(
+        r#"{"enumerations":[{"class":"beta","kind":"routes","source":"routes.json",
+          "source_fingerprint":"abc","area":"web","address_kind":"route-manifest",
+          "address":"beta","mount":"code"}]}"#,
+    );
+    model.specs = vec![parse_spec("beta.md", &source).expect("missing declaration still parses")];
+
+    assert!(kinds(&model).contains(&(HoleKind::MissingSurface, "beta#confined".into())));
+}
+
+#[test]
+fn a_site_domain_naming_no_declared_surface_fails_closed() {
+    let mut model = class_model(
+        r#"{"enumerations":[{"class":"beta","kind":"routes","source":"routes.json",
+          "source_fingerprint":"abc","area":"web","address_kind":"route-manifest",
+          "address":"beta","mount":"code"}]}"#,
+    );
+    model.workspace.surfaces.clear();
+
+    assert!(kinds(&model).contains(&(HoleKind::UnknownSurface, "beta#confined".into())));
+}
+
+#[test]
+fn every_declared_surface_contribution_requires_its_own_witness() {
+    let model = class_model(
+        r#"{"enumerations":[{"class":"beta","kind":"routes","source":"routes.json",
+          "source_fingerprint":"abc","area":"other-web","address_kind":"route-manifest",
+          "address":"beta","mount":"code"}]}"#,
+    );
+
+    assert!(kinds(&model).contains(&(
+        HoleKind::EnumeratorUnsoundOrUnderived,
+        "beta#confined".into()
+    )));
+}
+
+#[test]
+fn a_backend_only_realization_does_not_satisfy_a_web_area_obligation() {
+    let mut model = model_with(
+        r#"{"realizes":[{"spec":"alpha","scenario":"guarded","site":"Handle",
+          "file":"app/services/Trips/Handle.cs","lang":"csharp"}]}"#,
+    );
+    model.workspace = Workspace {
+        path: "workspace.json".into(),
+        areas: vec![
+            Area {
+                id: "trips".into(),
+                mounts: vec![Mount {
+                    id: "code".into(),
+                    path: "app/services/Trips".into(),
+                }],
+            },
+            Area {
+                id: "rider-experience".into(),
+                mounts: vec![Mount {
+                    id: "code".into(),
+                    path: "app/web/rider".into(),
+                }],
+            },
+        ],
+        surfaces: Vec::new(),
+        realization_obligations: vec![RealizationObligation {
+            spec: "alpha".into(),
+            claim: "guarded".into(),
+            areas: vec!["trips".into(), "rider-experience".into()],
+        }],
+    };
+
+    let missing = rtm(&model)
+        .into_iter()
+        .filter(|hole| hole.kind == HoleKind::MissingRequiredRealization)
+        .collect::<Vec<_>>();
+    assert_eq!(missing.len(), 1, "{missing:?}");
+    assert!(missing[0].detail.contains("rider-experience"));
+}
+
+#[test]
+fn a_routine_claim_cannot_gain_an_area_obligation() {
+    let mut model = model_with("");
+    model.workspace = Workspace {
+        path: "workspace.json".into(),
+        areas: vec![Area {
+            id: "web".into(),
+            mounts: vec![Mount {
+                id: "code".into(),
+                path: "app/web".into(),
+            }],
+        }],
+        surfaces: Vec::new(),
+        realization_obligations: vec![RealizationObligation {
+            spec: "alpha".into(),
+            claim: "decorative".into(),
+            areas: vec!["web".into()],
+        }],
+    };
+
+    let holes = kinds(&model);
+    assert!(holes.contains(&(
+        HoleKind::DanglingRealizationObligation,
+        "alpha#decorative".into()
+    )));
+    assert!(!holes
+        .iter()
+        .any(|(kind, _)| *kind == HoleKind::MissingRequiredRealization));
+}
+
+#[test]
+fn obligation_and_surface_inputs_expire_judgment_fingerprints() {
+    let mut model = model_with(
+        r#"{"realizes":[{"spec":"alpha","scenario":"guarded","site":"Handle",
+          "file":"app/services/Trips/Handle.cs","lang":"csharp","source_fingerprint":"v1"}]}"#,
+    );
+    model.workspace = Workspace {
+        path: "workspace.json".into(),
+        areas: vec![Area {
+            id: "trips".into(),
+            mounts: vec![Mount {
+                id: "code".into(),
+                path: "app/services/Trips".into(),
+            }],
+        }],
+        surfaces: Vec::new(),
+        realization_obligations: vec![RealizationObligation {
+            spec: "alpha".into(),
+            claim: "guarded".into(),
+            areas: vec!["trips".into()],
+        }],
+    };
+    let claim = model.find_claim("alpha", "guarded").unwrap();
+    let before = fingerprint(
+        &model.claim_text(&claim),
+        model.judgment_inputs("alpha", "guarded"),
+    );
+
+    model.workspace.areas[0].mounts[0].path = "src/Trips".into();
+    let claim = model.find_claim("alpha", "guarded").unwrap();
+    let after = fingerprint(
+        &model.claim_text(&claim),
+        model.judgment_inputs("alpha", "guarded"),
+    );
+    assert_ne!(before, after);
+}
+
+#[test]
+fn surface_assignment_changes_expire_the_site_domain_judgment() {
+    let mut model = class_model(
+        r#"{"realizes":[{"spec":"beta","scenario":"confined","site":"GET",
+          "file":"app/web/route.ts","lang":"typescript","source_fingerprint":"v1"}],
+          "enumerations":[{"class":"beta","kind":"routes","source":"routes.json",
+          "source_fingerprint":"routes-v1","area":"web","address_kind":"route-manifest",
+          "address":"beta","mount":"code"}]}"#,
+    );
+    let claim = model.find_claim("beta", "confined").unwrap();
+    let before = fingerprint(
+        &model.claim_text(&claim),
+        model.judgment_inputs("beta", "confined"),
+    );
+
+    model.workspace.areas[0].mounts[0].path = "src/web".into();
+    let claim = model.find_claim("beta", "confined").unwrap();
+    let after = fingerprint(
+        &model.claim_text(&claim),
+        model.judgment_inputs("beta", "confined"),
+    );
+    assert_ne!(before, after);
 }
 
 #[test]

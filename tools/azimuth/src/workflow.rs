@@ -9,6 +9,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 const DEFAULT_STANDARDS: &str = "# Verification standards\nDefault scope: unit\n\n## Level: critical\nStrength: demonstration\nQuantification: universal\nResidual: required\n\n## Level: standard\nStrength: demonstration\nQuantification: example\nResidual: optional\n\n## Level: routine\nStrength: none\nResidual: optional\n";
+const DEFAULT_WORKSPACE: &str = "{\n  \"format\": \"azimuth-workspace\",\n  \"version\": 1,\n  \"areas\": [],\n  \"surfaces\": [],\n  \"realization_obligations\": []\n}\n";
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct ChangeSummary {
@@ -74,6 +75,12 @@ pub fn initialize(root: &Path) -> Result<Vec<PathBuf>, String> {
         fs::write(&standards, DEFAULT_STANDARDS)
             .map_err(|error| format!("cannot write {}: {error}", standards.display()))?;
         created.push(standards);
+    }
+    let workspace = root.join("workspace.json");
+    if !workspace.exists() {
+        fs::write(&workspace, DEFAULT_WORKSPACE)
+            .map_err(|error| format!("cannot write {}: {error}", workspace.display()))?;
+        created.push(workspace);
     }
     Ok(created)
 }
@@ -538,6 +545,7 @@ mod tests {
         assert!(!first.is_empty());
         assert!(second.is_empty());
         assert!(root.join("standards/verification.md").is_file());
+        assert!(root.join("workspace.json").is_file());
         fs::remove_dir_all(root.parent().unwrap()).unwrap();
     }
 

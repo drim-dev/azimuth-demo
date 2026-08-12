@@ -176,6 +176,14 @@ derived from the same source the system is built from: the route table, the DI c
 graph. A hand-listed surface is worse than no rule, because it reproduces the bug the rule prevents
 and reports green (D13.1).
 
+**Areas, surfaces and realization obligations.** A local workspace declares durable areas and
+their source mounts (D41). A surface binds one or more area mounts to independent enumerators; a
+site-domain claim names the surface with `Over:` and requires every derived member to discharge the
+claim. An ordinary standard or critical claim may instead require at least one realization in each
+named area. The first is universal over surface members; the second is existential within each
+architectural area. Neither creates per-area evidence obligations. Evidence form remains a property
+of the verification plan, and semantic honesty remains an agent judgment.
+
 ---
 
 ## Evidence, and what is required
@@ -276,7 +284,7 @@ the four implies a fourth facet. D3 has not been amended.
 Whether *only* these four count against the falsifier is unsettled. Read strictly, several other
 kinds are also not missing-facet combinations — `unbacked-proof` is a cross-facet consistency
 check, the agent-tier kinds qualify evidence rather than record its absence, and `invariant-breach`
-and `dangling-class` concern a claim's machinery, which the glossary already carves out for
+and `unknown-surface` concern a claim's machinery, which the glossary already carves out for
 `enumerator unsound or underived` (D13.2). The four above are the ones the source marks as
 incomplete-facet in so many words. The wider reading would make D3's falsifier fire far harder, and
 nothing has decided between them.
@@ -401,7 +409,9 @@ that derived surface membership does not imply semantic requirement discovery. D
 identity has one product use; its application relation remains unresolved. D28 now makes declared
 realization sites agent-auditable without claiming that the machine understands their semantics.
 Multi-repository assembly is machine-tested through D33, including real Git histories and fault
-injection; independent-team and cold-agent usability remain external validation work.
+injection; independent-team and cold-agent usability remain external validation work. D41's local
+surface and area-obligation declarations are machine-tested; federated surface assembly and
+additional enumerator kinds remain residual.
 
 **Open.** Five of the seven questions recorded in `decisions.md` remain open — question 2 was closed
 by D26 and question 3 by D15 — and they are open because they need evidence from the fixture, not

@@ -20,6 +20,7 @@ pub mod model;
 pub mod plan;
 pub mod spec;
 pub mod workflow;
+pub mod workspace;
 
 use diag::Diag;
 use model::Model;
@@ -44,6 +45,7 @@ pub fn selects(pattern: &str, spec_id: &str) -> bool {
 pub fn load(
     model_dir: &Path,
     standards_path: &Path,
+    workspace_path: &Path,
     manifests: &[std::path::PathBuf],
     only: &[String],
 ) -> Result<Loaded, Vec<Diag>> {
@@ -61,6 +63,17 @@ pub fn load(
     }
 
     let mut errors = Vec::new();
+
+    match workspace::load(workspace_path) {
+        Ok(workspace) => model.workspace = workspace,
+        Err(mut diagnostics) => errors.append(&mut diagnostics),
+    }
+    if !only.is_empty() {
+        model
+            .workspace
+            .realization_obligations
+            .retain(|item| only.iter().any(|pattern| selects(pattern, &item.spec)));
+    }
 
     // Routine is intrinsically intent-only. Other levels need the project mapping before a clean
     // result can mean that the required evidence form was checked.

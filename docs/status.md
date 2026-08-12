@@ -554,3 +554,28 @@ service has no authentication, tenant isolation, signed provenance, retention, r
 store, backups, rate limits or SLOs. The current evidence also uses a synthetic checkout project;
 it does not establish that external CI or observability adapters supply complete subjects in a
 real organization.
+
+## Update after declared surfaces and area obligations *(2026-08-12)*
+
+D41 replaces both semantic-id `--next-app` arguments with one validated local workspace account.
+Nine areas use the same mount vocabulary as federation. Two surfaces bind the rider and driver
+experience mounts to `next-routes`; their real production builds derive ten rider routes and five
+driver routes. The unchanged invariant discharges leave the 90-claim project check at zero holes.
+
+The synthetic suite distinguishes five omissions: a site-domain claim without `Over:`, an unknown
+surface, a configured contribution without its own witness, an untagged derived member and a
+required area without a realization. The last case starts with only the backend referral-summary
+handler and reports exactly one missing `rider-experience` realization. Adding area participation
+does not add a test obligation; the existing composed evidence remains the claim's evidence.
+
+Workspace parsing rejects unknown fields, areas, mounts and ambiguous duplicate mount paths.
+Surface configuration, contribution witnesses and area obligations participate in judgment
+freshness. The rider, driver and referral-summary judgments were re-read and refreshed. The full
+`scripts/check.sh` run passed its core, application, real Postgres/RabbitMQ, Next build, extractor,
+polyglot and assurance-extension stages.
+
+The result establishes local Next-route surfaces and area participation only. ASP.NET endpoints,
+queue consumers, nested applications within one mount and federated surface assembly remain
+unimplemented. Assignment completeness is still accepted architecture: the enumerator proves all
+routes inside a declared application, not that no undeclared application belongs to the semantic
+surface.

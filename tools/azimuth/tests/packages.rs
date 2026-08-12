@@ -56,7 +56,8 @@ THEN it is held
 ";
 
 fn load(root: &Path, standards: &Path) -> azimuth::Loaded {
-    azimuth::load(root, standards, &[], &[]).expect("model packages load")
+    azimuth::load(root, standards, &root.join("../workspace.json"), &[], &[])
+        .expect("model packages load")
 }
 
 #[test]

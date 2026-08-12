@@ -1,5 +1,11 @@
 # Judgments: trips/rider-view
 
+Revalidated 2026-08-12 after D41 moved the rider-app assignment from `--next-app` into the declared
+`trips/rider-view` surface. `app/web` contains only the declared rider and driver applications; the
+rider area mount selects the complete rider application, and its successful build witness contains
+all ten project-owned routes. Every route discharge and the existing tag-derived backend members
+were re-read. The declaration changes provenance, not the accepted predicate or evidence form.
+
 Revalidated 2026-08-10 for rider referral rewards. The derived rider-surface class gained a referral
 BFF route and server-rendered referral page; both bodies were inspected and carry no driver field or
 position source. The receipt gained payment breakdown rows while retaining its driver name and
@@ -53,8 +59,8 @@ hashes whole files, which D19.1 records.
 
 ## Claim: position-confined-to-live-phases
 Verdict: sound
-Fingerprint: 5d66dd5975bbc940
-Judged: 2026-08-11
+Fingerprint: 5e790695ed1690c8
+Judged: 2026-08-12
 Judge: codex
 
 *(supersedes `dishonest-tag` — "declares `universal` over the site class while the test hand-lists
@@ -63,9 +69,10 @@ five URLs")*
 Both halves moved, and the tag was the smaller one.
 
 **The class is now derived.** `invariant-breach` takes membership from Next.js's built route table
-via `--next-app`, so a route is a member because it exists, not because someone tagged it. Run
-against the corpus it produced eight breaches — five rider surfaces and three driver ones — none of
-which any tag-derived class could reach. All eight are now discharged, each with a stated reason:
+via the workspace's `next-routes` contribution, so a route is a member because it exists, not
+because someone tagged it. Run against the corpus it produced eight breaches — five rider surfaces
+and three driver ones — none of which any tag-derived class could reach. All eight are now
+discharged, each with a stated reason:
 two forward the trip service's projection unchanged, and the rest carry no driver at all.
 
 **The e2e test is tagged `example`**, which is what named surfaces are. The plan now says the same

@@ -212,6 +212,14 @@ type graph. A hand-listed surface is worse than no rule, because it reproduces t
 rule prevents and reports green (D13.1). It enumerates domain members, not the semantic requirements
 each member realizes.
 
+**Surface** — a named site domain assembled from independently derived enumerator contributions.
+Each contribution binds an area mount to an enumerator. A surface answers which sites are in a
+universal domain; it does not say which ordinary business claims those sites realize (D41).
+
+**Realization obligation** — an optional requirement that an ordinary standard or critical claim
+have at least one realization in each named area. It constrains architectural participation, not
+evidence location or scope, and carries no mandatory role vocabulary (D41).
+
 **Design binding** — the single machine-addressable artifact resolved for a current design
 mechanism. It is either explicit for a non-code artifact or derived from one implementation tag.
 Resolution establishes existence. Only properties emitted independently—currently index
@@ -258,7 +266,8 @@ model sources, but neither claims nor changes are confined to one repository.
 
 **Area** — a stable namespace for implementation or evidence sources, owned by one repository in a
 project snapshot. Its named mounts locate code, tests, migrations or non-code artifacts. It is not a
-domain spec and does not mean evidence `Scope: component`.
+domain spec and does not mean evidence `Scope: component`. A local workspace uses the same area and
+mount vocabulary without a repository field (D41).
 
 **Typed source address** — an extractor-defined address such as a .NET symbol, TypeScript export,
 Next route or PostgreSQL index. `(area, address kind, address)` is stable source identity; repository,

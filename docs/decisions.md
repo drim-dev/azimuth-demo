@@ -1258,7 +1258,8 @@ business designs. The current model still keys mechanism identity within one des
 real adoption must test whether cross-spec application needs a shared mechanism catalog or a
 composition relation; neither is added from argument alone.
 
-**`Over:` boundary.** The implemented site domain remains spec-keyed. `Over: trips/rider-view`
+**`Over:` boundary *(superseded by D41)*.** The initial site domain remained spec-keyed.
+`Over: trips/rider-view`
 means: enumerate the production sites that realize behavioral claims in that spec, union them with
 extractor-emitted class members carrying that same spec id, and require an independent successful
 enumerator witness. It does not mean “all code in the trips domain,” and the final line does not
@@ -1804,6 +1805,47 @@ reasons and work.
 if successful repetitions routinely need semantic reinterpretation, if stored execution facts
 silently become claim authority, or if the reference service cannot reproduce the experiment over
 an HTTP and persistent boundary without adding provider-specific core types.
+
+---
+
+## D41 — Areas locate participation; surfaces derive universal domains *(experimental 2026-08-12)*
+
+**Decision.** A local workspace declares areas with the same named-mount vocabulary as a federated
+project (D33). A relation's area is derived from its source locator; `Realizes` and `Covers` do not
+gain area arguments. A surface is a named site domain assembled from one or more area-mount and
+enumerator contributions. A site-domain claim's `Over:` names that declared surface, not a spec.
+Every contribution must produce an independent witness before member findings are authoritative.
+
+An ordinary standard or critical claim may declare a realization obligation over areas. At least
+one realization must exist in every named area. The obligation carries no role vocabulary and does
+not require tests in those areas. Evidence remains governed by its scope, quantification and oracle;
+one end-to-end definition may exercise several obligated areas.
+
+**Why.** The prior `--next-app trips/rider-view=app/web/rider` argument mixed a semantic assertion
+with an extractor invocation, and it was invisible to the model. Conversely, one backend tag could
+close `unrealized` even when accepted architecture required web participation. Universal discharge
+over every route is not the repair for the latter: it confuses “at least one realization in this
+area” with “every derived site discharges this predicate.” Areas and surfaces preserve those two
+quantifiers separately.
+
+**Boundaries.** Areas are durable architecture metadata, not routine per-claim ceremony. Routine
+claims remain intent-only (D20). The machine does not infer prose semantics from untagged code.
+Surface enumeration discovers membership; agents still judge whether a discharge or obligated
+realization is honest. Current local contributions support built Next routes only. ASP.NET
+endpoints, queue consumers and federated surface assembly remain extensions rather than invented
+membership.
+
+**Initial validation.** Synthetic checks distinguish a missing `Over:`, an unknown surface, a
+failed contribution and a missing area realization. A backend-only referral-summary realization
+fails its rider-experience obligation. The real rider and driver builds derive the same route sets
+through `azimuth/workspace.json`; removing a route discharge still produces `invariant-breach`.
+Surface and obligation declarations participate in judgment fingerprints.
+
+**What would falsify it.** Remove area obligations if teams routinely add ceremonial tags that do
+not identify a missing architectural contribution. Rework surfaces if a configured contribution
+can fail while another makes the account green, or if adding an untagged built member does not
+produce a breach. Revisit area granularity if stable ownership boundaries require frequent splits
+only to state one claim's expected fan-out.
 
 ---
 

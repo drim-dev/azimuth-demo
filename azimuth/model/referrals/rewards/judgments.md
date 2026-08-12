@@ -1,5 +1,11 @@
 # Judgments: referrals/rewards
 
+Revalidated 2026-08-12 after D41 added an area realization obligation to
+`referral-summary-explains-state`. The `trips` realization creates the stable projection and every
+credit field; the `rider-experience` realizations preserve or render those fields through the BFF,
+page and request form. The existing composed evidence enters through the rider experience and
+observes the projection. No area-local test was inferred from the obligation.
+
 First pass, 2026-08-10. Every claim, realization source, covering body and relevant design or
 verification section was read after the composed referral journey passed. The pass found one
 framework-visible integration defect before judgment: the Trips migration had disappeared during
@@ -148,8 +154,8 @@ claimed; redelivery repairs the asynchronous boundary.
 
 ## Claim: referral-summary-explains-state
 Verdict: sound
-Fingerprint: 882fbf044e4cd4b5
-Judged: 2026-08-10
+Fingerprint: 4e793e39dc395c9c
+Judged: 2026-08-12
 Judge: codex
 
 The Trips projection ensures one stable account under concurrent summary calls, derives named

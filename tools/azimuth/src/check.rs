@@ -91,8 +91,14 @@ pub enum HoleKind {
     UnresolvedEvidenceBinding,
     /// A detection item names a detector-test artifact no extractor emitted.
     UnresolvedDetectorBinding,
-    /// An invariant naming a class no spec defines.
-    DanglingClass,
+    /// A site-domain claim omitted the independently derived surface it ranges over.
+    MissingSurface,
+    /// A site-domain claim names no declared surface.
+    UnknownSurface,
+    /// A declared area contribution has no realization of the claim.
+    MissingRequiredRealization,
+    /// A realization obligation names no current claim or is attached to an inapplicable claim.
+    DanglingRealizationObligation,
     /// An implementation tag names no design-owned mechanism.
     DanglingMechanismImplementation,
     /// Mechanism evidence names no design-owned mechanism.
@@ -131,7 +137,10 @@ impl HoleKind {
             HoleKind::ExpiredEvidence => "expired-evidence",
             HoleKind::UnresolvedEvidenceBinding => "unresolved-evidence-binding",
             HoleKind::UnresolvedDetectorBinding => "unresolved-detector-binding",
-            HoleKind::DanglingClass => "dangling-class",
+            HoleKind::MissingSurface => "missing-surface",
+            HoleKind::UnknownSurface => "unknown-surface",
+            HoleKind::MissingRequiredRealization => "missing-required-realization",
+            HoleKind::DanglingRealizationObligation => "dangling-realization-obligation",
             HoleKind::DanglingMechanismImplementation => "dangling-mechanism-implementation",
             HoleKind::DanglingMechanismCover => "dangling-mechanism-cover",
             HoleKind::DuplicateObservation => "duplicate-observation",
@@ -307,6 +316,7 @@ pub fn rtm(model: &Model) -> Vec<Hole> {
     holes.extend(plan_holes(model));
     holes.extend(design_holes(model));
     holes.extend(judgment_holes(model));
+    holes.extend(realization_obligation_holes(model));
     holes.extend(surface_holes(model));
     holes.extend(receipt_holes_at(model, current_unix_seconds()));
 
@@ -913,41 +923,77 @@ fn surface_holes(model: &Model) -> Vec<Hole> {
             if requirement.domain != crate::model::Domain::Sites {
                 continue;
             }
+            let claim_id = format!("{}#{}", spec.id, requirement.id);
             let Some(over) = &requirement.over else {
-                continue;
-            };
-            let Some(class_spec) = model.specs.iter().find(|s| &s.id == over) else {
                 holes.push(Hole {
-                    kind: HoleKind::DanglingClass,
-                    severity: Severity::Error,
-                    claim: Some(format!("{}#{}", spec.id, requirement.id)),
+                    kind: HoleKind::MissingSurface,
+                    severity: severity_for(requirement.criticality),
+                    claim: Some(claim_id),
                     criticality: requirement.criticality,
                     path: spec.path.clone(),
                     line: requirement.line,
-                    detail: format!("`Over: {over}` names a spec that does not exist"),
+                    detail: "site-domain claim declares no `Over:` surface".into(),
                 });
                 continue;
             };
-
-            if !model.enumerations.iter().any(|e| e.class == class_spec.id) {
+            let Some(surface) = model.workspace.surface(over) else {
                 holes.push(Hole {
-                    kind: HoleKind::EnumeratorUnsoundOrUnderived,
-                    severity: severity_for(requirement.criticality),
-                    claim: Some(format!("{}#{}", spec.id, requirement.id)),
+                    kind: HoleKind::UnknownSurface,
+                    severity: Severity::Error,
+                    claim: Some(claim_id),
                     criticality: requirement.criticality,
                     path: spec.path.clone(),
                     line: requirement.line,
                     detail: format!(
-                        "class `{}` has no successful enumerator witness; tag-derived membership is not complete",
-                        class_spec.id
+                        "`Over: {over}` names no surface in {}",
+                        model.workspace.path
+                    ),
+                });
+                continue;
+            };
+
+            let missing_contributions = surface
+                .contributions
+                .iter()
+                .filter(|contribution| {
+                    !model.enumerations.iter().any(|enumeration| {
+                        enumeration.class == surface.id
+                            && enumeration.kind == contribution.enumerator
+                            && enumeration.identity.as_ref().is_some_and(|identity| {
+                                identity.area == contribution.area
+                                    && identity.mount == contribution.mount
+                            })
+                    })
+                })
+                .collect::<Vec<_>>();
+            if !missing_contributions.is_empty() {
+                let missing = missing_contributions
+                    .iter()
+                    .map(|item| format!("{}:{} via {}", item.area, item.mount, item.enumerator))
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                holes.push(Hole {
+                    kind: HoleKind::EnumeratorUnsoundOrUnderived,
+                    severity: severity_for(requirement.criticality),
+                    claim: Some(claim_id),
+                    criticality: requirement.criticality,
+                    path: spec.path.clone(),
+                    line: requirement.line,
+                    detail: format!(
+                        "surface `{}` has no successful witness for contribution(s) {missing}; tag-derived membership is not complete",
+                        surface.id
                     ),
                 });
                 continue;
             }
 
-            let behavioural: Vec<&str> = class_spec
-                .requirements
+            let class_spec = model
+                .specs
                 .iter()
+                .find(|candidate| candidate.id == surface.id);
+            let behavioural: Vec<&str> = class_spec
+                .into_iter()
+                .flat_map(|class_spec| &class_spec.requirements)
                 .filter(|r| r.domain == crate::model::Domain::Behaviour)
                 .flat_map(|r| r.scenarios.iter().map(|s| s.id.as_str()))
                 .collect();
@@ -958,7 +1004,7 @@ fn surface_holes(model: &Model) -> Vec<Hole> {
                 .realizes
                 .iter()
                 .filter(|site| {
-                    site.spec == class_spec.id && behavioural.contains(&site.scenario.as_str())
+                    site.spec == surface.id && behavioural.contains(&site.scenario.as_str())
                 })
                 .map(|site| (site.site.as_str(), site.file.as_str(), false))
                 .collect();
@@ -967,7 +1013,7 @@ fn surface_holes(model: &Model) -> Vec<Hole> {
                 model
                     .class_members
                     .iter()
-                    .filter(|m| m.class == class_spec.id)
+                    .filter(|m| m.class == surface.id)
                     .map(|m| (m.site.as_str(), m.file.as_str(), true)),
             );
 
@@ -1003,6 +1049,72 @@ fn surface_holes(model: &Model) -> Vec<Hole> {
         }
     }
 
+    holes
+}
+
+fn realization_obligation_holes(model: &Model) -> Vec<Hole> {
+    let mut holes = Vec::new();
+    for obligation in &model.workspace.realization_obligations {
+        let Some(claim) = model.find_claim(&obligation.spec, &obligation.claim) else {
+            holes.push(Hole {
+                kind: HoleKind::DanglingRealizationObligation,
+                severity: Severity::Error,
+                claim: Some(format!("{}#{}", obligation.spec, obligation.claim)),
+                criticality: None,
+                path: model.workspace.path.clone(),
+                line: 0,
+                detail: "realization obligation names a claim that does not exist".into(),
+            });
+            continue;
+        };
+        if claim.requirement.domain != crate::model::Domain::Behaviour
+            || !matches!(
+                claim.requirement.criticality,
+                Some(Criticality::Standard | Criticality::Critical)
+            )
+        {
+            holes.push(Hole {
+                kind: HoleKind::DanglingRealizationObligation,
+                severity: Severity::Error,
+                claim: Some(claim.id()),
+                criticality: claim.requirement.criticality,
+                path: model.workspace.path.clone(),
+                line: 0,
+                detail: "area obligations apply only to standard or critical behavioral claims"
+                    .into(),
+            });
+            continue;
+        }
+
+        for area in &obligation.areas {
+            let realized = model.realizes.iter().any(|site| {
+                site.spec == obligation.spec
+                    && site.scenario == obligation.claim
+                    && site
+                        .source
+                        .as_ref()
+                        .map(|source| source.area.as_str())
+                        .or_else(|| {
+                            model
+                                .workspace
+                                .area_for_file(&site.file)
+                                .map(|declared| declared.id.as_str())
+                        })
+                        == Some(area.as_str())
+            });
+            if !realized {
+                holes.push(Hole {
+                    kind: HoleKind::MissingRequiredRealization,
+                    severity: severity_for(claim.requirement.criticality),
+                    claim: Some(claim.id()),
+                    criticality: claim.requirement.criticality,
+                    path: model.workspace.path.clone(),
+                    line: 0,
+                    detail: format!("required area `{area}` has no realization of this claim"),
+                });
+            }
+        }
+    }
     holes
 }
 
@@ -1127,7 +1239,10 @@ pub fn counts_by_kind(holes: &[Hole]) -> Vec<(&'static str, usize)> {
         HoleKind::SpecGap,
         HoleKind::InvariantBreach,
         HoleKind::EnumeratorUnsoundOrUnderived,
-        HoleKind::DanglingClass,
+        HoleKind::MissingSurface,
+        HoleKind::UnknownSurface,
+        HoleKind::MissingRequiredRealization,
+        HoleKind::DanglingRealizationObligation,
         HoleKind::Unclassified,
         HoleKind::Unrealized,
         HoleKind::Uncovered,

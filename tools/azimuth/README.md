@@ -49,7 +49,8 @@ Accepted artifacts default to sibling files discovered recursively under `azimut
 `spec.md`, optional `design.md`, optional `verification.md` and optional `judgments.md`. The model
 root is overridable with `--model`; evidence policy defaults to
 `azimuth/standards/verification.md` and is overridable with `--standards`. Manifests are passed with
-`--manifest`, repeatable.
+`--manifest`, repeatable. Local architectural declarations default to `workspace.json` beside the
+model directory and are overridable with `--workspace`.
 
 Agent-tier method policy lives separately at `azimuth/standards/judgment.md`. External executions
 are imported as immutable observations with explicit claim bindings. Evidence bindings project
@@ -87,6 +88,8 @@ rather than from the check (D9.2).
   cannot produce tags that look fine and are not. Manifests also carry derived enumeration
   witnesses, compiler/schema artifacts, mechanism implementations, mechanism evidence and
   assurance observations.
+- **`workspace.rs`** validates local areas, enumerator-backed surfaces and optional area realization
+  obligations. Source area is derived from declared mounts rather than repeated in tags.
 - **`plan.rs`** parses `azimuth/standards/verification.md` and sibling verification plans. Entries
   are deviations only—a claim with no entry is not unplanned, the standard applies.
   `Scope`/`Quantification`/`Oracle`
@@ -156,8 +159,9 @@ kinds and the two site-class kinds are not missing-facet combinations either. Se
 honest as whoever wrote it: `toothless-evidence`, `dishonest-tag-judged`, `spec-gap`,
 `dishonest-realization`, `stale-judgment`.
 
-**Site class** — for claims ranging over a set of sites rather than over executions:
-`invariant-breach`, `dangling-class`, `enumerator-unsound-or-underived`. An enumerator witness is
+**Site surface** — for claims ranging over a set of sites rather than over executions:
+`missing-surface`, `unknown-surface`, `invariant-breach`,
+`enumerator-unsound-or-underived`. An enumerator witness is
 required before member findings are authoritative; tags never count as a complete enumeration.
 `invariant-breach` is the one hole kind a per-scenario matrix structurally cannot find, because a
 claim quantified over a set of sites is not established by evidence about one site however good
@@ -187,6 +191,9 @@ critical requirement is a hole. Partial adoption still reports.
   checked for pass/fail and expiry; a prose attestation in a plan is still believed at its stated
   strength. Semantic honesty remains the agent tier's job, and nothing forces a judgment except
   `unjudged` on critical claims.
+- **Area obligations establish participation, not evidence.** The machine derives each
+  realization's area from its source locator and reports `missing-required-realization`; evidence
+  continues to follow the verification plan rather than being duplicated per area.
 - **Two domains of the six are exercised** (D13.3 closes the set at six). Claims are
   `(domain, predicate)`; the behavioural domain is what scenarios take implicitly, and the site
   class is declared with `## Invariant:`. The remaining four arrive as data, not as new artifact

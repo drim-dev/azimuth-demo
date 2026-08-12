@@ -740,6 +740,7 @@ fn split_and_monorepo_controls_derive_the_same_assurance_relations() {
     let monorepo = azimuth::load(
         &control.join("azimuth/model"),
         &control.join("azimuth/standards/verification.md"),
+        &control.join("azimuth/workspace.json"),
         &manifests,
         &[],
     )

@@ -23,9 +23,13 @@ Implement the approved target without letting the proposal become a substitute f
    quantification and oracle.
 6. Build and run the narrow evidence while iterating, then the affected component and composed
    evidence. Emit every relevant language manifest and run `azimuth check` over their union.
-7. Invoke `azimuth-verify` for every new or stale judgment. Fix dishonest relations and toothless
+7. When the change adds or alters a surface, run its real enumerator and validate the negative
+   path with a temporary representative untagged member. Expect `invariant-breach`, then remove the
+   temporary member. Satisfy area realization obligations with honest production relations; do not
+   manufacture one evidence item per area.
+8. Invoke `azimuth-verify` for every new or stale judgment. Fix dishonest relations and toothless
    evidence rather than editing the verdict to green.
-8. Complete plan and work-package statuses, write `outcome.md`, and leave proposal status at
+9. Complete plan and work-package statuses, write `outcome.md`, and leave proposal status at
    `implemented` until acceptance is genuinely established.
 
 ## Boundaries

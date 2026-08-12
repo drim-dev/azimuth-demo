@@ -21,12 +21,17 @@ Create the smallest semantic transition that can be reviewed and accepted indepe
 6. Add `design.md` only when alternatives, boundaries, failure modes or migration order make a
    solution decision reviewable. Add `verification.md` only for deviations, non-test evidence,
    operational evidence or residuals not derived from the project standard.
-7. If independent execution is useful, write `work-packages.md`. Each package declares Status,
+7. For a site-domain invariant, identify the semantic population before implementation. Reuse a
+   declared surface when its membership is exact; otherwise propose area-mount enumerator
+   contributions and name what could remain outside them. For an ordinary cross-area claim, add
+   area realization obligations only when accepted architecture requires participation there.
+   Do not invent roles or mirror the areas into test obligations.
+8. If independent execution is useful, write `work-packages.md`. Each package declares Status,
    Depends on, non-overlapping Owns paths, Objective and Evidence. Coordinator-owned shared
    contracts must be a predecessor rather than jointly owned.
-8. Run `azimuth change check <id>` and `azimuth change work-packages <id>` when applicable. Resolve
+9. Run `azimuth change check <id>` and `azimuth change work-packages <id>` when applicable. Resolve
    parser and DAG errors before presenting the proposal.
-9. Present the proposal and ask for approval. Do not implement as part of this skill unless the
+10. Present the proposal and ask for approval. Do not implement as part of this skill unless the
    user's request already explicitly authorized both proposal and implementation.
 
 ## Routine path

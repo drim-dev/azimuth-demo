@@ -1,5 +1,11 @@
 # Judgments: trips/driver-view
 
+Revalidated 2026-08-12 after D41 moved the driver-app assignment into the declared
+`trips/driver-view` surface. The `driver-experience` area mount selects the complete driver Next
+application, and its successful build witness contains all five project-owned routes. Every route
+discharge and the existing tag-derived backend members were re-read; only the assignment's
+provenance and fingerprint changed.
+
 Re-judged 2026-08-10 after D28 exposed realization sources. `DriverProjection` is the disclosure
 boundary; the query handlers supply ownership and phase facts; the driver API, view-model and page
 sites preserve or render the bounded result. For the site-quantified invariant, surfaces that carry
@@ -29,8 +35,8 @@ entries.
 
 ## Claim: rider-contact-confined-to-held-trips
 Verdict: sound
-Fingerprint: d3f4571a9c102e15
-Judged: 2026-08-10
+Fingerprint: 7008160d75abbd5a
+Judged: 2026-08-12
 Judge: codex
 
 The driver-side invariant, and the class is now derived: `invariant-breach` takes membership from

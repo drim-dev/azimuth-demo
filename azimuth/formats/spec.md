@@ -93,12 +93,12 @@ Criticality: critical
 Over: trips/rider-view
 ```
 
-The last line currently names one existing **spec id**, not an informal business domain. Its member
-set is the union of tagged production sites realizing behavioral claims in that spec and
-extractor-emitted `class_members` whose class is that same id. The check also requires a successful
-enumerator witness; tags alone cannot prove the class complete. An invariant in one spec may range
-over another spec this way, but one `Over:` cannot yet union several specs or name an independently
-declared reusable domain. That extension remains open pending a real cross-cutting mechanism.
+The last line names a surface declared in `azimuth/workspace.json` (D41), not an informal business
+domain or source path. Each surface contribution binds an area mount to an enumerator. The check
+requires a successful witness from every contribution; tags alone cannot prove the surface
+complete. Tagged realizations of behavioral claims in a same-id spec remain members during the
+current Next-only transition, while extractor-emitted members reach entirely untagged route files.
+Missing `Over:`, an unknown surface and a failed contribution are distinct machine findings.
 
 ## Style
 

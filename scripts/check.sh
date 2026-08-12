@@ -58,12 +58,10 @@ EMIT="$ROOT/tools/extractors/dotnet/Azimuth.Emit/bin/Debug/net10.0/azimuth-emit-
   app/services/Analytics/bin/Debug/net10.0/Analytics.dll \
   app/services/Analytics.Tests/bin/Debug/net10.0/Analytics.Tests.dll
 
-# The two apps are enumerated as classes: membership comes from the built route table, so a route
-# that exists is in the class whether or not anyone tagged it. A tag-derived class only ever reaches
-# files somebody already annotated (D13.1).
+# Surface contributions come from the workspace declaration; route membership still comes from the
+# built applications, independently of linkage tags (D13.1).
 node tools/extractors/typescript/dist/cli.js --output "$OUT/web.json" --root "$ROOT" \
-  --next-app trips/rider-view=app/web/rider \
-  --next-app trips/driver-view=app/web/driver \
+  --workspace azimuth/workspace.json \
   --prometheus app/monitoring/payments.rules.yml,app/monitoring/payments.rules.test.yml \
   --prometheus app/monitoring/trip-events.rules.yml,app/monitoring/trip-events.rules.test.yml \
   app/web/rider/src app/web/driver/src app/e2e/src

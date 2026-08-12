@@ -201,6 +201,15 @@ pub enum Domain {
     Sites,
 }
 
+impl Domain {
+    pub fn name(self) -> &'static str {
+        match self {
+            Self::Behaviour => "behaviour",
+            Self::Sites => "sites",
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct Requirement {
     pub id: String,
@@ -211,7 +220,7 @@ pub struct Requirement {
     pub scenarios: Vec<Scenario>,
     pub line: usize,
     pub domain: Domain,
-    /// For `Domain::Sites`: the spec whose realizing sites form the class.
+    /// For `Domain::Sites`: the declared surface whose derived members form the domain.
     pub over: Option<String>,
 }
 
@@ -479,6 +488,7 @@ pub struct Model {
     pub plans: Vec<crate::plan::Plan>,
     pub designs: Vec<crate::design::Design>,
     pub judgments: Vec<crate::judgment::Judgments>,
+    pub workspace: crate::workspace::Workspace,
 }
 
 /// The evidence standard for one claim: the project mapping, overridden by a plan entry.
@@ -658,6 +668,82 @@ impl Model {
                 ));
             }
         }
+        if let Some(obligation) = self.workspace.obligation(spec, scenario) {
+            let mut area_declarations = Vec::new();
+            for area_id in &obligation.areas {
+                if let Some(area) = self.workspace.areas.iter().find(|area| &area.id == area_id) {
+                    let mut mounts = Vec::new();
+                    for mount in &area.mounts {
+                        mounts.push(format!("{}={}", mount.id, mount.path));
+                    }
+                    mounts.sort();
+                    area_declarations.push(format!("{}|{}", area.id, mounts.join("|")));
+                }
+            }
+            area_declarations.sort();
+            inputs.push(crate::judgment::FingerprintInput::declaration(
+                "realization-obligation",
+                &format!("{spec}#{scenario}"),
+                &area_declarations.join(","),
+            ));
+        }
+        if claim.requirement.domain == Domain::Sites {
+            if let Some(surface_id) = claim.requirement.over.as_deref() {
+                if let Some(surface) = self.workspace.surface(surface_id) {
+                    let mut contributions = surface
+                        .contributions
+                        .iter()
+                        .map(|contribution| {
+                            let path = self
+                                .workspace
+                                .areas
+                                .iter()
+                                .find(|area| area.id == contribution.area)
+                                .and_then(|area| {
+                                    area.mounts
+                                        .iter()
+                                        .find(|mount| mount.id == contribution.mount)
+                                })
+                                .map(|mount| mount.path.as_str())
+                                .unwrap_or_default();
+                            format!(
+                                "{}|{}|{}|{}",
+                                contribution.area,
+                                contribution.mount,
+                                contribution.enumerator,
+                                path
+                            )
+                        })
+                        .collect::<Vec<_>>();
+                    contributions.sort();
+                    inputs.push(crate::judgment::FingerprintInput::declaration(
+                        "surface",
+                        surface_id,
+                        &contributions.join(","),
+                    ));
+                    for enumeration in self
+                        .enumerations
+                        .iter()
+                        .filter(|enumeration| enumeration.class == surface_id)
+                    {
+                        inputs.push(crate::judgment::FingerprintInput::declaration(
+                            "surface-enumeration",
+                            &format!(
+                                "{}|{}|{}",
+                                surface_id,
+                                enumeration.kind,
+                                enumeration
+                                    .identity
+                                    .as_ref()
+                                    .map(|identity| identity.key())
+                                    .unwrap_or_else(|| enumeration.source.clone())
+                            ),
+                            &enumeration.source_fingerprint,
+                        ));
+                    }
+                }
+            }
+        }
         inputs.sort_by(|a, b| a.identity.cmp(&b.identity));
         inputs.dedup_by(|a, b| a.identity == b.identity);
         inputs
@@ -792,12 +878,37 @@ impl Model {
             ("specs", Json::Arr(specs)),
             (
                 "realizes",
-                Json::Arr(self.realizes.iter().map(site_json).collect()),
+                Json::Arr(
+                    self.realizes
+                        .iter()
+                        .map(|site| {
+                            site_json(
+                                site,
+                                self.workspace
+                                    .area_for_file(&site.file)
+                                    .map(|area| area.id.as_str()),
+                            )
+                        })
+                        .collect(),
+                ),
             ),
             (
                 "covers",
-                Json::Arr(self.covers.iter().map(site_json).collect()),
+                Json::Arr(
+                    self.covers
+                        .iter()
+                        .map(|site| {
+                            site_json(
+                                site,
+                                self.workspace
+                                    .area_for_file(&site.file)
+                                    .map(|area| area.id.as_str()),
+                            )
+                        })
+                        .collect(),
+                ),
             ),
+            ("workspace", workspace_json(&self.workspace)),
             (
                 "mechanism_implementations",
                 Json::Arr(
@@ -1017,7 +1128,7 @@ impl Model {
     }
 }
 
-fn site_json(s: &Site) -> Json {
+fn site_json(s: &Site, derived_area: Option<&str>) -> Json {
     let mut pairs = vec![
         ("spec".to_string(), Json::str(&s.spec)),
         ("scenario".to_string(), Json::str(&s.scenario)),
@@ -1036,6 +1147,8 @@ fn site_json(s: &Site) -> Json {
         pairs.push(("address_kind".to_string(), Json::str(&source.kind)));
         pairs.push(("address".to_string(), Json::str(&source.address)));
         pairs.push(("mount".to_string(), Json::str(&source.mount)));
+    } else if let Some(area) = derived_area {
+        pairs.push(("derived_area".to_string(), Json::str(area)));
     }
     if let Some(value) = &s.evidence_kind {
         pairs.push(("evidence_kind".to_string(), Json::str(value)));
@@ -1059,6 +1172,89 @@ fn site_json(s: &Site) -> Json {
         pairs.push(("oracle".to_string(), Json::str(o.name())));
     }
     Json::Obj(pairs)
+}
+
+fn workspace_json(workspace: &crate::workspace::Workspace) -> Json {
+    Json::Obj(vec![
+        ("path".into(), Json::str(&workspace.path)),
+        (
+            "areas".into(),
+            Json::Arr(
+                workspace
+                    .areas
+                    .iter()
+                    .map(|area| {
+                        Json::Obj(vec![
+                            ("id".into(), Json::str(&area.id)),
+                            (
+                                "mounts".into(),
+                                Json::Arr(
+                                    area.mounts
+                                        .iter()
+                                        .map(|mount| {
+                                            Json::Obj(vec![
+                                                ("id".into(), Json::str(&mount.id)),
+                                                ("path".into(), Json::str(&mount.path)),
+                                            ])
+                                        })
+                                        .collect(),
+                                ),
+                            ),
+                        ])
+                    })
+                    .collect(),
+            ),
+        ),
+        (
+            "surfaces".into(),
+            Json::Arr(
+                workspace
+                    .surfaces
+                    .iter()
+                    .map(|surface| {
+                        Json::Obj(vec![
+                            ("id".into(), Json::str(&surface.id)),
+                            (
+                                "contributions".into(),
+                                Json::Arr(
+                                    surface
+                                        .contributions
+                                        .iter()
+                                        .map(|item| {
+                                            Json::Obj(vec![
+                                                ("area".into(), Json::str(&item.area)),
+                                                ("mount".into(), Json::str(&item.mount)),
+                                                ("enumerator".into(), Json::str(&item.enumerator)),
+                                            ])
+                                        })
+                                        .collect(),
+                                ),
+                            ),
+                        ])
+                    })
+                    .collect(),
+            ),
+        ),
+        (
+            "realization_obligations".into(),
+            Json::Arr(
+                workspace
+                    .realization_obligations
+                    .iter()
+                    .map(|item| {
+                        Json::Obj(vec![
+                            ("spec".into(), Json::str(&item.spec)),
+                            ("claim".into(), Json::str(&item.claim)),
+                            (
+                                "areas".into(),
+                                Json::Arr(item.areas.iter().map(Json::str).collect()),
+                            ),
+                        ])
+                    })
+                    .collect(),
+            ),
+        ),
+    ])
 }
 
 fn mechanism_implementation_json(item: &MechanismImplementation) -> Json {

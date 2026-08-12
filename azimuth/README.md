@@ -6,6 +6,7 @@ evidence and judgment (D32).
 
 ```text
 azimuth/
+├── workspace.json        # local areas, derived surfaces and area obligations
 ├── model/<spec-id>/
 │   ├── spec.md            # required
 │   ├── design.md          # required for critical intent; otherwise optional
@@ -23,7 +24,8 @@ azimuth/
 └── formats/
     ├── spec.md
     ├── design.md
-    └── verification.md
+    ├── verification.md
+    └── workspace.md
 ```
 
 The leaf directory is a **model package**, not a four-file template. `spec.md` is its anchor.
@@ -45,6 +47,10 @@ bindings and evidence rather than inferred from directory proximity.
 
 Format contracts live in `formats/`. Proposed states and immutable history live in `changes/`.
 Neither is scanned as the accepted current model.
+
+`workspace.json` uses the same area-and-mount vocabulary as federation without adding a repository
+field. It binds independently derived surfaces to enumerators and may require ordinary claims to
+have realizations in named areas. Areas are inferred from source paths; tags do not repeat them.
 
 The two standards have different authority. `verification.md` says what evidence must establish
 the product claim. `judgment.md` says how the agent audits whether that evidence is discriminating.

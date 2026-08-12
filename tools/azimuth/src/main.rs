@@ -44,6 +44,7 @@ CHECKS
 OPTIONS
     --model <dir>          current model packages (default: azimuth/model)
     --standards <file>     evidence standards (default: azimuth/standards/verification.md)
+    --workspace <file>     areas, surfaces and obligations (default: workspace.json beside model/)
     --manifest <file>      a linkage manifest; repeatable
     --only <pattern>       restrict to spec ids; `billing/**` or an exact id; repeatable
     --out <file>           export destination (default: stdout)
@@ -67,6 +68,7 @@ fn main() -> ExitCode {
 struct Options {
     model: PathBuf,
     standards: PathBuf,
+    workspace: PathBuf,
     manifests: Vec<PathBuf>,
     only: Vec<String>,
     out: Option<PathBuf>,
@@ -662,6 +664,7 @@ fn command_change(args: &[String]) -> Result<ExitCode, String> {
     let loaded = match azimuth::load(
         &options.model,
         &options.standards,
+        &options.workspace,
         &options.manifests,
         &options.only,
     ) {
@@ -846,6 +849,7 @@ fn parse_options(args: &[String]) -> Result<Options, String> {
     let mut o = Options {
         model: PathBuf::from("azimuth/model"),
         standards: PathBuf::from("azimuth/standards/verification.md"),
+        workspace: PathBuf::new(),
         manifests: Vec::new(),
         only: Vec::new(),
         out: None,
@@ -866,6 +870,10 @@ fn parse_options(args: &[String]) -> Result<Options, String> {
             }
             "--standards" => {
                 o.standards = PathBuf::from(value("--standards")?);
+                i += 2;
+            }
+            "--workspace" => {
+                o.workspace = PathBuf::from(value("--workspace")?);
                 i += 2;
             }
             "--manifest" => {
@@ -892,6 +900,13 @@ fn parse_options(args: &[String]) -> Result<Options, String> {
                 i += 1;
             }
         }
+    }
+    if o.workspace.as_os_str().is_empty() {
+        o.workspace = o
+            .model
+            .parent()
+            .unwrap_or_else(|| std::path::Path::new("."))
+            .join("workspace.json");
     }
     Ok(o)
 }
@@ -948,6 +963,7 @@ fn command_check(options: Options) -> Result<ExitCode, String> {
     let loaded = match azimuth::load(
         &options.model,
         &options.standards,
+        &options.workspace,
         &options.manifests,
         &options.only,
     ) {
@@ -1028,6 +1044,7 @@ fn command_judge(options: Options) -> Result<ExitCode, String> {
     let loaded = match azimuth::load(
         &options.model,
         &options.standards,
+        &options.workspace,
         &options.manifests,
         &options.only,
     ) {
@@ -1073,6 +1090,7 @@ fn command_export(options: Options) -> Result<ExitCode, String> {
     let loaded = match azimuth::load(
         &options.model,
         &options.standards,
+        &options.workspace,
         &options.manifests,
         &options.only,
     ) {

@@ -105,6 +105,15 @@ impl FingerprintInputRole {
 }
 
 impl FingerprintInput {
+    pub fn declaration(kind: &str, id: &str, content: &str) -> Self {
+        Self {
+            role: FingerprintInputRole::Context,
+            identity: format!("{kind}|{id}"),
+            file: String::new(),
+            source_fingerprint: Some(crate::fingerprint::sha256(content.as_bytes())),
+        }
+    }
+
     pub fn file(path: &str) -> Self {
         Self {
             role: FingerprintInputRole::Context,

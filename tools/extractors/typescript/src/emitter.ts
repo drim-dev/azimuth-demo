@@ -53,6 +53,10 @@ export interface ClassMember {
   site: string;
   file: string;
   lang: string;
+  area?: string;
+  address_kind?: string;
+  address?: string;
+  mount?: string;
 }
 
 export interface Enumeration {
@@ -60,6 +64,10 @@ export interface Enumeration {
   kind: string;
   source: string;
   source_fingerprint: string;
+  area?: string;
+  address_kind?: string;
+  address?: string;
+  mount?: string;
 }
 
 export interface Artifact {
@@ -476,6 +484,7 @@ export function nextRoutes(
   classId: string,
   appDir: string,
   repoRoot: string,
+  origin?: { area: string; mount: string },
 ): { members: ClassMember[]; enumeration?: Enumeration; warnings: Warning[] } {
   const manifestPath = path.join(appDir, '.next', 'app-path-routes-manifest.json');
   const warnings: Warning[] = [];
@@ -512,6 +521,12 @@ export function nextRoutes(
       site: route,
       file: path.relative(repoRoot, source).split(path.sep).join('/'),
       lang: 'typescript',
+      ...(origin ? {
+        area: origin.area,
+        address_kind: 'next-route',
+        address: route,
+        mount: origin.mount,
+      } : {}),
     });
   }
 
@@ -527,6 +542,12 @@ export function nextRoutes(
       kind: 'next-routes',
       source: path.relative(repoRoot, manifestPath).split(path.sep).join('/'),
       source_fingerprint: createHash('sha256').update(fs.readFileSync(manifestPath)).digest('hex'),
+      ...(origin ? {
+        area: origin.area,
+        address_kind: 'next-route-manifest',
+        address: classId,
+        mount: origin.mount,
+      } : {}),
     },
     warnings,
   };

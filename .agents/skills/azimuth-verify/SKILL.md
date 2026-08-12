@@ -37,6 +37,12 @@ claim is covered; `findings` does not become adverse until the finding is relate
    predicate the site establishes. Participation in the call path, transport of arbitrary data or
    use of a related mechanism is insufficient. A site that establishes no part of the predicate is
    a **dishonest-realization**.
+   If the claim has area realization obligations, inspect every realization in every obligated
+   area and state how that area contributes. One honest site elsewhere cannot excuse a missing or
+   dishonest obligated realization. Do not demand an area-local test merely because the area is
+   obligated. For a site-domain claim, inspect the surface declaration, every contribution witness
+   and each discharge. Challenge whether the configured areas comprise the intended population;
+   the enumerator proves membership only inside the accepted assignment.
 3. **Read every covering evidence item.** For an automated test, read the body rather than its
    name. For an imported manual result, read the linked procedure, execution identity and
    observations rather than trusting `passed`. For detection evidence, read the metric producer,

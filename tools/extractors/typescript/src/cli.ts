@@ -9,11 +9,12 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { emit, nextRoutes } from './emitter';
 import { prometheusLinkage } from './prometheus';
+import { surfaceTargets } from './workspace';
 
-const USAGE = `usage: azimuth-emit-ts --output <path> [--root <dir>] [--next-app <class>=<dir>] [--prometheus <rules>,<tests>] <dir-or-file>...
+const USAGE = `usage: azimuth-emit-ts --output <path> [--root <dir>] [--workspace <file>] [--prometheus <rules>,<tests>] <dir-or-file>...
   --output    where the manifest is written
   --root      paths in the manifest are made relative to this (default: cwd)
-  --next-app  enumerate a built Next.js app's routes as members of <class>, repeatable.
+  --workspace enumerate declared Next.js surface contributions from area mounts.
               Membership comes from the build, so an untagged route is still a member.
   --prometheus enumerate alert and rule-test artifacts from promtool-validated files.`;
 
@@ -21,7 +22,7 @@ function main(argv: string[]): number {
   let output: string | undefined;
   let root = process.cwd();
   const roots: string[] = [];
-  const apps: { classId: string; dir: string }[] = [];
+  let workspace: string | undefined;
   const prometheus: { rules: string; tests: string }[] = [];
 
   for (let i = 0; i < argv.length; i++) {
@@ -30,14 +31,8 @@ function main(argv: string[]): number {
       output = argv[++i];
     } else if (arg === '--root') {
       root = path.resolve(argv[++i] ?? '.');
-    } else if (arg === '--next-app') {
-      const value = argv[++i] ?? '';
-      const split = value.indexOf('=');
-      if (split <= 0) {
-        console.error(`azimuth-emit: --next-app wants <class>=<dir>, got \`${value}\`\n${USAGE}`);
-        return 2;
-      }
-      apps.push({ classId: value.slice(0, split), dir: path.resolve(value.slice(split + 1)) });
+    } else if (arg === '--workspace') {
+      workspace = path.resolve(argv[++i] ?? '');
     } else if (arg === '--prometheus') {
       const value = argv[++i] ?? '';
       const split = value.indexOf(',');
@@ -71,11 +66,20 @@ function main(argv: string[]): number {
 
   const { manifest, warnings } = emit(roots, root);
 
-  for (const app of apps) {
-    const routes = nextRoutes(app.classId, app.dir, root);
-    manifest.class_members.push(...routes.members);
-    if (routes.enumeration) manifest.enumerations.push(routes.enumeration);
-    warnings.push(...routes.warnings);
+  try {
+    for (const target of workspace ? surfaceTargets(workspace, root) : []) {
+      if (target.enumerator !== 'next-routes') continue;
+      const routes = nextRoutes(target.surface, target.root, root, {
+        area: target.area,
+        mount: target.mount,
+      });
+      manifest.class_members.push(...routes.members);
+      if (routes.enumeration) manifest.enumerations.push(routes.enumeration);
+      warnings.push(...routes.warnings);
+    }
+  } catch (error) {
+    console.error(`azimuth-emit: ${(error as Error).message}`);
+    return 2;
   }
 
   try {

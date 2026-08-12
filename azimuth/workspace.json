@@ -1,0 +1,94 @@
+{
+  "format": "azimuth-workspace",
+  "version": 1,
+  "areas": [
+    {
+      "id": "shared",
+      "mounts": [
+        { "id": "code", "path": "app/services/Common" },
+        { "id": "tests", "path": "app/services/Common.Testing" }
+      ]
+    },
+    {
+      "id": "pricing",
+      "mounts": [
+        { "id": "code", "path": "app/services/Pricing" },
+        { "id": "tests", "path": "app/services/Pricing.Tests" }
+      ]
+    },
+    {
+      "id": "trips",
+      "mounts": [
+        { "id": "code", "path": "app/services/Trips" },
+        { "id": "tests", "path": "app/services/Trips.Tests" }
+      ]
+    },
+    {
+      "id": "payments",
+      "mounts": [
+        { "id": "code", "path": "app/services/Payments" },
+        { "id": "tests", "path": "app/services/Payments.Tests" }
+      ]
+    },
+    {
+      "id": "analytics",
+      "mounts": [
+        { "id": "code", "path": "app/services/Analytics" },
+        { "id": "tests", "path": "app/services/Analytics.Tests" }
+      ]
+    },
+    {
+      "id": "rider-experience",
+      "mounts": [
+        { "id": "code", "path": "app/web/rider" }
+      ]
+    },
+    {
+      "id": "driver-experience",
+      "mounts": [
+        { "id": "code", "path": "app/web/driver" }
+      ]
+    },
+    {
+      "id": "monitoring",
+      "mounts": [
+        { "id": "rules", "path": "app/monitoring" }
+      ]
+    },
+    {
+      "id": "system-e2e",
+      "mounts": [
+        { "id": "tests", "path": "app/e2e" }
+      ]
+    }
+  ],
+  "surfaces": [
+    {
+      "id": "trips/rider-view",
+      "contributions": [
+        {
+          "area": "rider-experience",
+          "mount": "code",
+          "enumerator": "next-routes"
+        }
+      ]
+    },
+    {
+      "id": "trips/driver-view",
+      "contributions": [
+        {
+          "area": "driver-experience",
+          "mount": "code",
+          "enumerator": "next-routes"
+        }
+      ]
+    }
+  ],
+  "realization_obligations": [
+    {
+      "spec": "referrals/rewards",
+      "claim": "referral-summary-explains-state",
+      "areas": ["trips", "rider-experience"]
+    }
+  ]
+}

@@ -277,16 +277,6 @@ impl<'a> SpecParser<'a> {
             i += 1;
         }
 
-        if over.is_none() {
-            self.errors.push(Diag::expecting(
-                self.path,
-                line_no,
-                format!("invariant `{id}` names no class"),
-                "`Over: <spec-id>` — the class is every site realizing a claim in that spec, so \
-                 membership is derived from what the code built rather than declared",
-            ));
-        }
-
         let mut statement = String::new();
         while i < lines.len() {
             let trimmed = lines[i].trim();
