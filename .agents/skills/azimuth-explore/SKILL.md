@@ -65,8 +65,10 @@ Keep epistemic roles explicit:
    after each section and revise it before continuing.
 7. After every section is approved, ask explicitly whether shared understanding has been reached
    and whether the exploration may be persisted.
-8. Only after confirmation, run `azimuth explore create <id> --title <title>` when no package exists
-   and write the approved account. Self-review it, then ask the user to review the actual file.
+8. Only after confirmation, form a concise stable topic id and run
+   `azimuth explore create <id> --title <title>` when no package exists. Write the creation date as
+   `Created: YYYY-MM-DD` in the account rather than embedding it in the active id. Write the approved
+   account, self-review it, then ask the user to review the actual file.
 9. Correct requested issues and repeat the file-review gate. After approval, stop and offer explicit
    next steps without choosing one for the user.
 
@@ -120,7 +122,9 @@ reopen that section and any downstream decision affected by them.
 
 ## Persist the approved account
 
-- Use `azimuth/explorations/<id>/exploration.md` as the anchor. It is not accepted product truth.
+- Use `azimuth/explorations/<id>/exploration.md` as the active anchor. Keep the stable id undated,
+  record `Created: YYYY-MM-DD` in the account and reserve the `YYYY-MM-DD-<id>` directory form for
+  archival transitions, symmetric with changes. The exploration is not accepted product truth.
 - Add `research.md` only when sourced findings obscure the anchor. Add `change-map.md` only when more
   than one likely change exists.
 - Keep proposed target behaviour out of `azimuth/model/`; that directory describes current truth.
