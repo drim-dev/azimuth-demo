@@ -10,6 +10,7 @@
     "azimuth-import-manual": "dist/manual-cli.js",
     "azimuth-import-mutation": "dist/mutation-cli.js",
     "azimuth-import-observation": "dist/observation-cli.js",
+    "azimuth-import-pit": "dist/pit-cli.js",
     "azimuth-import-sarif": "dist/sarif-cli.js"
   },
   "scripts": {

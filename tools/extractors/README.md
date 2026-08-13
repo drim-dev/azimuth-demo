@@ -175,6 +175,39 @@ Unknown schemas or statuses fail closed. A renamed target or test becomes an
 `unresolved-observation-binding` hole. Survivors do not automatically fail `azimuth check`: only the
 agent can decide whether a generated wrong implementation is relevant to the claim.
 
+`azimuth-import-pit` consumes PIT's `mutations.xml`, an ordinary JVM linkage manifest, the exact
+native configuration and a resolved source-selection input:
+
+```sh
+azimuth-import-pit target/pit-reports/mutations.xml linkage.json mutation.json \
+  --root . --config pom.xml --selection tests/pit-selection.json --tool-version 1.25.3
+```
+
+```json
+{
+  "schema": "azimuth-pit-selection/1",
+  "target_classes": ["example.Policy"],
+  "selected_tests": [{
+    "site": "example.PolicyTest.rejectsInvalid",
+    "pit_names": ["rejectsInvalid(example.PolicyTest)"]
+  }]
+}
+```
+
+`target_classes` and each `site` are exact JVM symbols, not PIT globs. `pit_names` is an optional
+bridge from PIT's native test display name to the same test symbol; it carries no claim identity.
+The adapter requires every target and selected test to resolve through existing `Realizes` and
+`Covers` linkage. A killing test named by the XML must also resolve to the selection. For survivors,
+no-coverage results and other records without an exact test name, the fingerprinted selection is
+the fail-closed account of which tests ran. This is required because `mutations.xml` does not carry
+a complete selected-test inventory.
+
+PIT remains a challenge under D38 and D39. Killed, survived, no-coverage, timed-out, non-viable,
+runtime-error, pending and equivalent outcomes stay in the observation payload; every outcome
+other than killed is a review item. Unknown XML structure, selection schemas or PIT statuses fail
+before any binding is emitted. The report, native configuration, resolved selection and PIT version
+all contribute to the observation fingerprint.
+
 ## Linkage opt-in
 
 `covers` opts a test into the evidence model. An untagged test emits nothing: it may exercise

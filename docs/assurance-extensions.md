@@ -56,8 +56,10 @@ blanket `passed` relation.
 ```
 
 Adapters own native schemas and reject unknown versions or statuses. `azimuth-import-observation`
-validates provider-neutral exports. `azimuth-import-mutation` and `azimuth-import-sarif` derive
-challenge bindings from existing linkage so they need no second claim map.
+validates provider-neutral exports. `azimuth-import-mutation`, `azimuth-import-pit` and
+`azimuth-import-sarif` derive challenge bindings from existing linkage so they need no second claim
+map. PIT additionally fingerprints an exact resolved class and test selection because its XML report
+does not enumerate every selected test.
 
 The opaque payload is for agent inspection and export consumers. It cannot change a binding's role,
 outcome or form; those remain explicit core fields. The payload and native inputs are covered by the
