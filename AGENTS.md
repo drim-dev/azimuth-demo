@@ -1,11 +1,13 @@
 # Azimuth demo
 
-Development repo for the Azimuth framework and the ride-hailing fixture used to develop it.
-Self-contained by design: tooling, skills, specs and app live here together so that a change to
-the notation and a change to the corpus land in one commit. Extraction and release come after the
-concepts stabilize.
+External dogfood repository for the ride-hailing fixture used to exercise Azimuth. The checkout
+preserves the earlier co-located framework-development history, but new framework versions are
+developed and released from the canonical `azimuth-sh/azimuth` repository. Do not change generic
+Azimuth tooling, formats, skills or framework model packages here and transfer them later.
 
-The alpha at `drim-dev/azimuth` is **frozen**. All development happens here.
+Fixture changes remain authoritative here. They may consume candidate Azimuth revisions and return
+findings to the canonical repository, but the canonical build and release never depend on this
+checkout.
 
 `AGENTS.md` is the single source for repository instructions. Codex reads it directly; Claude Code
 loads it through the one-line `CLAUDE.md` import. Skills use only the shared Agent Skills fields
