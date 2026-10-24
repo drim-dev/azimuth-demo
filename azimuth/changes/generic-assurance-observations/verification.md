@@ -1,21 +1,18 @@
 # Verification: generic-assurance-observations
 
-## Claim: relay-backlog-raises-alert
-Scope: unit
-Quantification: example
-Oracle: direct
+## Domain validation provenance *(revised 2026-08-14)*
 
-The operations repository's `promtool` rule test drives a synthetic backlog series past the
-declared `for` interval and expects the named alert with its labels and annotation.
+The original change used two ride-hailing alert claims to establish that Prometheus rule and
+rule-test relations can originate outside a backend repository. The claim-specific verification
+now belongs to `ride-hailing-delivery-alerts`.
 
-## Claim: dead-letter-presence-raises-alert
-Scope: unit
-Quantification: example
-Oracle: direct
+The exact pre-split sources and judgments remain under this immutable Git identity:
 
-The operations repository's `promtool` rule test supplies a non-zero dead-letter series and expects
-the named alert. A zero-series case remains ordinary rule-suite evidence against a permanently-on
-expression.
+- Repository: `https://github.com/drim-dev/azimuth-demo.git`
+- Revision: `68a2eb5d46daf01ba087ec94b6a1ea7901c63bfd`
+
+That citation records field provenance. Canonical build, test, release and acceptance do not read
+the demo checkout.
 
 ## Protocol validation
 
